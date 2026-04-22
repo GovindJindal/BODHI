@@ -14,16 +14,21 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# In a real production app, put this in a .env file!
-SECRET_KEY = "super_secret_bodhi_key_do_not_share"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
+import os
+from dotenv import load_dotenv
 
-# Configuration
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-SENDER_EMAIL = "govindjindal7808@gmail.com" 
-SENDER_PASSWORD = "cebm qeiq dllk xkwo" 
+load_dotenv()
+
+# Production configuration from environment variables
+SECRET_KEY = os.environ.get("SECRET_KEY", "your_super_secret_random_hex_key")
+ALGORITHM = os.environ.get("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 10080))  # Default 7 days
+
+# Email Configuration
+SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "govindjindal7808@gmail.com")
+SENDER_PASSWORD = os.environ.get("SENDER_PASSWORD", "cebm qeiq dllk xkwo")
 
 # Password hashing setup
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

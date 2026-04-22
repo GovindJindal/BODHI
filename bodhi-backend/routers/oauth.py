@@ -84,29 +84,9 @@ APPLE_APP_BUNDLE_ID       = "com.yourcompany.bodhi"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Helper – our standard JWT issuer
-# ─────────────────────────────────────────────────────────────────────────────
-
-def create_access_token(subject: str, expires_delta: Optional[timedelta] = None) -> str:
-    """
-    Create a signed JWT for `subject` (user UUID as string).
-    Adjust this to match your existing token-creation logic.
-    """
-    expire = datetime.now(timezone.utc) + (
-        expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    )
-    payload = {
-        "sub": subject,
-        "exp": expire,
-        "iat": datetime.now(timezone.utc),
-        "type": "access",
-    }
-    return pyjwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Google token verification
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _get_google_audience_ids() -> list[str]:
     """

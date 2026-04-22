@@ -4,6 +4,7 @@ from services.scheduler import scheduler
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi.security import OAuth2PasswordBearer
+import asyncio
 
 # Database & Models
 from database import engine, Base
@@ -19,16 +20,36 @@ import models.wallets
 import models.expenses
 import models.payments
 
-# 1. Lifespan (Building the database)
+# 1. Lifespan (Building the database and starting services)
+async def init_db():
+    print("Building database tables...")
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print("Tables built successfully!")
+    except Exception as e:
+        print(f"Error building database: {e}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("Building database tables...")
+    # Fire and forget DB initialization to allow instant server startup
+    asyncio.create_task(init_db())
     
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Start the background AMO processor
+    try:
+        scheduler.start()
+        print("🤖 Trading Scheduler Started")
+    except Exception as e:
+        print(f"Error starting scheduler: {e}")
         
-    print("Tables built successfully!")
     yield
+    
+    # Shutdown scheduler
+    try:
+        scheduler.shutdown()
+        print("🤖 Trading Scheduler Shutdown")
+    except Exception as e:
+        print(f"Error shutting down scheduler: {e}")
 
 # 2. CRITICAL: Create the app!
 app = FastAPI(
@@ -39,11 +60,9 @@ app = FastAPI(
     swagger_ui_parameters={"persistAuthorization": True} 
 )
 
-@app.on_event("startup")
-async def startup_event():
-    # Start the background AMO processor
-    scheduler.start()
-    print("🤖 Trading Scheduler Started")
+@app.get("/", tags=["Health"])
+async def health_check():
+    return {"status": "ok"}
 
 # 3. Middleware
 app.add_middleware(

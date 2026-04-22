@@ -66,3 +66,6 @@ venv.bak/
 .env
 .env.local
 .env.*
+
+.elasticbeanstalk/*
+!.elasticbeanstalk/config.yml
