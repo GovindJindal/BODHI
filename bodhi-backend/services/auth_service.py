@@ -1,3 +1,12 @@
+
+
+
+
+
+
+
+
+
 import hashlib
 from datetime import datetime, timedelta
 from typing import Optional
@@ -55,8 +64,12 @@ SENDER_PASSWORD = os.getenv("SENDER_PASSWORD") or os.getenv("SMTP_PASSWORD")
 SMS_KEY = os.getenv("SMS_API_KEY")
 SMS_SENDER_ID = os.getenv("SMS_SENDER_ID", "FSTSMS")
 
-# Using passlib context to handle multiple hashing algorithms (bcrypt and pbkdf2)
-pwd_context = CryptContext(schemes=["bcrypt", "pbkdf2_sha256"], deprecated="auto")
+import passlib.handlers.bcrypt
+def patched_detect_wrap_bug(ident):
+    return False
+passlib.handlers.bcrypt.detect_wrap_bug = patched_detect_wrap_bug
+
+pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
 
 # tokenUrl must match the actual login route: POST /auth/token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
