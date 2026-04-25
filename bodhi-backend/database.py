@@ -11,7 +11,18 @@ SENDER_PASSWORD = os.getenv("SENDER_PASSWORD", "")
 
 try:
     if DATABASE_URL:
-        engine = create_async_engine(DATABASE_URL, echo=True, pool_pre_ping=True)
+        connect_args = {}
+        # Force SSL for RDS if not already specified in the URL
+        if "rds.amazonaws.com" in DATABASE_URL and "ssl=" not in DATABASE_URL:
+            # For asyncpg, ssl="require" works well with RDS
+            connect_args["ssl"] = "require"
+            
+        engine = create_async_engine(
+            DATABASE_URL, 
+            echo=True, 
+            pool_pre_ping=True,
+            connect_args=connect_args
+        )
         AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     else:
         print("⚠️ WARNING: DATABASE_URL is missing!")
