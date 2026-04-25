@@ -99,10 +99,16 @@ def verify_password(plain_password: str, hashed_password: str):
     return False
 
 def get_password_hash(password: str):
-    # To support passwords > 72 bytes, we pre-hash with SHA-256. 
-    # This is a standard industry practice to bypass bcrypt's char limit.
+    # Support for very strong/long passwords via SHA-256 pre-hashing
     pre_hashed = hashlib.sha256(str(password).encode()).hexdigest()
-    return pwd_context.hash(pre_hashed)
+    
+    # Final safety check before passing to bcrypt
+    final_input = pre_hashed.encode('utf-8')
+    if len(final_input) > 71:
+        final_input = final_input[:71]
+        
+    print(f"🔒 Hashing password fingerprint (length: {len(final_input)} bytes)")
+    return pwd_context.hash(final_input.decode('utf-8'))
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
