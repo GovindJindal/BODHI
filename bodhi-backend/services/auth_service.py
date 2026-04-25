@@ -37,8 +37,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(6
 # Configuration
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SENDER_EMAIL = os.getenv("SENDER_EMAIL")
-SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
+SENDER_EMAIL = os.getenv("SENDER_EMAIL") or os.getenv("SMTP_USER")
+SENDER_PASSWORD = os.getenv("SENDER_PASSWORD") or os.getenv("SMTP_PASSWORD")
 
 # SMS Configuration (Fast2SMS)
 SMS_KEY = os.getenv("SMS_API_KEY")

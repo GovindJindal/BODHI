@@ -143,16 +143,25 @@
           resetSuccessMsg.textContent = 'OTP has been sent to your email.';
           resetSuccessMsg.style.display = 'block';
         } else {
-          const err = await response.json();
           let msg = 'Failed to process request.';
-          if (err.detail) {
-            msg = typeof err.detail === 'string' ? err.detail : (err.detail[0]?.msg || JSON.stringify(err.detail));
+          try {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+              const err = await response.json();
+              if (err.detail) {
+                msg = typeof err.detail === 'string' ? err.detail : (err.detail[0]?.msg || JSON.stringify(err.detail));
+              }
+            } else {
+              msg = await response.text() || 'Server error occurred.';
+            }
+          } catch (e) {
+            msg = 'An unexpected error occurred.';
           }
           resetErrorMsg.textContent = msg;
           resetErrorMsg.style.display = 'block';
         }
       } catch (err) {
-        resetErrorMsg.textContent = 'Connection error.';
+        resetErrorMsg.textContent = 'Network or connection error.';
         resetErrorMsg.style.display = 'block';
       } finally {
         sendOtpBtn.textContent = 'Send OTP';
@@ -183,16 +192,25 @@
           document.getElementById('confirmResetForm').reset();
           document.getElementById('confirmResetForm').style.display = 'none';
         } else {
-          const err = await response.json();
           let msg = 'Failed to reset password.';
-          if (err.detail) {
-            msg = typeof err.detail === 'string' ? err.detail : (err.detail[0]?.msg || JSON.stringify(err.detail));
+          try {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+              const err = await response.json();
+              if (err.detail) {
+                msg = typeof err.detail === 'string' ? err.detail : (err.detail[0]?.msg || JSON.stringify(err.detail));
+              }
+            } else {
+              msg = await response.text() || 'Server error occurred.';
+            }
+          } catch (e) {
+            msg = 'An unexpected error occurred.';
           }
           resetErrorMsg.textContent = msg;
           resetErrorMsg.style.display = 'block';
         }
       } catch (err) {
-        resetErrorMsg.textContent = 'Connection error.';
+        resetErrorMsg.textContent = 'Network or connection error.';
         resetErrorMsg.style.display = 'block';
       }
     });
