@@ -66,26 +66,43 @@ import bcrypt
 def verify_password(plain_password: str, hashed_password: str):
     if not hashed_password:
         return False
+    
+    # 1. First, try the modern way (Pre-hashed with SHA256)
     try:
-        # 1. Try standard verification (bcrypt/pbkdf2)
-        return pwd_context.verify(plain_password, hashed_password)
+        pre_hashed = hashlib.sha256(plain_password.encode()).hexdigest()
+        if pwd_context.verify(pre_hashed, hashed_password):
+            return True
     except Exception:
-        # 2. Check for SHA256 fallback (used if bcrypt fails)
-        import hashlib
-        fallback_hash = hashlib.sha256(plain_password.encode()).hexdigest()
-        if hashed_password == fallback_hash:
+        pass
+
+    # 2. Fallback: Try raw password verification (for existing non-pre-hashed passwords)
+    try:
+        # Avoid crashing if the raw password is > 72 bytes
+        safe_plain = str(plain_password)[:72]
+        if pwd_context.verify(safe_plain, hashed_password):
             return True
-            
-        # 3. Fallback: if it's a raw 4-digit PIN (legacy support)
-        if len(hashed_password) == 4 and hashed_password == plain_password:
+    except Exception:
+        pass
+
+    # 3. Fallback: Manual SHA256 check (some legacy systems)
+    try:
+        user_hash = hashlib.sha256(plain_password.encode()).hexdigest()
+        if hashed_password == user_hash:
             return True
-        return False
+    except Exception:
+        pass
+
+    # 4. Fallback: Raw 4-digit PIN
+    if len(hashed_password) == 4 and hashed_password == plain_password:
+        return True
+        
+    return False
 
 def get_password_hash(password: str):
-    # Bcrypt limit is 72 bytes. Truncating here prevents 500 errors
-    # if the frontend accidentally sends an object or giant string.
-    safe_password = str(password)[:72]
-    return pwd_context.hash(safe_password)
+    # To support passwords > 72 bytes, we pre-hash with SHA-256. 
+    # This is a standard industry practice to bypass bcrypt's char limit.
+    pre_hashed = hashlib.sha256(str(password).encode()).hexdigest()
+    return pwd_context.hash(pre_hashed)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
