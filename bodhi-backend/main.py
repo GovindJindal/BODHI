@@ -99,8 +99,32 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
-# Professional Admin Panel URLs (serves login.html at /staff/login)
-app.mount("/staff", StaticFiles(directory=os.path.join(BASE_DIR, "static", "admin"), html=True), name="staff_static")
+# Professional Admin Panel URLs (Clean routes without .html)
+from fastapi.responses import HTMLResponse
+
+def get_admin_html(filename):
+    file_path = os.path.join(BASE_DIR, "static", "admin", filename)
+    try:
+        with open(file_path, "r") as f:
+            return HTMLResponse(content=f.read())
+    except FileNotFoundError:
+        return HTMLResponse(content="Not Found", status_code=404)
+
+@app.get("/staff/login", include_in_schema=False)
+async def get_login(): return get_admin_html("login.html")
+
+@app.get("/staff/index", include_in_schema=False)
+@app.get("/staff", include_in_schema=False)
+async def get_index(): return get_admin_html("index.html")
+
+@app.get("/staff/create", include_in_schema=False)
+async def get_create(): return get_admin_html("create.html")
+
+@app.get("/staff/users", include_in_schema=False)
+async def get_users(): return get_admin_html("users.html")
+
+# Mount /staff for assets (CSS/JS are passed through since they don't match the explicit routes above)
+app.mount("/staff", StaticFiles(directory=os.path.join(BASE_DIR, "static", "admin")), name="staff_assets")
 
 # 3. Middleware
 app.add_middleware(
