@@ -85,18 +85,25 @@ class AdminPasswordResetConfirm(BaseModel):
 
 @router.post("/forgot-password")
 async def request_admin_password_reset(request: AdminPasswordResetRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == request.email))
-    user = result.scalar_one_or_none()
-    
-    # We only allow admin users to reset via this admin-specific endpoint
-    if user and user.role == "admin":
-        otp = str(random.randint(100000, 999999))
-        user.reset_otp = otp
-        user.reset_otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=15)
-        await db.commit()
-        send_otp_email(user.email, otp)
-    
-    return {"message": "If an admin account exists with that email, a reset code has been sent."}
+    try:
+        result = await db.execute(select(User).where(User.email == request.email))
+        user = result.scalar_one_or_none()
+        
+        # We only allow admin users to reset via this admin-specific endpoint
+        if user and user.role == "admin":
+            otp = str(random.randint(100000, 999999))
+            user.reset_otp = otp
+            user.reset_otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=15)
+            await db.commit()
+            send_otp_email(user.email, otp)
+        
+        return {"message": "If an admin account exists with that email, a reset code has been sent."}
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"❌ Reset Error: {error_details}")
+        # Return the error detail to the frontend temporarily for production debugging
+        raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
 
 @router.post("/reset-password")
 async def confirm_admin_password_reset(request: AdminPasswordResetConfirm, db: AsyncSession = Depends(get_db)):

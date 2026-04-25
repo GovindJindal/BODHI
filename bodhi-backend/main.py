@@ -51,7 +51,8 @@ async def init_db():
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_hashed_password VARCHAR(255)"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp VARCHAR(20)"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expiry TIMESTAMP WITH TIME ZONE"))
-            except Exception:
+            except Exception as e:
+                logger.error(f"❌ Migration error: {e}")
                 pass
                 
         logger.info("✅ DB tables synced successfully.")
