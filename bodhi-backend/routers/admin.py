@@ -107,25 +107,38 @@ async def request_admin_password_reset(request: AdminPasswordResetRequest, db: A
 
 @router.post("/reset-password")
 async def confirm_admin_password_reset(request: AdminPasswordResetConfirm, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == request.email))
-    user = result.scalar_one_or_none()
-    
-    if not user or user.role != "admin":
-        raise HTTPException(status_code=404, detail="Admin account not found")
+    try:
+        result = await db.execute(select(User).where(User.email == request.email))
+        user = result.scalar_one_or_none()
         
-    if not user.reset_otp or user.reset_otp != request.otp:
-        raise HTTPException(status_code=400, detail="Invalid reset code")
+        if not user or user.role != "admin":
+            raise HTTPException(status_code=404, detail="Admin account not found")
+            
+        if not user.reset_otp or user.reset_otp != request.otp:
+            raise HTTPException(status_code=400, detail="Invalid reset code")
+            
+        # Ensure reset_otp_expiry is TZ-aware before comparison
+        now = datetime.now(timezone.utc)
+        expiry = user.reset_otp_expiry
+        if expiry and expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=timezone.utc)
+            
+        if expiry and now > expiry:
+            raise HTTPException(status_code=400, detail="Reset code has expired")
+            
+        # Update explicitly the admin_hashed_password
+        user.admin_hashed_password = get_password_hash(request.new_password)
+        user.reset_otp = None
+        user.reset_otp_expiry = None
         
-    if user.reset_otp_expiry and datetime.now(timezone.utc) > user.reset_otp_expiry:
-        raise HTTPException(status_code=400, detail="Reset code has expired")
-        
-    # Update explicitly the admin_hashed_password
-    user.admin_hashed_password = get_password_hash(request.new_password)
-    user.reset_otp = None
-    user.reset_otp_expiry = None
-    
-    await db.commit()
-    return {"message": "Admin password updated successfully"}
+        await db.commit()
+        return {"message": "Admin password updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"❌ Confirm Reset Error: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
 
 # ───────────────────────────────────────────────────────────────────────
 # 2. Users Management

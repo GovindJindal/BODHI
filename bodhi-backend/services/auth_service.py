@@ -20,6 +20,17 @@ from email.mime.multipart import MIMEMultipart
 
 load_dotenv()
 
+# ── Bcrypt 4.0 Compatibility Patch ─────────────────────────────────────────────
+# Passlib (older versions) expects bcrypt to have an __about__ attribute.
+# Bcrypt 4.0+ removed this, causing AttributeErrors.
+import bcrypt
+if not hasattr(bcrypt, "__about__"):
+    class BcryptAbout:
+        def __init__(self):
+            self.__version__ = getattr(bcrypt, "__version__", "4.0.0")
+    bcrypt.__about__ = BcryptAbout()
+# ─────────────────────────────────────────────────────────────────────────────
+
 # ── Security config ────────────────────────────────────────────────────────────
 # SECRET_KEY MUST be set in .env on production. The fallback is only for local dev.
 _env_secret = os.getenv("SECRET_KEY")
