@@ -14,8 +14,12 @@ try:
         connect_args = {}
         # Force SSL for RDS if not already specified in the URL
         if "rds.amazonaws.com" in DATABASE_URL and "ssl=" not in DATABASE_URL:
-            # For asyncpg, ssl=True is a safe standard for RDS
-            connect_args["ssl"] = True
+            # For RDS with self-signed certificates, we need to disable verification
+            import ssl
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+            connect_args["ssl"] = ssl_context
             
         engine = create_async_engine(
             DATABASE_URL, 
