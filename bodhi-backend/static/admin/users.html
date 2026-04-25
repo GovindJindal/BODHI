@@ -12,9 +12,9 @@
     <aside class="sidebar">
       <div class="logo">BODHI <span>STAFF</span></div>
       <ul class="nav-links">
-        <li><a href="index.html">Dashboard</a></li>
-        <li><a href="users.html" class="active">User Directory</a></li>
-        <li><a href="create.html">Mint New Admin</a></li>
+        <li><a href="index">Dashboard</a></li>
+        <li><a href="users" class="active">User Directory</a></li>
+        <li><a href="create">Mint New Admin</a></li>
       </ul>
       <button onclick="logout()" class="btn btn-outline logout-btn">Log Out</button>
     </aside>
@@ -48,7 +48,7 @@
 
   <script>
     const token = localStorage.getItem('admin_token');
-    if (!token) window.location.href = 'login.html';
+    if (!token) window.location.href = 'login';
 
     async function fetchUsers(query = '') {
       const url = query ? `/admin/users/search?q=${query}` : '/admin/users';
@@ -126,7 +126,7 @@
 
     function logout() {
       localStorage.removeItem('admin_token');
-      window.location.href = 'login.html';
+      window.location.href = 'login';
     }
 
     fetchUsers();

@@ -106,7 +106,7 @@
         if (response.ok) {
           const data = await response.json();
           localStorage.setItem('admin_token', data.access_token);
-          window.location.href = 'index.html'; // Load dashboard
+          window.location.href = 'index'; // Load dashboard
         } else {
           const err = await response.json();
           errorMsg.textContent = err.detail || 'Login failed. Check credentials.';

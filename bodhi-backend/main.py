@@ -99,6 +99,9 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
+# Professional Admin Panel URLs (serves login.html at /staff/login)
+app.mount("/staff", StaticFiles(directory=os.path.join(BASE_DIR, "static", "admin"), html=True), name="staff_static")
+
 # 3. Middleware
 app.add_middleware(
     CORSMiddleware,
@@ -129,20 +132,10 @@ async def health_check(request: Request):
     # Allow ELB and API tools to see the raw JSON status
     if "ELB-HealthChecker" in user_agent or "curl" in user_agent.lower() or "postman" in user_agent.lower():
         return {"status": "alive", "message": "BODHI API is running"}
-    # Redirect browsers to admin panel
+    # Redirect browsers to the professional admin panel URL
     from fastapi.responses import RedirectResponse
-    return RedirectResponse(url="/static/admin/login.html")
+    return RedirectResponse(url="/staff/login")
 
-@app.get("/admin-panel", response_class=HTMLResponse, include_in_schema=False)
-async def admin_panel():
-    import os
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(base_dir, "static", "admin", "index.html")
-    try:
-        with open(file_path, "r") as f:
-            return HTMLResponse(content=f.read())
-    except FileNotFoundError:
-        return HTMLResponse(content="<h1>Error: Admin Panel file not found</h1><p>Expected path: " + file_path + "</p>", status_code=404)
 
 # 4. Attach all routers
 app.include_router(auth.router,         prefix="/auth",          tags=["Authentication"])
