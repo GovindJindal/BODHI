@@ -1,6 +1,6 @@
 import os
 from routers.oauth import router as oauth_router
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
@@ -124,8 +124,14 @@ async def custom_swagger_ui_html():
 
 # Health check – always responds immediately
 @app.get("/", tags=["Health"])
-async def health_check():
-    return {"status": "alive", "message": "BODHI API is running"}
+async def health_check(request: Request):
+    user_agent = request.headers.get("user-agent", "")
+    # Allow ELB and API tools to see the raw JSON status
+    if "ELB-HealthChecker" in user_agent or "curl" in user_agent.lower() or "postman" in user_agent.lower():
+        return {"status": "alive", "message": "BODHI API is running"}
+    # Redirect browsers to admin panel
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/static/admin/login.html")
 
 @app.get("/admin-panel", response_class=HTMLResponse, include_in_schema=False)
 async def admin_panel():
