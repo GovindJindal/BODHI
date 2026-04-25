@@ -11,10 +11,17 @@ SENDER_PASSWORD = os.getenv("SENDER_PASSWORD", "")
 
 try:
     if DATABASE_URL:
+        # Mask password for logging
+        masked_url = DATABASE_URL
+        if "@" in DATABASE_URL:
+            parts = DATABASE_URL.split("@")
+            prefix = parts[0].split(":")[0] + ":****" if ":" in parts[0] else "****"
+            masked_url = prefix + "@" + parts[1]
+        print(f"📡 Connecting to: {masked_url}")
+        
         connect_args = {}
-        # Force SSL for RDS if not already specified in the URL
-        if "rds.amazonaws.com" in DATABASE_URL and "ssl=" not in DATABASE_URL:
-            # For RDS with self-signed certificates, we need to disable verification
+        # RDS SSL handling
+        if "rds.amazonaws.com" in DATABASE_URL:
             import ssl
             ssl_context = ssl.create_default_context()
             ssl_context.check_hostname = False
@@ -23,7 +30,7 @@ try:
             
         engine = create_async_engine(
             DATABASE_URL, 
-            echo=True, 
+            echo=False,  # Turn off echo to avoid bloating logs
             pool_pre_ping=True,
             connect_args=connect_args
         )
