@@ -90,6 +90,7 @@ class User(Base):
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     
     hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    admin_hashed_password: Mapped[str | None] = mapped_column(String(255), nullable=True) # Password exclusively for admin panel
     
     # 🟢 --- NEW OAUTH COLUMNS START --- 🟢
     auth_provider: Mapped[AuthProvider] = mapped_column(
