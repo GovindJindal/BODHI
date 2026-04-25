@@ -3,48 +3,57 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BODHI Admin | Dashboard</title>
+  <title>BODHI | System Command</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="layout">
     <aside class="sidebar">
-      <div class="logo">BODHI <span>STAFF</span></div>
+      <div class="logo">BODHI <span>COMMAND</span></div>
+      
       <ul class="nav-links">
-        <li><a href="index" class="active">Dashboard</a></li>
-        <li><a href="users">User Directory</a></li>
-        <li><a href="create">Mint New Admin</a></li>
+        <li><a href="index" class="active">Overview</a></li>
+        <li><a href="users">User Intelligence</a></li>
       </ul>
-      <button onclick="logout()" class="btn btn-outline logout-btn">Log Out</button>
+
+      <div class="sidebar-footer">
+        <a href="create" class="btn btn-outline" style="width: 100%; border-color: var(--accent); color: var(--accent-light);">Create New Admin</a>
+        <button onclick="logout()" class="btn btn-danger" style="width: 100%;">Log Out</button>
+      </div>
     </aside>
 
     <main class="main-content">
-      <h1 style="margin-bottom: 10px;">Welcome Back!</h1>
-      <p style="color: var(--text-dim); margin-bottom: 40px;">Here is what's happening in the system today.</p>
+      <header class="page-header">
+        <h1>Intelligence Overview</h1>
+        <p>Real-time system telemetry and user metrics.</p>
+      </header>
 
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-label">Total Users</div>
+          <div class="stat-label">Total Entities</div>
           <div class="stat-value" id="count-users">...</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Active Users</div>
+          <div class="stat-label">Active Signals</div>
           <div class="stat-value" id="count-active">...</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">System Admin Pool</div>
+          <div class="stat-label">Privileged Access</div>
           <div class="stat-value" id="count-admins">...</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Total Balance Pool</div>
+          <div class="stat-label">Liquidity Pool</div>
           <div class="stat-value" id="pool-balance">...</div>
         </div>
       </div>
 
-      <div class="stat-card" style="margin-top: 40px;">
-        <h3 style="margin-bottom: 20px;">System Health</h3>
-        <p>All subsystems are operational. 🚀</p>
+      <div class="stat-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0;">System Security Integrity</h3>
+            <span class="status-pill active">OPTIMAL</span>
+        </div>
+        <p style="color: var(--text-dim);">All core encryption modules and access controls are currently under active monitoring. No anomalies detected in the last 24 hours.</p>
       </div>
     </main>
   </div>

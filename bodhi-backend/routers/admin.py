@@ -209,12 +209,18 @@ async def search_users(q: str, admin: User = Depends(get_current_admin), db: Asy
         } for u in users
     ]
 
-# ───────────────────────────────────────────────────────────────────────
-# 3. Roles and Core Admin Privileges
-# ───────────────────────────────────────────────────────────────────────
+# ── Roles and Core Admin Privileges ─────────────────────────────────────────────
+class RoleChangeRequest(BaseModel):
+    admin_password: str
+
 @router.put("/make-admin/{user_id}")
-async def promote_user(user_id: str, admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
-    """Promote user → role = admin"""
+async def promote_user(user_id: str, req: RoleChangeRequest, admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
+    """Promote user → role = admin (Requires admin password)"""
+    # 1. Verify current admin password
+    from services.auth_service import verify_password
+    if not verify_password(req.admin_password, admin.admin_hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid admin password. Action revoked.")
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     
@@ -223,14 +229,24 @@ async def promote_user(user_id: str, admin: User = Depends(get_current_admin), d
         
     user.role = "admin"
     await db.commit()
+    
+    # 2. Inform the user via formal email
+    from services.auth_service import send_role_update_email
+    send_role_update_email(user.email, "admin")
+    
     return {"message": f"User {user.email} successfully promoted to administrator."}
 
 @router.put("/remove-admin/{user_id}")
-async def demote_admin(user_id: str, admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
-    """Demote admin → role = user"""
+async def demote_admin(user_id: str, req: RoleChangeRequest, admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
+    """Demote admin → role = user (Requires admin password)"""
     if user_id == str(admin.id):
         raise HTTPException(status_code=400, detail="Cannot strip your own admin privileges.")
-        
+    
+    # 1. Verify current admin password
+    from services.auth_service import verify_password
+    if not verify_password(req.admin_password, admin.admin_hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid admin password. Action revoked.")
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     
@@ -239,8 +255,13 @@ async def demote_admin(user_id: str, admin: User = Depends(get_current_admin), d
         
     user.role = "user"
     await db.commit()
+    
+    # 2. Inform the user via formal email
+    from services.auth_service import send_role_update_email
+    send_role_update_email(user.email, "user")
+    
     return {"message": f"User {user.email} stripped of administrator privileges."}
-
+# ─────────────────────────────────────────────────────────────────────────────
 class CreateAdminRequest(BaseModel):
     full_name: str
     email: EmailStr

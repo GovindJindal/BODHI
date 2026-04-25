@@ -198,6 +198,48 @@ def send_otp_email(email_address: str, otp: str):
         traceback.print_exc()
         return False
 
+def send_role_update_email(email_address: str, new_role: str):
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = f"BODHI Team <{SENDER_EMAIL}>"
+        msg['To'] = email_address
+        
+        status_action = "Promoted" if new_role == "admin" else "Demoted"
+        msg['Subject'] = f"Action Required: Your BODHI Account Access Level Has Changed"
+
+        body = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="background-color: #5d3fd3; padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">Access Level Update</h1>
+                </div>
+                <div style="padding: 20px;">
+                    <p>Hello,</p>
+                    <p>This is a formal notification from the BODHI System Administration team regarding your account access level.</p>
+                    <div style="background-color: #f4f4f4; border-left: 4px solid #5d3fd3; padding: 15px; margin: 20px 0;">
+                        <strong>Updated Role:</strong> {new_role.upper()}<br>
+                        <strong>Status:</strong> {status_action}
+                    </div>
+                    <p>{"As an Administrator, you now have access to core system controls. Please ensure you follow security protocols." if new_role == "admin" else "Your administrative privileges have been revoked. This action may have been part of a standard audit or team reorganization."}</p>
+                    <p>If you believe this change was made in error, please contact your supervisor immediately.</p>
+                </div>
+                <p style="font-size: 12px; color: #666; padding: 20px;">Your money. Alive. - BODHI Security Protocol</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+
+        # Connect and Send
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"❌ Role Update Mail Error: {e}")
+        return False
+
 def send_otp_sms(phone_number: str, otp: str):
     try:
         url = "https://www.fast2sms.com/dev/bulkV2"
