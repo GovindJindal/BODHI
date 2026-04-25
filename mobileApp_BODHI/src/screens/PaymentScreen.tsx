@@ -205,7 +205,7 @@ export const PaymentScreen: React.FC<Props> = ({
   // ── CONFIRM SCREEN ─────────────────────────────────────────────────────────
   if (mode === 'confirm') {
     return (
-      <View style={styles.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
         <View style={[styles.blob, styles.blob1]} />
         <View style={[styles.blob, styles.blob2]} />
 
@@ -272,14 +272,14 @@ export const PaymentScreen: React.FC<Props> = ({
             <Text style={styles.payNowBtnText}>{loading ? 'Processing…' : 'PAY NOW'}</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     );
   }
 
   // ── SEND / AMOUNT SCREEN ───────────────────────────────────────────────────
   if (mode === 'send') {
     return (
-      <View style={styles.container}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
         <View style={styles.sendHeader}>
           <TouchableOpacity onPress={resetToHome} style={styles.backBtn} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
             <ArrowLeft size={26} color={Colors.textPrimary} />
@@ -353,7 +353,7 @@ export const PaymentScreen: React.FC<Props> = ({
             <Text style={styles.proceedBtnText}>PROCEED TO PAY</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     );
   }
 
@@ -427,7 +427,7 @@ export const PaymentScreen: React.FC<Props> = ({
                   <Text style={styles.myQrAvatarText}>{myProfile ? getInitials(myProfile.full_name) : 'U'}</Text>
                 </View>
                 <Text style={styles.myQrName}>{myProfile?.full_name || 'Loading...'}</Text>
-                <Text style={styles.myQrId}>{myProfile ? `${myProfile.phone}@bodhi` : ''}</Text>
+                <Text style={styles.myQrId} numberOfLines={1} adjustsFontSizeToFit>{myProfile ? `${myProfile.phone}@bodhi` : ''}</Text>
               </View>
 
               <View style={styles.realQrContainer}>
@@ -783,7 +783,7 @@ const styles = StyleSheet.create({
   sendHeaderName: { fontSize: responsiveFont(18), fontWeight: '800', color: '#FFF' },
   sendHeaderUpi: { fontSize: responsiveFont(13), color: 'rgba(255,255,255,0.4)', marginTop: 2 },
 
-  sendBody: { paddingHorizontal: 24, paddingTop: 40, paddingBottom: 140 },
+  sendBody: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 40, paddingBottom: 40 },
   enterAmtLabel: { fontSize: responsiveFont(11), color: 'rgba(255,255,255,0.5)', letterSpacing: 2, textAlign: 'center', marginBottom: 16, fontWeight: '800' },
   amountInputRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
   rupeeSymbol: { fontSize: responsiveFont(40), fontWeight: '300', color: '#FFF', marginRight: 8, marginBottom: 4 },
@@ -811,8 +811,7 @@ const styles = StyleSheet.create({
   balanceInfoAmt: { fontSize: responsiveFont(13), fontWeight: '800', color: '#FFF' },
 
   sendFooter: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    padding: 24, paddingBottom: 40,
+    padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24,
   },
   proceedBtn: {
     backgroundColor: Colors.neonLime, borderRadius: Radius.xl,
@@ -830,7 +829,7 @@ const styles = StyleSheet.create({
   },
   darkHeaderTitle: { fontSize: responsiveFont(20), fontWeight: '900', color: '#FFF' },
 
-  confirmBody: { alignItems: 'center', padding: 24, paddingBottom: 140 },
+  confirmBody: { flexGrow: 1, alignItems: 'center', padding: 24, paddingBottom: 40 },
   confirmAvatarWrap: { marginBottom: 24 },
   confirmTo: { fontSize: responsiveFont(11), color: 'rgba(255,255,255,0.5)', letterSpacing: 2, marginBottom: 8, fontWeight: '800' },
   confirmName: { fontSize: responsiveFont(28), fontWeight: '900', color: '#FFF' },
@@ -848,9 +847,8 @@ const styles = StyleSheet.create({
   confirmMetaValue: { fontSize: responsiveFont(15), fontWeight: '800', color: '#FFF' },
 
   confirmFooter: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
     flexDirection: 'row', gap: 16,
-    padding: 24, paddingBottom: 40,
+    padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24,
   },
   editBtn: {
     flex: 1, padding: 18, borderRadius: Radius.xl,

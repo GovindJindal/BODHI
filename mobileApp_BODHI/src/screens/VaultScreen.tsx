@@ -394,6 +394,36 @@ export function VaultScreen() {
               <Text style={styles.scanBtnLabel}>Scan & Pay</Text>
             </TouchableOpacity>
 
+        {/* ── MAIN CONTENT ── */}
+        <View style={styles.contentSection}>
+          {/* Quick Services */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Quick Services</Text>
+            <TouchableOpacity hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }} onPress={() => navigation.navigate('QuickServices')}><Text style={styles.viewAll}>View All ›</Text></TouchableOpacity>
+          </View>
+
+          <View style={styles.servicesGrid}>
+            {QUICK_SERVICES.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.serviceItem}
+                activeOpacity={0.7}
+                onPress={() => {
+                  if (item.label === 'Calculator' || item.id === '3') {
+                    toggleCalculator();
+                    return;
+                  }
+                  if (item.route === 'InsuranceStories') {
+                    setShowInsurance(true);
+                  } else if (item.route) {
+                    navigation.navigate(item.route);
+                  } else {
+                    Alert.alert('Coming Soon', `${item.label} feature is under development.`);
+                  }
+                }}
+              >
+                <View style={styles.serviceIconWrap}>
+                  <item.icon size={22} color={item.color} strokeWidth={2.5} />
             {/* Right: Pill Container */}
             <View style={styles.actionPillContainer}>
               {Platform.OS === 'ios' ? (
@@ -725,11 +755,11 @@ const styles = StyleSheet.create({
 
 
   insightsScroll: { paddingRight: 20, gap: 16 },
-  insightCard: { width: 150, height: 170, borderRadius: 20, padding: 16, justifyContent: 'space-between' },
+  insightCard: { width: 155, minHeight: 180, borderRadius: 20, padding: 16, justifyContent: 'space-between' },
   insightIconWrap: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
   insightTitle: { color: 'rgba(255,255,255,0.8)', fontSize: responsiveFont(12), marginTop: 12 },
-  insightValue: { color: '#FFF', fontSize: responsiveFont(22), fontWeight: '800', marginVertical: 4 },
-  insightSub: { color: 'rgba(255,255,255,0.8)', fontSize: responsiveFont(11), lineHeight: 16, height: 32 },
+  insightValue: { color: '#FFF', fontSize: responsiveFont(21), fontWeight: '800', marginVertical: 4 },
+  insightSub: { color: 'rgba(255,255,255,0.8)', fontSize: responsiveFont(11), lineHeight: 16 },
   insightLinkRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
   insightLink: { color: 'rgba(255,255,255,0.7)', fontSize: responsiveFont(11), fontWeight: '600', marginRight: 4 },
 

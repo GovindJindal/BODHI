@@ -260,6 +260,23 @@ export function SendMoneyScreen() {
     }
   };
 
+  // ── U-PIN and Bodhi Send triggers ───────────────────────────────────────
+  const initiateBodhiSend = () => {
+    setShowUpinModal(true);
+  };
+
+  const verifyUpinAndSend = async () => {
+    setIsVerifyingUPin(true);
+    setTimeout(() => {
+      setIsVerifyingUPin(false);
+      setShowUpinModal(false);
+      
+      setTimeout(() => {
+        handleSend();
+      }, 500);
+    }, 1200);
+  };
+
   // ── Tabs ─────────────────────────────────────────────────────────────────
   const TABS: { key: Tab; label: string; Icon: any }[] = [
     { key: 'gap', label: 'GAP ID', Icon: Landmark },

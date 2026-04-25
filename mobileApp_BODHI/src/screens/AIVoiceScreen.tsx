@@ -197,7 +197,12 @@ export function AIVoiceScreen() {
       // 🟢 Tweak: Gives immediate visual feedback to the user
       setTranscription('Listening...');
 
-      const uri = await audioRecorderPlayer.startRecorder();
+      const path = Platform.select({
+        ios: 'speech_upload.m4a',
+        android: `${RNFS.CachesDirectoryPath}/speech_upload.mp4`,
+      });
+
+      const uri = await audioRecorderPlayer.startRecorder(path);
       console.log('Recording started at:', uri);
 
       // 🟢 THE FIX: This empty listener absorbs the native events 
@@ -230,10 +235,13 @@ export function AIVoiceScreen() {
       // ─── Step 1: Sarvam STT ────────────────────────────────────
       setTranscription('Transcribing...');
       const formData = new FormData();
+      
+      const fileUri = Platform.OS === 'ios' ? uri.replace('file://', '') : `file://${uri.replace('file://', '')}`;
+      
       formData.append('file', {
-        uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
-        type: 'audio/m4a',
-        name: 'speech_upload.m4a',
+        uri: fileUri,
+        type: Platform.OS === 'ios' ? 'audio/m4a' : 'audio/mp4',
+        name: Platform.OS === 'ios' ? 'speech_upload.m4a' : 'speech_upload.mp4',
       } as any);
       formData.append('model', 'saaras:v3');
       formData.append('language_code', 'hi-IN');
@@ -354,21 +362,51 @@ export function AIVoiceScreen() {
   };
 
   // ─── Send typed text ────────────────────────────────────────────
-  const handleSendText = () => {
-    if (!inputText) return;
+  const handleSendText = async (overrideText?: string) => {
+    const textToProcess = overrideText || inputText;
+    if (!textToProcess) return;
+    
     setIsProcessing(true);
-    setTranscription('');
-    setTimeout(() => {
-      setTranscription(inputText);
+    setTranscription(`You said: "${textToProcess}"\n\nThinking...`);
+    setInputText('');
+
+    try {
+      if (!GEMINI_API_KEY) {
+        setTranscription('API Key missing. Restart Metro.');
+        return;
+      }
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
+      const geminiResponse = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `You are GAP, Bodhi's AI financial assistant. Answer in a friendly, concise way (2-3 sentences max). User: ${textToProcess}` }] }]
+        }),
+      });
+
+      const geminiData = await geminiResponse.json();
+      const aiReply = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || 'GAP could not generate a response.';
+      setTranscription(aiReply);
+
+      const ttsResponse = await fetch('https://api.sarvam.ai/text-to-speech', {
+        method: 'POST',
+        headers: { 'api-subscription-key': SARVAM_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: aiReply, target_language_code: 'hi-IN', speaker: 'ritu', pace: 1.1, sample_rate: 24000, enable_preprocessing: true, model: 'bulbul:v3' }),
+      });
+      const ttsData = await ttsResponse.json();
+      if (ttsData.audios && ttsData.audios.length > 0) {
+        setBase64Audio(ttsData.audios[0]);
+      }
+    } catch (err) {
+      setTranscription('Something went wrong. Please try again.');
+    } finally {
       setIsProcessing(false);
-      setInputText('');
-    }, 800);
+    }
   };
 
   // ─── Chip tap → show in transcription box immediately ───────────
   const handleChipPress = (text: string) => {
-    setInputText(text);
-    setTranscription(text); // shows in the Live Transcribe box
+    handleSendText(text);
   };
 
   return (
@@ -607,7 +645,7 @@ export function AIVoiceScreen() {
                       : 'rgba(255,255,255,0.1)',
               },
             ]}
-            onPress={inputText.length > 0 ? handleSendText : toggleRecording}
+            onPress={() => inputText.length > 0 ? handleSendText() : toggleRecording()}
           >
             {inputText.length > 0 ? (
               <Send size={16} color="#000" />

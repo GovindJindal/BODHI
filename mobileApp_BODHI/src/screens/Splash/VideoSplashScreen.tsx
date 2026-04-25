@@ -19,7 +19,7 @@ export default function VideoSplashScreen({ onFinish }: SplashProps) {
         source={require('./images/Logo.mp4')}
         style={styles.video}
         resizeMode="contain"
-        onEnd={onFinish}
+        onEnd={() => setTimeout(onFinish, 100)}
         repeat={false}
         muted={true}
       />
