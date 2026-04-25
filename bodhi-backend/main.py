@@ -43,11 +43,14 @@ async def init_db():
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
             
-            # Safe schema upgrade for 'role' string pattern
+            # Safe schema upgrade for 'role' string pattern and admin features
             from sqlalchemy import text
             try:
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user'"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verify_pass VARCHAR(255)"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_hashed_password VARCHAR(255)"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp VARCHAR(20)"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expiry TIMESTAMP WITH TIME ZONE"))
             except Exception:
                 pass
                 
