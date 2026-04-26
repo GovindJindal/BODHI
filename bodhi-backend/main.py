@@ -155,6 +155,10 @@ async def get_pro_ledger():
 async def get_pro_audit():
     return get_admin_html("../pro-admin/audit.html")
 
+@app.get("/admin-pro/notifications", include_in_schema=False)
+async def get_pro_notifications():
+    return get_admin_html("../pro-admin/notifications.html")
+
 # Mount /_next and other assets for the pro-admin dashboard
 app.mount("/_next", StaticFiles(directory=os.path.join(BASE_DIR, "static", "pro-admin", "_next")), name="pro_next")
 app.mount("/admin-pro/static", StaticFiles(directory=os.path.join(BASE_DIR, "static", "pro-admin")), name="pro_static")
