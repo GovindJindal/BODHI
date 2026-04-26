@@ -18,6 +18,7 @@ export default function NotificationsPage() {
   const [message, setMessage] = useState('');
   const [targetRole, setTargetRole] = useState('user');
   const [type, setType] = useState('INFO');
+  const [sendEmail, setSendEmail] = useState(true);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<any>(null);
 
@@ -31,7 +32,8 @@ export default function NotificationsPage() {
         title,
         message,
         target_role: targetRole === 'all' ? null : targetRole,
-        type: type
+        type: type,
+        send_email: sendEmail
       });
       setStatus({ success: true, count: res.data.recipients });
       setTitle('');
@@ -105,6 +107,19 @@ export default function NotificationsPage() {
                     <option value="SUCCESS">Success (Completion)</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-4 bg-violet-500/5 rounded-2xl border border-violet-500/10">
+                  <input 
+                    type="checkbox" 
+                    id="send_email"
+                    checked={sendEmail}
+                    onChange={(e) => setSendEmail(e.target.checked)}
+                    className="w-5 h-5 rounded border-slate-700 bg-slate-950 text-violet-600 focus:ring-violet-500 focus:ring-offset-slate-950 cursor-pointer"
+                  />
+                  <label htmlFor="send_email" className="text-sm font-semibold text-slate-300 cursor-pointer">
+                      Dispatch formal email broadcast to target audience
+                  </label>
               </div>
 
               {status && (

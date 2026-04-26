@@ -64,7 +64,14 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-800">
+      <div className="p-4 border-t border-slate-800 space-y-2">
+        <Link
+          href="/create-admin"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-violet-400 hover:bg-violet-500/10 transition-all font-semibold text-sm border border-transparent hover:border-violet-500/20"
+        >
+          <ShieldCheck className="w-5 h-5" />
+          Provision Admin
+        </Link>
         <button 
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all font-semibold text-sm"
