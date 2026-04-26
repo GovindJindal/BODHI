@@ -350,3 +350,22 @@ class UserSubscription(Base):
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<UserSubscription id={self.id} user={self.user_id} platform={self.platform_id}>"
+class AuditLog(Base):
+    """
+    Tracks all administrative actions for compliance and security auditing.
+    """
+    __tablename__ = "audit_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    admin_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    action: Mapped[str] = mapped_column(String(255), nullable=False) # e.g. "PROMOTE_USER", "DELETE_TX", "SEND_NOTIF"
+    target_id: Mapped[str | None] = mapped_column(String(255), nullable=True) # ID of impacted resource
+    details: Mapped[str | None] = mapped_column(Text, nullable=True) # JSON or descriptive text
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, index=True)
+
+    admin: Mapped["User"] = relationship("User")
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"<AuditLog id={self.id} admin={self.admin_id} action={self.action}>"
