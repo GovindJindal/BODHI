@@ -12,9 +12,11 @@ from database import get_db
 from models.core import User, Ledger, Payment
 from models.notification import Notification, NotificationType
 from services.auth_service import (
-    create_access_token, oauth2_scheme, SECRET_KEY, ALGORITHM, pwd_context, get_password_hash, verify_password
+    create_access_token, oauth2_scheme, SECRET_KEY, ALGORITHM, pwd_context, get_password_hash, verify_password, send_otp_email
 )
 from pydantic import BaseModel, EmailStr
+import random
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/admin", tags=["Admin System"])
 
@@ -55,7 +57,7 @@ async def admin_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Asyn
     result = await db.execute(select(User).where(User.email == form_data.username))
     user = result.scalar_one_or_none()
     
-    if not user or not user.hashed_password or not verify_password(form_data.password, user.hashed_password):
+    if not user or not user.admin_hashed_password or not verify_password(form_data.password, user.admin_hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -72,6 +74,71 @@ async def admin_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Asyn
     )
     
     return {"access_token": access_token, "token_type": "bearer"}
+
+class AdminPasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class AdminPasswordResetConfirm(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
+@router.post("/forgot-password")
+async def request_admin_password_reset(request: AdminPasswordResetRequest, db: AsyncSession = Depends(get_db)):
+    try:
+        result = await db.execute(select(User).where(User.email == request.email))
+        user = result.scalar_one_or_none()
+        
+        # We only allow admin users to reset via this admin-specific endpoint
+        if user and user.role == "admin":
+            otp = str(random.randint(100000, 999999))
+            user.reset_otp = otp
+            user.reset_otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=15)
+            await db.commit()
+            send_otp_email(user.email, otp)
+        
+        return {"message": "If an admin account exists with that email, a reset code has been sent."}
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"❌ Reset Error: {error_details}")
+        # Return the error detail to the frontend temporarily for production debugging
+        raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
+
+@router.post("/reset-password")
+async def confirm_admin_password_reset(request: AdminPasswordResetConfirm, db: AsyncSession = Depends(get_db)):
+    try:
+        result = await db.execute(select(User).where(User.email == request.email))
+        user = result.scalar_one_or_none()
+        
+        if not user or user.role != "admin":
+            raise HTTPException(status_code=404, detail="Admin account not found")
+            
+        if not user.reset_otp or user.reset_otp != request.otp:
+            raise HTTPException(status_code=400, detail="Invalid reset code")
+            
+        # Ensure reset_otp_expiry is TZ-aware before comparison
+        now = datetime.now(timezone.utc)
+        expiry = user.reset_otp_expiry
+        if expiry and expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=timezone.utc)
+            
+        if expiry and now > expiry:
+            raise HTTPException(status_code=400, detail="Reset code has expired")
+            
+        # Update explicitly the admin_hashed_password
+        user.admin_hashed_password = get_password_hash(request.new_password)
+        user.reset_otp = None
+        user.reset_otp_expiry = None
+        
+        await db.commit()
+        return {"message": "Admin password updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"❌ Confirm Reset Error: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
 
 # ───────────────────────────────────────────────────────────────────────
 # 2. Users Management
@@ -142,12 +209,18 @@ async def search_users(q: str, admin: User = Depends(get_current_admin), db: Asy
         } for u in users
     ]
 
-# ───────────────────────────────────────────────────────────────────────
-# 3. Roles and Core Admin Privileges
-# ───────────────────────────────────────────────────────────────────────
+# ── Roles and Core Admin Privileges ─────────────────────────────────────────────
+class RoleChangeRequest(BaseModel):
+    admin_password: str
+
 @router.put("/make-admin/{user_id}")
-async def promote_user(user_id: str, admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
-    """Promote user → role = admin"""
+async def promote_user(user_id: str, req: RoleChangeRequest, admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
+    """Promote user → role = admin (Requires admin password)"""
+    # 1. Verify current admin password
+    from services.auth_service import verify_password
+    if not verify_password(req.admin_password, admin.admin_hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid admin password. Action revoked.")
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     
@@ -156,14 +229,24 @@ async def promote_user(user_id: str, admin: User = Depends(get_current_admin), d
         
     user.role = "admin"
     await db.commit()
+    
+    # 2. Inform the user via formal email
+    from services.auth_service import send_role_update_email
+    send_role_update_email(user.email, "admin")
+    
     return {"message": f"User {user.email} successfully promoted to administrator."}
 
 @router.put("/remove-admin/{user_id}")
-async def demote_admin(user_id: str, admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
-    """Demote admin → role = user"""
+async def demote_admin(user_id: str, req: RoleChangeRequest, admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
+    """Demote admin → role = user (Requires admin password)"""
     if user_id == str(admin.id):
         raise HTTPException(status_code=400, detail="Cannot strip your own admin privileges.")
-        
+    
+    # 1. Verify current admin password
+    from services.auth_service import verify_password
+    if not verify_password(req.admin_password, admin.admin_hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid admin password. Action revoked.")
+
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     
@@ -172,8 +255,13 @@ async def demote_admin(user_id: str, admin: User = Depends(get_current_admin), d
         
     user.role = "user"
     await db.commit()
+    
+    # 2. Inform the user via formal email
+    from services.auth_service import send_role_update_email
+    send_role_update_email(user.email, "user")
+    
     return {"message": f"User {user.email} stripped of administrator privileges."}
-
+# ─────────────────────────────────────────────────────────────────────────────
 class CreateAdminRequest(BaseModel):
     full_name: str
     email: EmailStr
@@ -189,7 +277,7 @@ async def create_admin(req: CreateAdminRequest, admin: User = Depends(get_curren
     new_admin = User(
         full_name=req.full_name,
         email=req.email,
-        hashed_password=get_password_hash(req.password),
+        admin_hashed_password=get_password_hash(req.password),
         role="admin",
         is_active=True
     )
@@ -278,48 +366,4 @@ async def send_admin_notification(req: SendNotificationRequest, db: AsyncSession
     await db.commit()
     return {"message": f"Successfully sent notifications to {len(target_ids)} users"}
 
-@router.get("/bootstrap", tags=["System Boot"])
-async def bootstrap_admin(db: AsyncSession = Depends(get_db)):
-    try:
-        from sqlalchemy import select, text
-        from services.auth_service import get_password_hash
-        import time
-        
-        # Verify columns exist (double check)
-        try:
-            await db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR DEFAULT 'user'"))
-        except Exception:
-            pass
-            
-        try:
-            await db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verify_pass VARCHAR"))
-        except Exception:
-            pass
-        
-        # Check if admin exists
-        result = await db.execute(select(User).where(User.email == "admin@bodhi.com"))
-        admin = result.scalar_one_or_none()
-        
-        if admin:
-            # Update password to ensure it's correct
-            admin.hashed_password = get_password_hash("Admin@123")
-            admin.role = "admin"
-            admin.is_active = True
-            await db.commit()
-            return {"status": "success", "message": "Admin already existed. Password reset to Admin@123"}
-        
-        new_admin = User(
-            email="admin@bodhi.com",
-            phone="+910000000000",
-            full_name="Root Admin",
-            hashed_password=get_password_hash("Admin@123"),
-            role="admin",
-            is_active=True,
-            verify_pass="ROOT_ADMIN_" + str(int(time.time()))
-        )
-        db.add(new_admin)
-        await db.commit()
-        return {"status": "success", "message": "Root admin created: admin@bodhi.com / Admin@123"}
-    except Exception as e:
-        import traceback
-        return {"status": "error", "message": str(e), "traceback": traceback.format_exc()}
+

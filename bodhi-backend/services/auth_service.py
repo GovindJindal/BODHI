@@ -1,3 +1,12 @@
+
+
+
+
+
+
+
+
+
 import hashlib
 from datetime import datetime, timedelta
 from typing import Optional
@@ -20,6 +29,17 @@ from email.mime.multipart import MIMEMultipart
 
 load_dotenv()
 
+# ── Bcrypt 4.0 Compatibility Patch ─────────────────────────────────────────────
+# Passlib (older versions) expects bcrypt to have an __about__ attribute.
+# Bcrypt 4.0+ removed this, causing AttributeErrors.
+import bcrypt
+if not hasattr(bcrypt, "__about__"):
+    class BcryptAbout:
+        def __init__(self):
+            self.__version__ = getattr(bcrypt, "__version__", "4.0.0")
+    bcrypt.__about__ = BcryptAbout()
+# ─────────────────────────────────────────────────────────────────────────────
+
 # ── Security config ────────────────────────────────────────────────────────────
 # SECRET_KEY MUST be set in .env on production. The fallback is only for local dev.
 _env_secret = os.getenv("SECRET_KEY")
@@ -37,15 +57,19 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(6
 # Configuration
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SENDER_EMAIL = os.getenv("SENDER_EMAIL")
-SENDER_PASSWORD = os.getenv("SENDER_PASSWORD")
+SENDER_EMAIL = os.getenv("SENDER_EMAIL") or os.getenv("SMTP_USER")
+SENDER_PASSWORD = os.getenv("SENDER_PASSWORD") or os.getenv("SMTP_PASSWORD")
 
 # SMS Configuration (Fast2SMS)
 SMS_KEY = os.getenv("SMS_API_KEY")
 SMS_SENDER_ID = os.getenv("SMS_SENDER_ID", "FSTSMS")
 
-# Using passlib context to handle multiple hashing algorithms (bcrypt and pbkdf2)
-pwd_context = CryptContext(schemes=["bcrypt", "pbkdf2_sha256"], deprecated="auto")
+import passlib.handlers.bcrypt
+def patched_detect_wrap_bug(ident):
+    return False
+passlib.handlers.bcrypt.detect_wrap_bug = patched_detect_wrap_bug
+
+pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
 
 # tokenUrl must match the actual login route: POST /auth/token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
@@ -55,26 +79,49 @@ import bcrypt
 def verify_password(plain_password: str, hashed_password: str):
     if not hashed_password:
         return False
+    
+    # 1. First, try the modern way (Pre-hashed with SHA256)
     try:
-        # 1. Try standard verification (bcrypt/pbkdf2)
-        return pwd_context.verify(plain_password, hashed_password)
+        pre_hashed = hashlib.sha256(plain_password.encode()).hexdigest()
+        if pwd_context.verify(pre_hashed, hashed_password):
+            return True
     except Exception:
-        # 2. Check for SHA256 fallback (used if bcrypt fails)
-        import hashlib
-        fallback_hash = hashlib.sha256(plain_password.encode()).hexdigest()
-        if hashed_password == fallback_hash:
+        pass
+
+    # 2. Fallback: Try raw password verification (for existing non-pre-hashed passwords)
+    try:
+        # Avoid crashing if the raw password is > 72 bytes
+        safe_plain = str(plain_password)[:72]
+        if pwd_context.verify(safe_plain, hashed_password):
             return True
-            
-        # 3. Fallback: if it's a raw 4-digit PIN (legacy support)
-        if len(hashed_password) == 4 and hashed_password == plain_password:
+    except Exception:
+        pass
+
+    # 3. Fallback: Manual SHA256 check (some legacy systems)
+    try:
+        user_hash = hashlib.sha256(plain_password.encode()).hexdigest()
+        if hashed_password == user_hash:
             return True
-        return False
+    except Exception:
+        pass
+
+    # 4. Fallback: Raw 4-digit PIN
+    if len(hashed_password) == 4 and hashed_password == plain_password:
+        return True
+        
+    return False
 
 def get_password_hash(password: str):
-    # Bcrypt limit is 72 bytes. Truncating here prevents 500 errors
-    # if the frontend accidentally sends an object or giant string.
-    safe_password = str(password)[:72]
-    return pwd_context.hash(safe_password)
+    # Support for very strong/long passwords via SHA-256 pre-hashing
+    pre_hashed = hashlib.sha256(str(password).encode()).hexdigest()
+    
+    # Final safety check before passing to bcrypt
+    final_input = pre_hashed.encode('utf-8')
+    if len(final_input) > 71:
+        final_input = final_input[:71]
+        
+    print(f"🔒 Hashing password fingerprint (length: {len(final_input)} bytes)")
+    return pwd_context.hash(final_input.decode('utf-8'))
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -149,6 +196,48 @@ def send_otp_email(email_address: str, otp: str):
         import traceback
         print(f"❌ Mail Error for {email_address}: {e}")
         traceback.print_exc()
+        return False
+
+def send_role_update_email(email_address: str, new_role: str):
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = f"BODHI Team <{SENDER_EMAIL}>"
+        msg['To'] = email_address
+        
+        status_action = "Promoted" if new_role == "admin" else "Demoted"
+        msg['Subject'] = f"Action Required: Your BODHI Account Access Level Has Changed"
+
+        body = f"""
+        <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+                <div style="background-color: #5d3fd3; padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0;">Access Level Update</h1>
+                </div>
+                <div style="padding: 20px;">
+                    <p>Hello,</p>
+                    <p>This is a formal notification from the BODHI System Administration team regarding your account access level.</p>
+                    <div style="background-color: #f4f4f4; border-left: 4px solid #5d3fd3; padding: 15px; margin: 20px 0;">
+                        <strong>Updated Role:</strong> {new_role.upper()}<br>
+                        <strong>Status:</strong> {status_action}
+                    </div>
+                    <p>{"As an Administrator, you now have access to core system controls. Please ensure you follow security protocols." if new_role == "admin" else "Your administrative privileges have been revoked. This action may have been part of a standard audit or team reorganization."}</p>
+                    <p>If you believe this change was made in error, please contact your supervisor immediately.</p>
+                </div>
+                <p style="font-size: 12px; color: #666; padding: 20px;">Your money. Alive. - BODHI Security Protocol</p>
+            </body>
+        </html>
+        """
+        msg.attach(MIMEText(body, 'html'))
+
+        # Connect and Send
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"❌ Role Update Mail Error: {e}")
         return False
 
 def send_otp_sms(phone_number: str, otp: str):

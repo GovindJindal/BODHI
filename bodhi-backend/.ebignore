@@ -7,3 +7,7 @@ backend.log
 response.json
 response2.json
 node_modules/
+venv/
+alembic/
+.next/
+node_modules/
