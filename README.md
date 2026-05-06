@@ -38,15 +38,17 @@
 
 ## ✨ Visual Showcase
 
-| 💎 Financial Vault | 🎙️ AI Assistant (GAP) | ✈️ Trip Wallets |
+| 🔐 Authentication Screen | 💎 Financial Vault | 🎙️ AI Assistant (GAP) |
 | :---: | :---: | :---: |
-| ![Login Screen](https://raw.githubusercontent.com/GovindJindal/BODHI/main/docs/screenshots/login.png) | ![AI Screen](https://raw.githubusercontent.com/GovindJindal/BODHI/main/docs/screenshots/ai_assistant.png) | ![Paper Trade Screen](https://raw.githubusercontent.com/GovindJindal/BODHI/main/docs/screenshots/paper_trade.png) |
-| *Premium Glassmorphic Cockpit* | *Voice-First Financial Co-pilot* | *Collaborative Group Expenses* |
+| ![Login Screen](https://raw.githubusercontent.com/GovindJindal/BODHI/main/docs/screenshots/login.png) | ![Home Screen](https://raw.githubusercontent.com/GovindJindal/BODHI/main/docs/screenshots/home_screen.png) | ![AI Screen](https://raw.githubusercontent.com/GovindJindal/BODHI/main/docs/screenshots/ai_assistant.png) |
 
-| 📜 Insurance Stories | 🤝 Venture Clubs | 📈 Market Watchlist |
+| 📜 Insurance Stories |  |  |
 | :---: | :---: | :---: |
-| ![Insurance](https://raw.githubusercontent.com/GovindJindal/BODHI/main/docs/screenshots/insurance.png) | ![Social Hub](https://raw.githubusercontent.com/GovindJindal/BODHI/main/docs/screenshots/social.png) | ![Market](https://raw.githubusercontent.com/GovindJindal/BODHI/main/docs/screenshots/market.png) |
-| *AI-Powered Policy Decoder* | *Social Investing & Clubs* | *Live Asset Tickers & Trading* |
+| ![Insurance](https://raw.githubusercontent.com/GovindJindal/BODHI/main/docs/screenshots/insurance.png) | ![Calculator](https://raw.githubusercontent.com/GovindJindal/BODHI/main/docs/screenshots/calculator.png) | ![Subscriptions](https://raw.githubusercontent.com/GovindJindal/BODHI/main/docs/screenshots/subscriptions.png) |
+
+| 🤝 Venture Clubs & ✈️ Trip Wallets | 💵 Paper Trade | 📈 Market Watchlist |
+| :---: | :---: | :---: |
+| ![Social Hub](https://raw.githubusercontent.com/GovindJindal/BODHI/main/docs/screenshots/social.png) | ![Paper Trade Screen](https://raw.githubusercontent.com/GovindJindal/BODHI/main/docs/screenshots/paper_trade.png) | ![ Market Screen](https://raw.githubusercontent.com/GovindJindal/BODHI/main/docs/screenshots/market.png) |
 
 ---
 
