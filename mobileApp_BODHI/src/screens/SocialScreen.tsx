@@ -41,19 +41,20 @@ const { width: W } = Dimensions.get('window');
 // ── Design Tokens ────────────────────────────────────────────
 
 const C = {
-  bg:           '#000000',
-  cardBg:       '#0A0A0A',
-  neonLime:     '#FFE600',
-  purple:       '#FF5A00',
-  red:          '#FF2D2D',
+  bg:           '#FDFDF9',
+  cardBg:       '#FFFFFF',
+  neonLime:     '#3D4DFF',
+  purple:       '#C83232',
+  red:          '#C83232',
   white:        '#FFFFFF',
-  whiteMid:     'rgba(255,255,255,0.65)',
-  whiteDim:     'rgba(255,255,255,0.35)',
-  border:       'rgba(255,255,255,0.06)',
-  limeBg:       'rgba(255,230,0,0.08)',
-  limeBorder:   'rgba(255,230,0,0.22)',
-  purpleBg:     'rgba(255,90,0,0.10)',
-  purpleBorder: 'rgba(255,90,0,0.25)',
+  darkText:     '#1C1C1E',
+  whiteMid:     'rgba(0,0,0,0.65)',
+  whiteDim:     'rgba(0,0,0,0.35)',
+  border:       'rgba(0,0,0,0.08)',
+  limeBg:       'rgba(61,77,255,0.08)',
+  limeBorder:   'rgba(61,77,255,0.22)',
+  purpleBg:     'rgba(200,50,50,0.10)',
+  purpleBorder: 'rgba(200,50,50,0.25)',
 };
 
 // ── Types ────────────────────────────────────────────────────
@@ -421,7 +422,7 @@ export function SocialScreen({ navigation }: { navigation: any }) {
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={['#000000', '#000000', '#000000']}
+        colors={['#FDFDF9', '#FFFFFF', '#FDFDF9']}
         style={StyleSheet.absoluteFill}
         start={{ x: 0.2, y: 0 }}
         end={{ x: 0.8, y: 1 }}
@@ -590,7 +591,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: responsiveFont(38),
     fontWeight: '900',
-    color: C.white,
+    color: C.darkText,
     letterSpacing: -1.2,
     lineHeight: 42,
   },
@@ -690,62 +691,6 @@ const styles = StyleSheet.create({
     fontSize: responsiveFont(14),
     fontWeight: '800',
   },
-  wealthStatDivider: {
-    width: 1,
-    height: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-  },
-
-  // WEALTH SUMMARY
-  wealthSummaryCard: {
-    borderRadius: 28,
-    padding: 24,
-    marginBottom: 32,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: C.purple,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  wealthInfo: { flex: 1 },
-  wealthLabel: {
-    color: 'rgba(255,255,255,0.7)',
-    fontSize: responsiveFont(12),
-    fontWeight: '600',
-    marginBottom: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  wealthValue: {
-    color: C.white,
-    fontSize: responsiveFont(26),
-    fontWeight: '900',
-    letterSpacing: -0.5,
-  },
-  wealthStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.15)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 18,
-    gap: 12,
-  },
-  wealthStatItem: { alignItems: 'center' },
-  wealthStatLabel: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: responsiveFont(9),
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  wealthStatValue: {
-    color: C.white,
-    fontSize: responsiveFont(14),
-    fontWeight: '800',
-  },
 
   // SECTION
   section: { marginBottom: 28 },
@@ -758,7 +703,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: responsiveFont(18),
     fontWeight: '800',
-    color: C.white,
+    color: C.darkText,
     letterSpacing: -0.5,
   },
   sectionSub: {
@@ -851,7 +796,7 @@ const styles = StyleSheet.create({
   cardName: {
     fontSize: responsiveFont(16),
     fontWeight: '800',
-    color: C.white,
+    color: C.darkText,
     letterSpacing: -0.3,
     marginBottom: 5,
   },
@@ -936,7 +881,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: responsiveFont(14),
     fontWeight: '800',
-    color: C.white,
+    color: C.darkText,
     letterSpacing: -0.3,
   },
   statSubGreen: {

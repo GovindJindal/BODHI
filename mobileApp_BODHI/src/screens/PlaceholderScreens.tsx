@@ -11,8 +11,6 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, StatusBar } from 'reac
 import { isTablet, isLandscape, responsiveFont, responsiveWidth, responsiveHeight } from '../utils/responsive';
 import LinearGradient from 'react-native-linear-gradient';
 import { Colors, Spacing, Radius, FontSize } from '../theme/tokens';
-import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft } from 'lucide-react-native';
 
 // ─── Shared Placeholder Shell ─────────────────────────────────────────────────
 
@@ -27,20 +25,12 @@ interface PlaceholderProps {
 const PlaceholderShell: React.FC<PlaceholderProps> = ({
   icon, title, subtitle, ctaLabel, onCta,
 }) => {
-  const navigation = useNavigation();
   return (
     <LinearGradient 
-      colors={['#000000', '#0A0000', '#000000']} 
+      colors={['#FDFDF9', '#FFFFFF', '#FDFDF9']} 
       style={placeholderStyles.root}
     >
-      <StatusBar barStyle="light-content" />
-      
-      <TouchableOpacity 
-        style={placeholderStyles.backButton} 
-        onPress={() => navigation.goBack()}
-      >
-        <ArrowLeft size={24} color="#FFF" />
-      </TouchableOpacity>
+      <StatusBar barStyle="dark-content" />
 
       <View style={[placeholderStyles.content, { maxWidth: isTablet ? (isLandscape() ? 700 : 600) : '100%', alignSelf: 'center', width: '100%' }]}>
         <View style={placeholderStyles.iconContainer}>
@@ -75,18 +65,6 @@ const placeholderStyles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  backButton: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 10,
-  },
   content: {
     flex: 1,
     alignItems: 'center',
@@ -97,18 +75,18 @@ const placeholderStyles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Spacing.xl,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(0,0,0,0.1)',
   },
   icon: { 
     fontSize: responsiveFont(56) 
   },
   title: { 
-    color: '#FFF',
+    color: '#1C1C1E',
     fontSize: responsiveFont(28),
     fontWeight: '800',
     textAlign: 'center',
@@ -116,7 +94,7 @@ const placeholderStyles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   subtitle: { 
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(0,0,0,0.6)',
     fontSize: responsiveFont(16),
     textAlign: 'center',
     lineHeight: 24,
@@ -139,7 +117,7 @@ const placeholderStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   ctaText: {
-    color: '#000',
+    color: '#FFF',
     fontWeight: '800',
     fontSize: responsiveFont(16),
     letterSpacing: 0.5,

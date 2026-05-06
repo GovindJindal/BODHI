@@ -1123,8 +1123,6 @@ PODS:
     - React-jsi (= 0.73.4)
     - React-logger (= 0.73.4)
     - React-perflogger (= 0.73.4)
-  - RNAppleAuthentication (2.5.1):
-    - React-Core
   - RNAudioRecorderPlayer (3.6.14):
     - React-Core
   - RNCAsyncStorage (1.21.0):
@@ -1149,10 +1147,11 @@ PODS:
     - RCT-Folly (= 2022.05.16.00)
     - React-Core
     - ReactCommon/turbomodule/core
-  - RNScreens (3.29.0):
+  - RNScreens (3.31.1):
     - glog
     - RCT-Folly (= 2022.05.16.00)
     - React-Core
+    - React-RCTImage
   - RNSVG (13.14.0):
     - React-Core
   - SocketRocket (0.6.1)
@@ -1163,14 +1162,14 @@ PODS:
   - Yoga (1.14.0)
 
 DEPENDENCIES:
-  - AppAuth
+  - AppAuth (= 2.0.0)
   - boost (from `../node_modules/react-native/third-party-podspecs/boost.podspec`)
   - BVLinearGradient (from `../node_modules/react-native-linear-gradient`)
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
   - FBReactNativeSpec (from `../node_modules/react-native/React/FBReactNativeSpec`)
   - glog (from `../node_modules/react-native/third-party-podspecs/glog.podspec`)
-  - GTMAppAuth
+  - GTMAppAuth (= 5.0.0)
   - GTMSessionFetcher
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - libevent (~> 2.1.12)
@@ -1227,7 +1226,6 @@ DEPENDENCIES:
   - React-runtimescheduler (from `../node_modules/react-native/ReactCommon/react/renderer/runtimescheduler`)
   - React-utils (from `../node_modules/react-native/ReactCommon/react/utils`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
-  - "RNAppleAuthentication (from `../node_modules/@invertase/react-native-apple-authentication`)"
   - RNAudioRecorderPlayer (from `../node_modules/react-native-audio-recorder-player`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - "RNCClipboard (from `../node_modules/@react-native-clipboard/clipboard`)"
@@ -1374,8 +1372,6 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/react/utils"
   ReactCommon:
     :path: "../node_modules/react-native/ReactCommon"
-  RNAppleAuthentication:
-    :path: "../node_modules/@invertase/react-native-apple-authentication"
   RNAudioRecorderPlayer:
     :path: "../node_modules/react-native-audio-recorder-player"
   RNCAsyncStorage:
@@ -1471,7 +1467,6 @@ SPEC CHECKSUMS:
   React-runtimescheduler: ceaeeb19e75912958625f72883d240640e8f40da
   React-utils: 8439db27c3745f6de9d67eb61f5600c8d624274c
   ReactCommon: cc18bd33c0fab03c67620da6a602dcc1704e66b4
-  RNAppleAuthentication: a89c9804592b38ed4ab11f0aee68d05ba12ad432
   RNAudioRecorderPlayer: b5ed41ccfe72a211a870bfe09ab36c046eb27d2a
   RNCAsyncStorage: a03b770a50541a761447cea9c24536047832124d
   RNCClipboard: f6679d470d0da2bce2a37b0af7b9e0bf369ecda5
@@ -1480,12 +1475,12 @@ SPEC CHECKSUMS:
   RNGoogleSignin: b11289afb825c32c250272e4d92446f71091814e
   RNReactNativeHapticFeedback: ca37b9e053a3557c6149b815a46057eaa4935358
   RNReanimated: eed931cb70dd5aac069558bd9ba893e00f692ddb
-  RNScreens: 8d1521c6e375a79dbd4525efaf21704cc64ac0cf
+  RNScreens: e7c5cb785bf22e871cb07234f76fd9f09792dad6
   RNSVG: 4cab00c621b328a4a2fedaaedc15d8822216723e
   SocketRocket: f32cd54efbe0f095c4d7594881e52619cfe80b17
   VisionCamera: 6a90992822a293947af96e77618933405a417871
   Yoga: 1b901a6d6eeba4e8a2e8f308f708691cdb5db312
 
-PODFILE CHECKSUM: 57ea245d552c612710591792d6c706d2d9bf1bac
+PODFILE CHECKSUM: 02567442b73e52b1bfb259cf2f106265b2bc93fb
 
 COCOAPODS: 1.14.3

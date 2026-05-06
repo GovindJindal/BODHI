@@ -287,7 +287,7 @@ export function ScanPayScreen() {
           <Text style={styles.grantBtnText}>Grant Camera Access</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 16 }}>
-          <Text style={{ color: '#FF5A00' }}>← Go Back</Text>
+          <Text style={{ color: '#C83232' }}>← Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -298,7 +298,7 @@ export function ScanPayScreen() {
       <View style={styles.centered}>
         <Text style={styles.permissionTitle}>No Camera Found</Text>
         <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 16 }}>
-          <Text style={{ color: '#FF5A00' }}>← Go Back</Text>
+          <Text style={{ color: '#C83232' }}>← Go Back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -324,7 +324,7 @@ export function ScanPayScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <ArrowLeft size={24} color="#FFF" />
+            <ArrowLeft size={24} color="#1C1C1E" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Scan to Pay</Text>
           <View style={{ width: 40 }} />
@@ -361,7 +361,7 @@ export function ScanPayScreen() {
                   <Text style={styles.doneBtnText}>Return Home</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={resetAndScanAgain} style={{ marginTop: 12 }}>
-                  <Text style={{ color: '#FF5A00', fontSize: responsiveFont(14) }}>Scan Another</Text>
+                  <Text style={{ color: '#C83232', fontSize: responsiveFont(14) }}>Scan Another</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -369,7 +369,7 @@ export function ScanPayScreen() {
                 <View style={[styles.modalHeader, { paddingTop: Platform.OS === 'ios' ? 10 : 0 }]}>
                   <Text style={styles.modalTitle}>Pay via QR</Text>
                   <TouchableOpacity onPress={resetAndScanAgain}>
-                    <X size={22} color="#FFF" />
+                    <X size={22} color="#1C1C1E" />
                   </TouchableOpacity>
                 </View>
 
@@ -385,7 +385,7 @@ export function ScanPayScreen() {
                   onChangeText={setAmount}
                   keyboardType="decimal-pad"
                   placeholder="0.00"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor="rgba(0,0,0,0.3)"
                   autoFocus
                 />
 
@@ -395,11 +395,11 @@ export function ScanPayScreen() {
                   value={note}
                   onChangeText={setNote}
                   placeholder="What's it for?"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor="rgba(0,0,0,0.3)"
                 />
 
                 {paymentError && (
-                  <Text style={{ color: '#FF2D2D', fontSize: 13, fontWeight: '600', marginBottom: 16, textAlign: 'center' }}>
+                  <Text style={{ color: '#C83232', fontSize: 13, fontWeight: '600', marginBottom: 16, textAlign: 'center' }}>
                     {paymentError}
                   </Text>
                 )}
@@ -412,18 +412,18 @@ export function ScanPayScreen() {
                       style={{ opacity: isProcessing || !amount ? 0.6 : 1 }}
                     >
                       <LinearGradient
-                        colors={['#8B0000', '#FF5A00']}
+                        colors={['#1C1C1E', '#C83232']}
                         style={styles.payBtn}
                         start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                       >
                         {isProcessing ? (
-                          <ActivityIndicator color="#FFF" />
+                          <ActivityIndicator color="#FFFFFF" />
                         ) : (
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <Text style={[styles.payBtnText, { color: '#FFF' }]}>
+                            <Text style={[styles.payBtnText, { color: '#FFFFFF' }]}>
                               PAY VIA GPAY / UPI
                             </Text>
-                            <ExternalLink size={18} color="#FFF" />
+                            <ExternalLink size={18} color="#FFFFFF" />
                           </View>
                         )}
                       </LinearGradient>
@@ -436,14 +436,14 @@ export function ScanPayScreen() {
                     style={{ opacity: isProcessing || !amount ? 0.6 : 1 }}
                   >
                     <LinearGradient
-                      colors={isUpiQr ? ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.1)'] : ['#FFE600', '#FFE600']}
-                      style={[styles.payBtn, isUpiQr && { borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' }]}
+                      colors={isUpiQr ? ['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.1)'] : ['#3D4DFF', '#3D4DFF']}
+                      style={[styles.payBtn, isUpiQr && { borderWidth: 1, borderColor: 'rgba(0,0,0,0.2)' }]}
                       start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                     >
                       {isProcessing ? (
-                        <ActivityIndicator color={isUpiQr ? '#FFF' : '#000'} />
+                        <ActivityIndicator color={isUpiQr ? '#1C1C1E' : '#FFFFFF'} />
                       ) : (
-                        <Text style={[styles.payBtnText, isUpiQr && { color: '#FFF' }]}>
+                        <Text style={[styles.payBtnText, isUpiQr && { color: '#1C1C1E' }]}>
                           PAY VIA BODHI WALLET
                         </Text>
                       )}
@@ -470,7 +470,7 @@ export function ScanPayScreen() {
               maxLength={4}
               secureTextEntry
               placeholder="••••"
-              placeholderTextColor="rgba(255,255,255,0.2)"
+              placeholderTextColor="rgba(0,0,0,0.2)"
               autoFocus
               importantForAutofill="no"
               autoComplete="off"
@@ -500,8 +500,8 @@ const CORNER_THICKNESS = 4;
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#000' },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#050505', padding: 24 },
-  overlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'space-between' },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FDFDF9', padding: 24 },
+  overlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'space-between', backgroundColor: 'rgba(253, 253, 249, 0.4)' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20,
@@ -510,63 +510,63 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.8)', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
   },
-  headerTitle: { color: '#FFF', fontSize: responsiveFont(18), fontWeight: '800', letterSpacing: 0.5 },
+  headerTitle: { color: '#1C1C1E', fontSize: responsiveFont(18), fontWeight: '800', letterSpacing: 0.5 },
   viewfinderContainer: { alignItems: 'center', flex: 1, justifyContent: 'center' },
-  scanInstructions: { color: '#FFF', fontSize: responsiveFont(16), textAlign: 'center', marginBottom: 32, lineHeight: 24, fontWeight: '600' },
+  scanInstructions: { color: '#1C1C1E', fontSize: responsiveFont(16), textAlign: 'center', marginBottom: 32, lineHeight: 24, fontWeight: '700' },
   viewfinder: { width: 260, height: 260, position: 'relative' },
   corner: { position: 'absolute', width: CORNER_SIZE, height: CORNER_SIZE, borderColor: Colors.neonLime },
   tl: { top: 0, left: 0, borderTopWidth: CORNER_THICKNESS, borderLeftWidth: CORNER_THICKNESS, borderTopLeftRadius: 12 },
   tr: { top: 0, right: 0, borderTopWidth: CORNER_THICKNESS, borderRightWidth: CORNER_THICKNESS, borderTopRightRadius: 12 },
   bl: { bottom: 0, left: 0, borderBottomWidth: CORNER_THICKNESS, borderLeftWidth: CORNER_THICKNESS, borderBottomLeftRadius: 12 },
   br: { bottom: 0, right: 0, borderBottomWidth: CORNER_THICKNESS, borderRightWidth: CORNER_THICKNESS, borderBottomRightRadius: 12 },
-  scanHint: { color: 'rgba(255,255,255,0.6)', fontSize: responsiveFont(13), marginTop: 32, fontWeight: '500' },
-  permissionTitle: { color: '#FFF', fontSize: responsiveFont(22), fontWeight: '800', textAlign: 'center', marginBottom: 12 },
-  permissionSub: { color: 'rgba(255,255,255,0.6)', fontSize: responsiveFont(14), textAlign: 'center', lineHeight: 22, marginBottom: 32 },
+  scanHint: { color: 'rgba(0,0,0,0.7)', fontSize: responsiveFont(13), marginTop: 32, fontWeight: '600' },
+  permissionTitle: { color: '#1C1C1E', fontSize: responsiveFont(22), fontWeight: '800', textAlign: 'center', marginBottom: 12 },
+  permissionSub: { color: 'rgba(0,0,0,0.6)', fontSize: responsiveFont(14), textAlign: 'center', lineHeight: 22, marginBottom: 32 },
   grantBtn: { backgroundColor: Colors.neonLime, paddingHorizontal: 32, paddingVertical: 14, borderRadius: Radius.lg },
-  grantBtnText: { color: '#000', fontSize: responsiveFont(15), fontWeight: '800' },
+  grantBtnText: { color: '#FFF', fontSize: responsiveFont(15), fontWeight: '800' },
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.7)' },
   modalSheet: {
-    backgroundColor: '#12142d', borderTopLeftRadius: 32, borderTopRightRadius: 32,
+    backgroundColor: '#FFFFFF', borderTopLeftRadius: 32, borderTopRightRadius: 32,
     padding: 24, paddingBottom: 40,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
   },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  modalTitle: { color: '#FFF', fontSize: responsiveFont(22), fontWeight: '800' },
+  modalTitle: { color: '#1C1C1E', fontSize: responsiveFont(22), fontWeight: '800' },
   scannedTag: {
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 16, marginBottom: 24,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 16, padding: 16, marginBottom: 24,
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
   },
-  scannedLabel: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(11), fontWeight: '800', letterSpacing: 1.5, marginBottom: 6 },
+  scannedLabel: { color: 'rgba(0,0,0,0.4)', fontSize: responsiveFont(11), fontWeight: '800', letterSpacing: 1.5, marginBottom: 6 },
   scannedValue: { color: Colors.neonLime, fontSize: responsiveFont(16), fontWeight: '800' },
-  inputLabel: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(11), fontWeight: '800', letterSpacing: 1.5, marginBottom: 10 },
+  inputLabel: { color: 'rgba(0,0,0,0.4)', fontSize: responsiveFont(11), fontWeight: '800', letterSpacing: 1.5, marginBottom: 10 },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, padding: 16,
-    color: '#FFF', fontSize: responsiveFont(18), fontWeight: '700', marginBottom: 16,
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 16, padding: 16,
+    color: '#1C1C1E', fontSize: responsiveFont(18), fontWeight: '700', marginBottom: 16,
+    borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.1)',
   },
   payBtn: { borderRadius: Radius.xl, paddingVertical: 18, alignItems: 'center', justifyContent: 'center' },
-  payBtnText: { fontSize: responsiveFont(16), fontWeight: '900', color: '#000', letterSpacing: 0.5 },
+  payBtnText: { fontSize: responsiveFont(16), fontWeight: '900', color: '#FFF', letterSpacing: 0.5 },
   successContainer: { alignItems: 'center', paddingVertical: 20 },
-  successTitle: { color: '#FFF', fontSize: responsiveFont(28), fontWeight: '900', marginTop: 16, marginBottom: 8 },
-  successSub: { color: 'rgba(255,255,255,0.7)', fontSize: responsiveFont(16), textAlign: 'center', lineHeight: 24, marginBottom: 32 },
+  successTitle: { color: '#1C1C1E', fontSize: responsiveFont(28), fontWeight: '900', marginTop: 16, marginBottom: 8 },
+  successSub: { color: 'rgba(0,0,0,0.7)', fontSize: responsiveFont(16), textAlign: 'center', lineHeight: 24, marginBottom: 32 },
   doneBtn: { backgroundColor: Colors.success, paddingHorizontal: 48, paddingVertical: 18, borderRadius: Radius.xl },
-  doneBtnText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
+  doneBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
 
   // U-PIN Modal Styles (Consistent with SendMoneyScreen)
-  upinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', padding: 24 },
-  upinSheet: { backgroundColor: '#12142d', borderRadius: 28, padding: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  upinTitle: { color: '#FFF', fontSize: 20, fontWeight: '800', marginBottom: 8 },
-  upinSub: { color: 'rgba(255,255,255,0.5)', fontSize: 14, lineHeight: 20, marginBottom: 24 },
+  upinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 24 },
+  upinSheet: { backgroundColor: '#FFFFFF', borderRadius: 28, padding: 24, borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' },
+  upinTitle: { color: '#1C1C1E', fontSize: 20, fontWeight: '800', marginBottom: 8 },
+  upinSub: { color: 'rgba(0,0,0,0.6)', fontSize: 14, lineHeight: 20, marginBottom: 24 },
   upinInput: {
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.15)', height: 60, color: '#FFF',
+    backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 16, borderWidth: 1.5,
+    borderColor: 'rgba(0,0,0,0.15)', height: 60, color: '#1C1C1E',
     fontSize: 28, fontWeight: '800', textAlign: 'center', letterSpacing: 12, marginBottom: 8,
   },
   upinCancel: { flex: 1, height: 50, alignItems: 'center', justifyContent: 'center' },
-  upinCancelText: { color: 'rgba(255,255,255,0.5)', fontSize: 16, fontWeight: '600' },
-  upinConfirm: { flex: 2, height: 50, backgroundColor: '#C8FF00', borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  upinConfirmText: { color: '#000', fontSize: 15, fontWeight: '800' },
+  upinCancelText: { color: 'rgba(0,0,0,0.4)', fontSize: 16, fontWeight: '600' },
+  upinConfirm: { flex: 2, height: 50, backgroundColor: Colors.neonLime, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  upinConfirmText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
 });

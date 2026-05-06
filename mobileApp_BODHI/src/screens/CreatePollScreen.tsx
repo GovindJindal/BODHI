@@ -13,9 +13,9 @@ import { ArrowLeft, Plus, Trash2 } from 'lucide-react-native';
 import { CollaborationAPI } from '../api/client';
 
 const C = {
-  bg: '#000000', card: '#0A0A0A', border: 'rgba(255,255,255,0.06)',
-  purple: '#FF5A00', lime: '#FFE600', white: '#FFFFFF',
-  dim: 'rgba(255,255,255,0.5)', muted: 'rgba(255,255,255,0.25)', red: '#FF2D2D',
+  bg: '#FDFDF9', card: '#FFFFFF', border: 'rgba(0,0,0,0.06)',
+  purple: '#C83232', lime: '#3D4DFF', white: '#1C1C1E',
+  dim: 'rgba(0,0,0,0.4)', muted: 'rgba(0,0,0,0.25)', red: '#C83232',
 };
 
 export function CreatePollScreen({ route }: any) {

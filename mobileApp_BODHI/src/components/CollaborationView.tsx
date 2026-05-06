@@ -23,15 +23,15 @@ import LinearGradient from 'react-native-linear-gradient';
 const { width: W } = Dimensions.get('window');
 
 const C = {
-  bg: '#000000', 
-  card: '#0A0A0A', 
-  border: 'rgba(255,255,255,0.08)',
-  purple: '#FF5A00', 
-  neonLime: '#FFE600', 
-  white: '#FFFFFF',
-  dim: 'rgba(255,255,255,0.5)', 
-  muted: 'rgba(255,255,255,0.1)',
-  red: '#FF2D2D',
+  bg: '#FDFDF9', 
+  card: '#FFFFFF', 
+  border: 'rgba(0,0,0,0.08)',
+  purple: '#C83232', 
+  neonLime: '#3D4DFF', 
+  white: '#1C1C1E',
+  dim: 'rgba(0,0,0,0.4)', 
+  muted: 'rgba(0,0,0,0.1)',
+  red: '#C83232',
 };
 
 type CollabTab = 'CHAT' | 'POLLS' | 'FEED';
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   msgTime: { color: C.dim, fontSize: responsiveFont(9), fontWeight: '600' },
   
   systemMsgContainer: { alignItems: 'center', marginVertical: 12 },
-  systemMsg: { color: C.dim, fontSize: responsiveFont(11), fontWeight: '600', backgroundColor: 'rgba(255,255,255,0.05)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10 },
+  systemMsg: { color: C.dim, fontSize: responsiveFont(11), fontWeight: '600', backgroundColor: 'rgba(0,0,0,0.05)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10 },
 
   inputContainer: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 12, paddingVertical: 12, borderTopWidth: 1, borderTopColor: C.border, backgroundColor: C.bg },
   inputWrapper: { flex: 1, flexDirection: 'row', backgroundColor: C.card, borderRadius: 24, borderWidth: 1, borderColor: C.border, alignItems: 'flex-end', paddingHorizontal: 8, minHeight: 48 },
@@ -352,9 +352,9 @@ const styles = StyleSheet.create({
   pollMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   pollAuthor: { color: C.dim, fontSize: responsiveFont(11), fontWeight: '700', flex: 1 },
   pollQuestion: { color: C.white, fontSize: responsiveFont(18), fontWeight: '800', marginBottom: 20, letterSpacing: -0.3 },
-  pollOpt: { borderRadius: 16, borderWidth: 1, borderColor: C.border, marginBottom: 10, overflow: 'hidden', height: 52, justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)' },
-  pollOptSelected: { borderColor: C.neonLime, backgroundColor: 'rgba(200,255,0,0.05)' },
-  pollProgress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: 'rgba(200,255,0,0.08)' },
+  pollOpt: { borderRadius: 16, borderWidth: 1, borderColor: C.border, marginBottom: 10, overflow: 'hidden', height: 52, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.02)' },
+  pollOptSelected: { borderColor: C.neonLime, backgroundColor: 'rgba(61,77,255,0.05)' },
+  pollProgress: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: 'rgba(61,77,255,0.08)' },
   pollOptContent: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, alignItems: 'center', zIndex: 1 },
   pollOptText: { color: C.white, fontSize: responsiveFont(15), fontWeight: '600' },
   pollOptPct: { color: C.neonLime, fontSize: responsiveFont(14), fontWeight: '800' },

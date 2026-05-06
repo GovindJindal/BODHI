@@ -24,7 +24,7 @@ import {
   ChevronRight, X, ChevronLeft, Search, Zap, Star,
   DollarSign, Flame, ArrowLeft,
 } from 'lucide-react-native';
-import { Colors, Gradients } from '../theme/tokens';
+import { ScreenColors } from '../theme/tokens';
 import { SubscriptionsAPI } from '../api/client';
 
 const { width } = Dimensions.get('window');
@@ -32,18 +32,18 @@ const CARD_WIDTH = 168;
 
 const FILTER_CHIPS = ['All', 'Entertainment', 'Productivity', 'Music', 'Finance'];
 
-const BADGES: Record<string, { label: string; color: string }> = {
-  netflix:    { label: '🔥 Popular',   color: '#E50914' },
-  prime:      { label: '⭐ Best Value', color: '#00A8E1' },
-  spotify:    { label: '🎵 Top Pick',  color: '#1DB954' },
-  chatgpt:    { label: '⚡ Trending',  color: '#10A37F' },
-  m365:       { label: '💼 Essentials',color: '#D83B01' },
-  youtube:    { label: '📺 Popular',   color: '#FF0000' },
-  hotstar:    { label: '🏏 Live Sport',color: '#0061FF' },
+const BADGES: Record<string, { label: string; color: string; background?: string }> = {
+  netflix:    { label: 'Popular',   color: ScreenColors.subscription.badgePopularText, background: ScreenColors.subscription.badgePopularBackground },
+  prime:      { label: 'Best Value', color: ScreenColors.subscription.badgeBestValueText, background: ScreenColors.subscription.badgeBestValueBackground },
+  spotify:    { label: '🎵 Top Pick',  color: ScreenColors.subscription.badgeGenericGreen },
+  chatgpt:    { label: '⚡ Trending',  color: ScreenColors.subscription.badgeGenericTeal },
+  m365:       { label: '💼 Essentials',color: ScreenColors.subscription.badgeGenericOrange },
+  youtube:    { label: '📺 Popular',   color: ScreenColors.subscription.badgeGenericRed },
+  hotstar:    { label: '🏏 Live Sport',color: ScreenColors.subscription.badgeGenericBlue },
 };
 
 const getCategoryIcon = (iconName: string) => {
-  const props = { color: '#FF5A00', size: 18 };
+  const props = { color: ScreenColors.subscription.primaryAccent, size: 18 };
   switch (iconName) {
     case 'Tv':        return <Tv {...props} />;
     case 'Briefcase': return <Briefcase {...props} />;
@@ -147,7 +147,7 @@ export const SubscriptionHubScreen = () => {
 
         {/* Badge — absolutely positioned top-right so it never shifts content */}
         {badge && (
-          <View style={[styles.badge, { backgroundColor: `${badge.color}22`, borderColor: `${badge.color}55` }]}>
+          <View style={[styles.badge, { backgroundColor: badge.background ?? `${badge.color}22`, borderColor: 'transparent' }]}>
             <Text style={[styles.badgeText, { color: badge.color }]}>{badge.label}</Text>
           </View>
         )}
@@ -173,13 +173,9 @@ export const SubscriptionHubScreen = () => {
         </View>
 
         {/* CTA */}
-        <LinearGradient
-          colors={['#FF5A00', '#FFB000']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-          style={styles.ctaGradient}
-        >
-          <Text style={[styles.ctaText, { color: '#FFF' }]}>View Plans</Text>
-        </LinearGradient>
+        <View style={styles.ctaGradient}>
+          <Text style={styles.ctaText}>View Plans</Text>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -196,7 +192,7 @@ export const SubscriptionHubScreen = () => {
         </View>
         <TouchableOpacity style={styles.viewAllBtn}>
           <Text style={styles.viewAllText}>View All</Text>
-          <ChevronRight color="#FF5A00" size={15} />
+          <ChevronRight color={ScreenColors.subscription.primaryAccent} size={15} />
         </TouchableOpacity>
       </View>
 
@@ -217,8 +213,8 @@ export const SubscriptionHubScreen = () => {
   if (loading) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator color="#FF5A00" size="large" />
-        <Text style={{ color: '#555', marginTop: 12, fontSize: responsiveFont(13) }}>Loading marketplace…</Text>
+        <ActivityIndicator color={ScreenColors.subscription.primaryAccent} size="large" />
+        <Text style={{ color: ScreenColors.subscription.textSecondary, marginTop: 12, fontSize: responsiveFont(13) }}>Loading marketplace…</Text>
       </View>
     );
   }
@@ -230,14 +226,14 @@ export const SubscriptionHubScreen = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={{ flex: 1, maxWidth: isTablet ? (isLandscape() ? 900 : 700) : '100%', alignSelf: 'center', width: '100%' }}>
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle="dark-content" />
 
 
 
         {/* Header */}
         <View style={styles.planHeader}>
           <TouchableOpacity onPress={() => setSelectedService(null)} style={styles.backBtn}>
-            <ChevronLeft color="#FFF" size={22} />
+            <ChevronLeft color={ScreenColors.subscription.iconOnDark} size={22} />
           </TouchableOpacity>
           <View style={styles.planHeaderMid}>
             <View style={[styles.planLogoWrapper, { borderColor: `${selectedService.borderColor}66` }]}>
@@ -255,19 +251,16 @@ export const SubscriptionHubScreen = () => {
           contentContainerStyle={{ padding: 20, paddingTop: 8 }}
           renderItem={({ item, index }) => (
             <TouchableOpacity
-              style={[styles.planCard, { borderColor: `${selectedService.borderColor}55` }]}
+              style={styles.planCard}
               onPress={() => handlePlanSelect(item)}
               activeOpacity={0.8}
             >
-              <LinearGradient
-                colors={['#12101A', '#0A080F']}
-                style={StyleSheet.absoluteFill}
-              />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: ScreenColors.brand.surface }]} />
               {/* Left: plan name + features */}
               <View style={{ flex: 1, paddingRight: 12 }}>
                 {index === 0 && (
                   <View style={styles.popularBadge}>
-                    <Star color="#FFE600" size={10} fill="#FFE600" />
+                    <Star color={ScreenColors.subscription.star} size={10} fill={ScreenColors.subscription.star} />
                     <Text style={styles.popularBadgeText}>Most Popular</Text>
                   </View>
                 )}
@@ -299,7 +292,7 @@ export const SubscriptionHubScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={{ flex: 1, maxWidth: isTablet ? (isLandscape() ? 1000 : 800) : '100%', alignSelf: 'center', width: '100%' }}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
 
 
@@ -314,31 +307,28 @@ export const SubscriptionHubScreen = () => {
             {/* ── HERO HEADER ── */}
             {/* Back button */}
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.mainBackBtn}>
-              <ArrowLeft size={22} color="#FFF" />
+              <ArrowLeft size={22} color={ScreenColors.subscription.textPrimary} />
             </TouchableOpacity>
 
-            <LinearGradient
-              colors={['#1A0000', '#050505']}
-              style={styles.heroGradient}
-            >
+            <View style={styles.heroGradient}>
               <View style={styles.heroRow}>
                 <View style={{ flex: 1 }}>
                   <View style={styles.heroPill}>
-                    <Zap color="#FF5A00" size={11} fill="#FF5A00" />
+                    <Zap color={ScreenColors.subscription.primaryAccent} size={11} fill={ScreenColors.subscription.primaryAccent} />
                     <Text style={styles.heroPillText}>BODHI Marketplace</Text>
                   </View>
-                  <Text style={styles.heroTitle}>Discover{'\n'}Plans</Text>
+                  <Text style={styles.heroTitle}>Discover Plans</Text>
                   <Text style={styles.heroSubtitle}>All your subscriptions,{'\n'}one intelligent hub.</Text>
                 </View>
                 <View style={styles.heroGraphic}>
                   <LinearGradient
-                    colors={['#8B000055', '#FF5A0030']}
+                    colors={[ScreenColors.subscription.categoryChipTint, ScreenColors.subscription.badgePopularBackground]}
                     style={styles.heroGraphicInner}
                   >
-                    <Flame color="#FF5A00" size={30} />
+                    <Flame color={ScreenColors.subscription.primaryAccent} size={30} />
                   </LinearGradient>
-                  <View style={[styles.orbDot, { top: -6, right: -6, backgroundColor: '#FF5A00' }]} />
-                  <View style={[styles.orbDot, { bottom: -4, left: -4, backgroundColor: '#8B0000' }]} />
+                  <View style={[styles.orbDot, { top: -6, right: -6, backgroundColor: ScreenColors.subscription.categoryChipTint }]} />
+                  <View style={[styles.orbDot, { bottom: -4, left: -4, backgroundColor: ScreenColors.subscription.badgePopularBackground }]} />
                 </View>
               </View>
 
@@ -355,21 +345,21 @@ export const SubscriptionHubScreen = () => {
                   </View>
                 ))}
               </View>
-            </LinearGradient>
+            </View>
 
             {/* ── SEARCH BAR ── */}
             <View style={styles.searchWrapper}>
-              <Search color="#555" size={17} style={{ marginRight: 10 }} />
+              <Search color={ScreenColors.subscription.textMuted} size={17} style={{ marginRight: 10 }} />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Search Netflix, Spotify…"
-                placeholderTextColor="#444"
+                placeholderTextColor={ScreenColors.subscription.textMuted}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
               {searchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <X color="#555" size={16} />
+                  <X color={ScreenColors.subscription.textMuted} size={16} />
                 </TouchableOpacity>
               )}
             </View>
@@ -404,19 +394,19 @@ export const SubscriptionHubScreen = () => {
                 <Text style={styles.modalSub}>We'll track it for you automatically.</Text>
               </View>
               <TouchableOpacity onPress={cancelLog} style={styles.modalClose}>
-                <X color="#888" size={20} />
+                <X color={ScreenColors.subscription.iconMuted} size={20} />
               </TouchableOpacity>
             </View>
             <Text style={styles.modalBody}>
-              Add <Text style={{ color: '#FF5A00', fontWeight: '700' }}>{pendingSub?.name}</Text> to your Vault to monitor this recurring expense?
+              Add <Text style={{ color: ScreenColors.subscription.primaryAccent, fontWeight: '700' }}>{pendingSub?.name}</Text> to your Vault to monitor this recurring expense?
             </Text>
             <View style={styles.modalActions}>
               <TouchableOpacity style={styles.cancelBtn} onPress={cancelLog}>
                 <Text style={styles.cancelBtnText}>Skip</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={confirmAndLogToVault} style={{ flex: 1.6 }}>
-                <LinearGradient colors={['#FF5A00', '#FFB000']} style={styles.confirmBtn}>
-                  <Text style={[styles.confirmBtnText, { color: '#FFF' }]}>Add to Vault</Text>
+                <LinearGradient colors={[ScreenColors.subscription.primaryAccent, ScreenColors.subscription.badgePopularText]} style={styles.confirmBtn}>
+                  <Text style={[styles.confirmBtnText, { color: ScreenColors.subscription.textPrimary }]}>Add to Vault</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -431,7 +421,7 @@ export const SubscriptionHubScreen = () => {
 // STYLES
 // ─────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container:   { flex: 1, backgroundColor: '#050505' },
+  container:   { flex: 1, backgroundColor: ScreenColors.subscription.background },
   centered:    { justifyContent: 'center', alignItems: 'center' },
 
   // Ambient orbs
@@ -439,62 +429,67 @@ const styles = StyleSheet.create({
   orbDot: { position: 'absolute', width: 8, height: 8, borderRadius: 4 },
 
   // ── HERO ──
-  heroGradient: { paddingHorizontal: 22, paddingTop: 16, paddingBottom: 24 },
+  heroGradient: {
+    paddingHorizontal: 22,
+    paddingTop: 16,
+    paddingBottom: 24,
+    backgroundColor: ScreenColors.subscription.headerBackground,
+  },
   mainBackBtn: {
     width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center',
-    marginLeft: 20, marginTop: 52, marginBottom: 4,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: ScreenColors.subscription.cardBackground, alignItems: 'center', justifyContent: 'center',
+    marginLeft: 20, marginTop: 8, marginBottom: 4,
+    borderWidth: 1, borderColor: ScreenColors.subscription.cardBorder,
   },
   heroRow:      { flexDirection: 'row', alignItems: 'flex-start' },
   heroPill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: '#FF5A0015', borderRadius: 20, borderWidth: 1,
-    borderColor: '#FF5A0033', paddingHorizontal: 10, paddingVertical: 4,
+    backgroundColor: ScreenColors.subscription.cardBackground, borderRadius: 20, borderWidth: 1,
+    borderColor: ScreenColors.subscription.cardBorder, paddingHorizontal: 10, paddingVertical: 4,
     alignSelf: 'flex-start', marginBottom: 14,
   },
-  heroPillText: { color: '#FF5A00', fontSize: responsiveFont(10), fontWeight: '700', letterSpacing: 1 },
-  heroTitle: { color: '#FFF', fontSize: responsiveFont(42), fontWeight: '800', lineHeight: 48, letterSpacing: -0.5 },
-  heroSubtitle: { color: '#666', fontSize: responsiveFont(13), marginTop: 8, lineHeight: 19 },
+  heroPillText: { color: ScreenColors.subscription.primaryAccent, fontSize: responsiveFont(10), fontWeight: '700', letterSpacing: 1 },
+  heroTitle: { color: ScreenColors.subscription.textPrimary, fontSize: responsiveFont(28), fontWeight: '700', lineHeight: 34, letterSpacing: -0.3 },
+  heroSubtitle: { color: ScreenColors.subscription.textSecondary, fontSize: responsiveFont(14), marginTop: 8, lineHeight: 20 },
   heroGraphic: {
     width: 76, height: 76, marginLeft: 16, position: 'relative',
     justifyContent: 'center', alignItems: 'center',
   },
   heroGraphicInner: {
     width: 72, height: 72, borderRadius: 22, justifyContent: 'center',
-    alignItems: 'center', borderWidth: 1, borderColor: '#8B000044',
+    alignItems: 'center', borderWidth: 1, borderColor: ScreenColors.subscription.heroGraphicBorder,
   },
   statsRow: {
     flexDirection: 'row', marginTop: 24, gap: 0,
-    borderTopWidth: 1, borderTopColor: '#1A0505', paddingTop: 18,
+    borderTopWidth: 1, borderTopColor: ScreenColors.subscription.cardBorder, paddingTop: 18,
   },
   statItem: { flex: 1, alignItems: 'center' },
-  statVal:  { color: '#FF5A00', fontSize: responsiveFont(20), fontWeight: '800' },
-  statLabel:{ color: '#444', fontSize: responsiveFont(11), marginTop: 2 },
+  statVal:  { color: ScreenColors.subscription.primaryAccent, fontSize: responsiveFont(20), fontWeight: '800' },
+  statLabel:{ color: ScreenColors.subscription.textMuted, fontSize: responsiveFont(11), marginTop: 2 },
 
   // ── SEARCH ──
   searchWrapper: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#0F0808', borderRadius: 18,
-    borderWidth: 1, borderColor: '#2E1B1B',
+    backgroundColor: ScreenColors.subscription.searchBackground, borderRadius: 18,
+    borderWidth: 0, borderColor: 'transparent',
     marginHorizontal: 20, marginTop: 20, paddingHorizontal: 16, paddingVertical: 13,
   },
-  searchInput: { flex: 1, color: '#FFF', fontSize: responsiveFont(14), padding: 0 },
+  searchInput: { flex: 1, color: ScreenColors.subscription.textPrimary, fontSize: responsiveFont(14), padding: 0 },
 
   // ── FILTER CHIPS ──
   chipsRow: { paddingHorizontal: 20, paddingVertical: 16, gap: 8 },
   chip: {
     paddingHorizontal: 16, paddingVertical: 8,
-    borderRadius: 20, backgroundColor: '#0F0808',
-    borderWidth: 1, borderColor: '#2E1B1B',
+    borderRadius: 20, backgroundColor: ScreenColors.subscription.chipBackground,
+    borderWidth: 1, borderColor: ScreenColors.subscription.cardBorder,
   },
-  chipActive: { backgroundColor: '#FF5A0018', borderColor: '#FF5A0055' },
-  chipText:       { color: '#555', fontSize: responsiveFont(13), fontWeight: '600' },
-  chipTextActive: { color: '#FF5A00' },
+  chipActive: { backgroundColor: ScreenColors.subscription.chipSelectedBackground, borderColor: ScreenColors.subscription.chipSelectedBackground },
+  chipText:       { color: ScreenColors.subscription.chipText, fontSize: responsiveFont(13), fontWeight: '600' },
+  chipTextActive: { color: ScreenColors.subscription.chipSelectedText },
 
   // Section label
   sectionLabel: {
-    color: '#333', fontSize: responsiveFont(11), fontWeight: '700', letterSpacing: 1.5,
+    color: ScreenColors.subscription.textSecondary, fontSize: responsiveFont(11), fontWeight: '700', letterSpacing: 1.5,
     textTransform: 'uppercase', paddingHorizontal: 22, marginBottom: 10,
   },
 
@@ -507,17 +502,17 @@ const styles = StyleSheet.create({
   categoryHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   catIconBadge: {
     width: 34, height: 34, borderRadius: 10,
-    backgroundColor: '#FF5A0012', borderWidth: 1, borderColor: '#FF5A0030',
+    backgroundColor: ScreenColors.subscription.categoryChipTint, borderWidth: 1, borderColor: ScreenColors.subscription.cardBorder,
     justifyContent: 'center', alignItems: 'center',
   },
-  categoryTitle: { color: '#FFF', fontSize: responsiveFont(18), fontWeight: '700' },
+  categoryTitle: { color: ScreenColors.subscription.textPrimary, fontSize: responsiveFont(18), fontWeight: '700' },
   viewAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  viewAllText:{ color: '#FF5A00', fontSize: responsiveFont(13), fontWeight: '600' },
+  viewAllText:{ color: ScreenColors.subscription.primaryAccent, fontSize: responsiveFont(13), fontWeight: '600' },
 
   // ── SUBSCRIPTION CARD ──
   card: {
     width: CARD_WIDTH, minHeight: 210,
-    backgroundColor: '#0D0A14', borderRadius: 24, borderWidth: 1.5,
+    backgroundColor: ScreenColors.subscription.cardBackground, borderRadius: 24, borderWidth: 1.5,
     padding: 16, marginRight: 14, overflow: 'hidden',
     justifyContent: 'space-between',
   },
@@ -535,83 +530,86 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: responsiveFont(9), fontWeight: '700' },
   logoWrapper: {
     width: 52, height: 52, borderRadius: 16,
-    backgroundColor: '#FFFFFF', borderWidth: 1.5,
+    backgroundColor: ScreenColors.subscription.cardBackground, borderWidth: 1.5,
     justifyContent: 'center', alignItems: 'center',
     marginBottom: 12,
   },
   brandLogo: { width: 36, height: 36 },
-  appName: { color: '#FFF', fontSize: responsiveFont(15), fontWeight: '700', marginBottom: 3 },
-  planText: { color: '#555', fontSize: responsiveFont(11), marginBottom: 10 },
+  appName: { color: ScreenColors.subscription.textPrimary, fontSize: responsiveFont(15), fontWeight: '700', marginBottom: 3 },
+  planText: { color: ScreenColors.subscription.textSecondary, fontSize: responsiveFont(11), marginBottom: 10 },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 12 },
-  priceFrom: { color: '#444', fontSize: responsiveFont(10) },
-  priceNeon: { color: '#FF5A00', fontSize: responsiveFont(17), fontWeight: '800' },
-  priceMo:   { color: '#444', fontSize: responsiveFont(10) },
-  ctaGradient: { borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
-  ctaText: { color: '#000', fontWeight: '800', fontSize: responsiveFont(13) },
+  priceFrom: { color: ScreenColors.subscription.textMuted, fontSize: responsiveFont(10) },
+  priceNeon: { color: ScreenColors.subscription.primaryAccent, fontSize: responsiveFont(17), fontWeight: '800' },
+  priceMo:   { color: ScreenColors.subscription.textMuted, fontSize: responsiveFont(10) },
+  ctaGradient: { borderRadius: 12, paddingVertical: 10, alignItems: 'center', backgroundColor: ScreenColors.subscription.chipBackground },
+  ctaText: { color: ScreenColors.subscription.textPrimary, fontWeight: '800', fontSize: responsiveFont(13) },
 
   // ── PLAN SELECTION ──
   planHeader: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10 },
   backBtn: {
     width: 40, height: 40, borderRadius: 14,
-    backgroundColor: '#1A0A08', justifyContent: 'center', alignItems: 'center', marginBottom: 20,
+    backgroundColor: ScreenColors.brand.surface, justifyContent: 'center', alignItems: 'center', marginBottom: 20,
+    borderWidth: 1, borderColor: ScreenColors.brand.border,
   },
   planHeaderMid: { alignItems: 'center', paddingBottom: 16 },
   planLogoWrapper: {
-    width: 72, height: 72, borderRadius: 22, backgroundColor: '#FFF',
+    width: 72, height: 72, borderRadius: 22, backgroundColor: ScreenColors.subscription.cardBackground,
     borderWidth: 2, justifyContent: 'center', alignItems: 'center', marginBottom: 12,
   },
   planHeaderLogo: { width: 50, height: 50 },
-  planHeaderTitle: { color: '#FFF', fontSize: responsiveFont(24), fontWeight: '800' },
-  planHeaderSub:   { color: '#555', fontSize: responsiveFont(13), marginTop: 4 },
+  planHeaderTitle: { color: ScreenColors.brand.textPrimary, fontSize: responsiveFont(24), fontWeight: '800' },
+  planHeaderSub:   { color: ScreenColors.brand.textSecondary, fontSize: responsiveFont(13), marginTop: 4 },
 
   planCard: {
     borderRadius: 22, borderWidth: 1.5, padding: 20, marginBottom: 14,
     flexDirection: 'row', alignItems: 'center', overflow: 'hidden', position: 'relative',
+    backgroundColor: ScreenColors.brand.surface,
+    borderColor: ScreenColors.brand.border,
   },
   popularBadge: {
     position: 'absolute', top: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#FF5A0015', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4,
-    borderWidth: 1, borderColor: '#FF5A0040',
+    backgroundColor: ScreenColors.subscription.badgePopularBackground, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4,
+    borderWidth: 1, borderColor: ScreenColors.subscription.cardBorder,
   },
-  popularBadgeText: { color: '#FFE600', fontSize: responsiveFont(10), fontWeight: '700' },
-  planCardName: { color: '#FFF', fontSize: responsiveFont(20), fontWeight: '800' },
-  planCardFeatures: { color: '#555', fontSize: responsiveFont(13), marginTop: 4 },
+  popularBadgeText: { color: ScreenColors.subscription.badgePopularText, fontSize: responsiveFont(10), fontWeight: '700' },
+  planCardName: { color: ScreenColors.subscription.textPrimary, fontSize: responsiveFont(20), fontWeight: '800' },
+  planCardFeatures: { color: ScreenColors.subscription.textSecondary, fontSize: responsiveFont(13), marginTop: 4 },
   planCardRight: { alignItems: 'flex-end', gap: 4 },
   planPriceRow: { flexDirection: 'row', alignItems: 'baseline' },
-  planPriceSym: { color: '#FF5A00', fontSize: responsiveFont(13), fontWeight: '700' },
-  planPriceVal: { color: '#FF5A00', fontSize: responsiveFont(26), fontWeight: '900' },
-  planPriceMo:  { color: '#444', fontSize: responsiveFont(11) },
+  planPriceSym: { color: ScreenColors.subscription.primaryAccent, fontSize: responsiveFont(13), fontWeight: '700' },
+  planPriceVal: { color: ScreenColors.subscription.primaryAccent, fontSize: responsiveFont(26), fontWeight: '900' },
+  planPriceMo:  { color: ScreenColors.subscription.textMuted, fontSize: responsiveFont(11) },
   selectBtn: {
-    backgroundColor: '#1A0A08', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7,
-    borderWidth: 1, borderColor: '#2A1510',
+    backgroundColor: '#F0EDE8', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7,
+    borderWidth: 1, borderColor: ScreenColors.brand.border,
   },
-  selectBtnText: { color: '#FF5A00', fontWeight: '700', fontSize: responsiveFont(12) },
+  selectBtnText: { color: ScreenColors.subscription.primaryAccent, fontWeight: '700', fontSize: responsiveFont(12) },
 
   // ── MODAL ──
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.88)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, backgroundColor: ScreenColors.subscription.modalOverlay, justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: '#0F0808', borderTopLeftRadius: 32, borderTopRightRadius: 32,
-    padding: 24, paddingBottom: 48, borderTopWidth: 1, borderTopColor: '#2E1B1B',
+    backgroundColor: ScreenColors.subscription.modalSheetBackground, borderTopLeftRadius: 32, borderTopRightRadius: 32,
+    padding: 24, paddingBottom: 48, borderTopWidth: 1, borderTopColor: ScreenColors.subscription.cardBorder,
   },
   modalPill: {
-    width: 40, height: 4, backgroundColor: '#2A2A3A', borderRadius: 2,
+    width: 40, height: 4, backgroundColor: ScreenColors.subscription.modalPill, borderRadius: 2,
     alignSelf: 'center', marginBottom: 24,
   },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
-  modalTitle:  { color: '#FFF', fontSize: responsiveFont(22), fontWeight: '800' },
-  modalSub:    { color: '#555', fontSize: responsiveFont(13), marginTop: 3 },
+  modalTitle:  { color: ScreenColors.subscription.textPrimary, fontSize: responsiveFont(22), fontWeight: '800' },
+  modalSub:    { color: ScreenColors.subscription.textSecondary, fontSize: responsiveFont(13), marginTop: 3 },
   modalClose: {
-    width: 36, height: 36, borderRadius: 12, backgroundColor: '#1A1628',
+    width: 36, height: 36, borderRadius: 12, backgroundColor: ScreenColors.subscription.searchBackground,
     justifyContent: 'center', alignItems: 'center',
   },
-  modalBody: { color: '#888', fontSize: responsiveFont(16), lineHeight: 24, marginBottom: 28 },
+  modalBody: { color: ScreenColors.subscription.textSecondary, fontSize: responsiveFont(16), lineHeight: 24, marginBottom: 28 },
   modalActions: { flexDirection: 'row', gap: 12 },
   cancelBtn: {
     flex: 1, paddingVertical: 16, borderRadius: 16,
-    backgroundColor: '#1A0A08', alignItems: 'center',
-    borderWidth: 1, borderColor: '#2A1510',
+    backgroundColor: ScreenColors.subscription.chipBackground, alignItems: 'center',
+    borderWidth: 1, borderColor: ScreenColors.subscription.cardBorder,
   },
-  cancelBtnText: { color: '#888', fontWeight: '700', fontSize: responsiveFont(15) },
+  cancelBtnText: { color: ScreenColors.subscription.textSecondary, fontWeight: '700', fontSize: responsiveFont(15) },
   confirmBtn: { borderRadius: 16, paddingVertical: 16, alignItems: 'center' },
-  confirmBtnText: { color: '#000', fontWeight: '900', fontSize: responsiveFont(15) },
+  confirmBtnText: { color: ScreenColors.subscription.textPrimary, fontWeight: '900', fontSize: responsiveFont(15) },
 });

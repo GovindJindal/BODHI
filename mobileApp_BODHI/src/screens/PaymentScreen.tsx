@@ -26,7 +26,7 @@ import {
   Check,
   ChevronRight
 } from 'lucide-react-native'; // <-- Professional Vector Icons
-import { Colors, Typography, Spacing, Radius, Shadow, Gradients } from '../theme/tokens';
+import { Colors, Spacing, Radius, Shadow, Gradients } from '../theme/tokens';
 import LinearGradient from 'react-native-linear-gradient';
 import { BottomNav, GradientCard, SectionHeader } from '../components';
 import type { NavTab } from '../components/shared';
@@ -190,7 +190,7 @@ export const PaymentScreen: React.FC<Props> = ({
         <View style={[styles.blob, styles.blob1]} />
         <View style={[styles.blob, styles.blob2]} />
         <Animated.View style={[styles.successCircle, { transform: [{ scale: successAnim }] }]}>
-          <Check size={56} color="#000000" strokeWidth={3} />
+          <Check size={56} color="#FDFDF9" strokeWidth={3} />
         </Animated.View>
         <Text style={styles.successTitle}>Payment Sent!</Text>
         <Text style={styles.successSub}>
@@ -363,7 +363,7 @@ export const PaymentScreen: React.FC<Props> = ({
       <View style={styles.qrContainer}>
         <View style={styles.qrHeader}>
           <TouchableOpacity onPress={resetToHome} style={styles.backBtn} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
-            <ArrowLeft size={26} color={Colors.textWhite} />
+            <ArrowLeft size={26} color={Colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.qrHeaderTitle}>Scan to Pay</Text>
           <View style={{ width: 36 }} />
@@ -491,7 +491,7 @@ export const PaymentScreen: React.FC<Props> = ({
             ].map(a => (
               <TouchableOpacity key={a.label} style={styles.cardAction} onPress={a.onPress}>
                 <View style={styles.cardActionIcon}>
-                  <a.Icon size={24} color={Colors.textWhite} strokeWidth={2.5} />
+                  <a.Icon size={24} color={Colors.textPrimary} strokeWidth={2.5} />
                 </View>
                 <Text style={styles.cardActionLabel}>{a.label}</Text>
               </TouchableOpacity>
@@ -675,41 +675,41 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.sm,
   },
   pageHeader: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.lg },
-  pageTitle: { fontSize: responsiveFont(32), fontWeight: '900', color: '#FFF' },
-  pageSub: { fontSize: responsiveFont(12), color: 'rgba(255,255,255,0.5)', letterSpacing: 1.5, marginTop: 4, fontWeight: '700' },
+  pageTitle: { fontSize: responsiveFont(32), fontWeight: '900', color: '#1C1C1E' },
+  pageSub: { fontSize: responsiveFont(12), color: 'rgba(0,0,0,0.45)', letterSpacing: 1.5, marginTop: 4, fontWeight: '700' },
 
   balanceCard: { marginHorizontal: Spacing.lg, marginBottom: Spacing.xl, height: 180 },
-  cardLabel: { fontSize: responsiveFont(11), color: 'rgba(255,255,255,0.7)', letterSpacing: 1.5, marginBottom: 4, fontWeight: '800' },
-  cardBalance: { fontSize: responsiveFont(36), fontWeight: '900', color: '#FFF', marginBottom: Spacing.lg },
+  cardLabel: { fontSize: responsiveFont(11), color: 'rgba(0,0,0,0.7)', letterSpacing: 1.5, marginBottom: 4, fontWeight: '800' },
+  cardBalance: { fontSize: responsiveFont(36), fontWeight: '900', color: '#1C1C1E', marginBottom: Spacing.lg },
   cardActions: { flexDirection: 'row', justifyContent: 'space-around' },
   cardAction: { alignItems: 'center' },
   cardActionIcon: {
     width: 52, height: 52, borderRadius: 26,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.15)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 8,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
   },
-  cardActionLabel: { fontSize: responsiveFont(11), color: '#FFF', fontWeight: '800', letterSpacing: 0.5 },
+  cardActionLabel: { fontSize: responsiveFont(11), color: '#1C1C1E', fontWeight: '800', letterSpacing: 0.5 },
 
   section: { paddingHorizontal: Spacing.lg, marginBottom: Spacing.xl },
 
   tabRow: {
-    flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)',
+    flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.05)',
     borderRadius: Radius.lg, padding: 4, marginBottom: Spacing.lg,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)',
   },
   tab: { flex: 1, paddingVertical: 10, borderRadius: Radius.md, alignItems: 'center' },
-  tabActive: { backgroundColor: 'rgba(255,255,255,0.1)' },
-  tabText: { fontSize: responsiveFont(13), color: 'rgba(255,255,255,0.4)', fontWeight: '700' },
+  tabActive: { backgroundColor: 'rgba(0,0,0,0.1)' },
+  tabText: { fontSize: responsiveFont(13), color: 'rgba(0,0,0,0.45)', fontWeight: '700' },
   tabTextActive: { color: Colors.neonLime, fontWeight: '800' },
 
   searchInput: {
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16,
-    padding: 16, fontSize: responsiveFont(15), color: '#FFF',
-    marginBottom: Spacing.lg, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 16,
+    padding: 16, fontSize: responsiveFont(15), color: '#1C1C1E',
+    marginBottom: Spacing.lg, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)',
   },
   subLabel: {
-    fontSize: responsiveFont(11), color: 'rgba(255,255,255,0.5)',
+    fontSize: responsiveFont(11), color: 'rgba(0,0,0,0.45)',
     letterSpacing: 1.5, fontWeight: '800', marginBottom: Spacing.md,
   },
 
@@ -717,54 +717,54 @@ const styles = StyleSheet.create({
   recentContact: { alignItems: 'center', marginRight: 20, width: 64 },
   recentAvatar: {
     width: 60, height: 60, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 8,
     borderWidth: 1.5, borderColor: Colors.neonLime,
   },
-  recentName: { fontSize: responsiveFont(12), color: 'rgba(255,255,255,0.6)', fontWeight: '700', textAlign: 'center' },
+  recentName: { fontSize: responsiveFont(12), color: 'rgba(0,0,0,0.6)', fontWeight: '700', textAlign: 'center' },
 
   contactRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 20,
-    padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 20,
+    padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)',
   },
   contactAvatar: {
     width: 48, height: 48, borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center', marginRight: 16,
+    backgroundColor: 'rgba(0,0,0,0.08)', alignItems: 'center', justifyContent: 'center', marginRight: 16,
   },
   contactInfo: { flex: 1 },
-  contactName: { fontSize: responsiveFont(16), fontWeight: '700', color: '#FFF' },
-  contactPhone: { fontSize: responsiveFont(13), color: 'rgba(255,255,255,0.4)', marginTop: 2 },
+  contactName: { fontSize: responsiveFont(16), fontWeight: '700', color: '#1C1C1E' },
+  contactPhone: { fontSize: responsiveFont(13), color: 'rgba(0,0,0,0.45)', marginTop: 2 },
 
   phoneRow: {
-    flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 16, overflow: 'hidden', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)',
+    flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRadius: 16, overflow: 'hidden', borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.1)',
   },
   countryCode: {
     paddingHorizontal: 16, paddingVertical: 16,
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRightWidth: 1,
-    borderRightColor: 'rgba(255,255,255,0.1)', justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.03)', borderRightWidth: 1,
+    borderRightColor: 'rgba(0,0,0,0.1)', justifyContent: 'center',
   },
-  countryCodeText: { fontSize: responsiveFont(15), color: '#FFF', fontWeight: '700' },
-  phoneInput: { flex: 1, padding: 16, fontSize: responsiveFont(16), color: '#FFF', fontWeight: '600' },
+  countryCodeText: { fontSize: responsiveFont(15), color: '#1C1C1E', fontWeight: '700' },
+  phoneInput: { flex: 1, padding: 16, fontSize: responsiveFont(16), color: '#1C1C1E', fontWeight: '600' },
   upiInput: {
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16,
-    padding: 16, fontSize: responsiveFont(16), color: '#FFF', fontWeight: '600', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 16,
+    padding: 16, fontSize: responsiveFont(16), color: '#1C1C1E', fontWeight: '600', borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.1)',
   },
 
   txRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: 20,
-    padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 20,
+    padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.04)',
   },
   txAvatar: {
     width: 48, height: 48, borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', marginRight: 16,
+    backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center', marginRight: 16,
   },
   txInfo: { flex: 1 },
-  txName: { fontSize: responsiveFont(16), fontWeight: '700', color: '#FFF' },
-  txTime: { fontSize: responsiveFont(13), color: 'rgba(255,255,255,0.3)', marginTop: 2 },
+  txName: { fontSize: responsiveFont(16), fontWeight: '700', color: '#1C1C1E' },
+  txTime: { fontSize: responsiveFont(13), color: 'rgba(0,0,0,0.3)', marginTop: 2 },
   txAmount: { fontSize: responsiveFont(16), fontWeight: '800' },
   txPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginTop: 4 },
   txPillText: { fontSize: responsiveFont(10), fontWeight: '900', letterSpacing: 0.5 },
@@ -776,39 +776,39 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 60 : Spacing.lg,
     paddingBottom: Spacing.lg,
     gap: Spacing.md,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)',
   },
-  backBtn: { padding: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12 },
+  backBtn: { padding: 8, backgroundColor: 'rgba(0,0,0,0.08)', borderRadius: 12 },
   sendHeaderContact: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  sendHeaderName: { fontSize: responsiveFont(18), fontWeight: '800', color: '#FFF' },
-  sendHeaderUpi: { fontSize: responsiveFont(13), color: 'rgba(255,255,255,0.4)', marginTop: 2 },
+  sendHeaderName: { fontSize: responsiveFont(18), fontWeight: '800', color: '#1C1C1E' },
+  sendHeaderUpi: { fontSize: responsiveFont(13), color: 'rgba(0,0,0,0.45)', marginTop: 2 },
 
-  sendBody: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 40, paddingBottom: 40 },
-  enterAmtLabel: { fontSize: responsiveFont(11), color: 'rgba(255,255,255,0.5)', letterSpacing: 2, textAlign: 'center', marginBottom: 16, fontWeight: '800' },
+  sendBody: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 40, paddingBottom: 140 },
+  enterAmtLabel: { fontSize: responsiveFont(11), color: 'rgba(0,0,0,0.45)', letterSpacing: 2, textAlign: 'center', marginBottom: 16, fontWeight: '800' },
   amountInputRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
-  rupeeSymbol: { fontSize: responsiveFont(40), fontWeight: '300', color: '#FFF', marginRight: 8, marginBottom: 4 },
-  amountInput: { fontSize: responsiveFont(64), fontWeight: '900', color: '#FFF', minWidth: 120, textAlign: 'center' },
+  rupeeSymbol: { fontSize: responsiveFont(40), fontWeight: '300', color: '#1C1C1E', marginRight: 8, marginBottom: 4 },
+  amountInput: { fontSize: responsiveFont(64), fontWeight: '900', color: '#1C1C1E', minWidth: 120, textAlign: 'center' },
 
   quickAmtsRow: { flexDirection: 'row', justifyContent: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 40 },
   quickAmtPill: {
     paddingHorizontal: 16, paddingVertical: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: Radius.full,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: Radius.full,
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
   },
   quickAmtText: { fontSize: responsiveFont(14), color: Colors.neonLime, fontWeight: '700' },
 
   noteInput: {
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16,
-    padding: 16, fontSize: responsiveFont(16), color: '#FFF',
-    marginBottom: 24, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 16,
+    padding: 16, fontSize: responsiveFont(16), color: '#1C1C1E',
+    marginBottom: 24, borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.08)',
   },
   balanceInfo: {
     flexDirection: 'row', justifyContent: 'space-between',
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 16,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 16, padding: 16,
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)',
   },
-  balanceInfoText: { fontSize: responsiveFont(13), color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
-  balanceInfoAmt: { fontSize: responsiveFont(13), fontWeight: '800', color: '#FFF' },
+  balanceInfoText: { fontSize: responsiveFont(13), color: 'rgba(0,0,0,0.45)', fontWeight: '600' },
+  balanceInfoAmt: { fontSize: responsiveFont(13), fontWeight: '800', color: '#1C1C1E' },
 
   sendFooter: {
     padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24,
@@ -818,7 +818,7 @@ const styles = StyleSheet.create({
     padding: 18, alignItems: 'center',
   },
   proceedBtnDisabled: { opacity: 0.4 },
-  proceedBtnText: { fontSize: responsiveFont(16), fontWeight: '900', color: '#000', letterSpacing: 1 },
+  proceedBtnText: { fontSize: responsiveFont(16), fontWeight: '900', color: '#FFF', letterSpacing: 1 },
 
   // ── confirm ──
   darkHeader: {
@@ -827,24 +827,24 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 60 : 24,
     paddingBottom: 16,
   },
-  darkHeaderTitle: { fontSize: responsiveFont(20), fontWeight: '900', color: '#FFF' },
+  darkHeaderTitle: { fontSize: responsiveFont(20), fontWeight: '900', color: '#1C1C1E' },
 
   confirmBody: { flexGrow: 1, alignItems: 'center', padding: 24, paddingBottom: 40 },
   confirmAvatarWrap: { marginBottom: 24 },
-  confirmTo: { fontSize: responsiveFont(11), color: 'rgba(255,255,255,0.5)', letterSpacing: 2, marginBottom: 8, fontWeight: '800' },
-  confirmName: { fontSize: responsiveFont(28), fontWeight: '900', color: '#FFF' },
-  confirmUpi: { fontSize: responsiveFont(14), color: 'rgba(255,255,255,0.4)', marginTop: 4, marginBottom: 24 },
+  confirmTo: { fontSize: responsiveFont(11), color: 'rgba(0,0,0,0.45)', letterSpacing: 2, marginBottom: 8, fontWeight: '800' },
+  confirmName: { fontSize: responsiveFont(28), fontWeight: '900', color: '#1C1C1E' },
+  confirmUpi: { fontSize: responsiveFont(14), color: 'rgba(0,0,0,0.45)', marginTop: 4, marginBottom: 24 },
   confirmAmountBox: { flexDirection: 'row', alignItems: 'flex-end', marginVertical: 32 },
-  confirmCurrency: { fontSize: responsiveFont(28), fontWeight: '400', color: '#FFF', marginBottom: 12, marginRight: 4 },
-  confirmAmount: { fontSize: responsiveFont(64), fontWeight: '900', color: '#FFF' },
-  confirmNote: { fontSize: responsiveFont(16), color: 'rgba(255,255,255,0.6)', fontStyle: 'italic', marginBottom: 40, textAlign: 'center' },
+  confirmCurrency: { fontSize: responsiveFont(28), fontWeight: '400', color: '#1C1C1E', marginBottom: 12, marginRight: 4 },
+  confirmAmount: { fontSize: responsiveFont(64), fontWeight: '900', color: '#1C1C1E' },
+  confirmNote: { fontSize: responsiveFont(16), color: 'rgba(0,0,0,0.6)', fontStyle: 'italic', marginBottom: 40, textAlign: 'center' },
   confirmMeta: {
-    width: '100%', backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 24, padding: 20, gap: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    width: '100%', backgroundColor: 'rgba(0,0,0,0.05)',
+    borderRadius: 24, padding: 20, gap: 16, borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
   },
   confirmMetaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  confirmMetaLabel: { fontSize: responsiveFont(15), color: 'rgba(255,255,255,0.5)', fontWeight: '600' },
-  confirmMetaValue: { fontSize: responsiveFont(15), fontWeight: '800', color: '#FFF' },
+  confirmMetaLabel: { fontSize: responsiveFont(15), color: 'rgba(0,0,0,0.45)', fontWeight: '600' },
+  confirmMetaValue: { fontSize: responsiveFont(15), fontWeight: '800', color: '#1C1C1E' },
 
   confirmFooter: {
     flexDirection: 'row', gap: 16,
@@ -852,12 +852,12 @@ const styles = StyleSheet.create({
   },
   editBtn: {
     flex: 1, padding: 18, borderRadius: Radius.xl,
-    backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(0,0,0,0.08)', alignItems: 'center',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
   },
-  editBtnText: { fontSize: responsiveFont(16), color: '#FFF', fontWeight: '800' },
+  editBtnText: { fontSize: responsiveFont(16), color: '#1C1C1E', fontWeight: '800' },
   payNowBtn: { flex: 2, backgroundColor: Colors.neonLime, borderRadius: Radius.xl, padding: 18, alignItems: 'center' },
-  payNowBtnText: { fontSize: responsiveFont(16), fontWeight: '900', color: '#000', letterSpacing: 1 },
+  payNowBtnText: { fontSize: responsiveFont(16), fontWeight: '900', color: '#FFF', letterSpacing: 1 },
 
   // ── success ──
   successContainer: {
@@ -869,9 +869,9 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 32,
   },
-  successTitle: { fontSize: responsiveFont(32), fontWeight: '900', color: '#FFF', marginBottom: 12 },
-  successSub: { fontSize: responsiveFont(18), color: 'rgba(255,255,255,0.7)', marginBottom: 12, textAlign: 'center' },
-  successNote: { fontSize: responsiveFont(14), color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5, fontWeight: '700' },
+  successTitle: { fontSize: responsiveFont(32), fontWeight: '900', color: '#1C1C1E', marginBottom: 12 },
+  successSub: { fontSize: responsiveFont(18), color: 'rgba(0,0,0,0.7)', marginBottom: 12, textAlign: 'center' },
+  successNote: { fontSize: responsiveFont(14), color: 'rgba(0,0,0,0.45)', letterSpacing: 1.5, fontWeight: '700' },
 
   // ── QR ──
   qrContainer: { flex: 1 },
@@ -881,15 +881,15 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 60 : 24,
     paddingBottom: 24,
   },
-  qrHeaderTitle: { fontSize: responsiveFont(20), fontWeight: '900', color: '#FFF' },
+  qrHeaderTitle: { fontSize: responsiveFont(20), fontWeight: '900', color: '#1C1C1E' },
   qrViewfinder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   qrFrame: {
     width: W * 0.75, height: W * 0.75,
     borderRadius: 32,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: 'rgba(0,0,0,0.03)',
     alignItems: 'center', justifyContent: 'center',
     position: 'relative',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
   },
   qrCorner: { position: 'absolute', width: 40, height: 40, borderColor: Colors.neonLime, borderWidth: 4 },
   qrTL: { top: -2, left: -2, borderBottomWidth: 0, borderRightWidth: 0, borderTopLeftRadius: 20 },
@@ -898,24 +898,24 @@ const styles = StyleSheet.create({
   qrBR: { bottom: -2, right: -2, borderTopWidth: 0, borderLeftWidth: 0, borderBottomRightRadius: 20 },
   qrScanLine: { position: 'absolute', width: '90%', height: 3, backgroundColor: Colors.neonLime, opacity: 0.8 },
   qrMockGrid: { gap: 10 },
-  qrCell: { width: 32, height: 32, backgroundColor: '#FFF', margin: 4, borderRadius: 6 },
-  qrHint: { color: 'rgba(255,255,255,0.5)', marginTop: 40, fontSize: responsiveFont(15), textAlign: 'center', fontWeight: '600' },
+  qrCell: { width: 32, height: 32, backgroundColor: '#1C1C1E', margin: 4, borderRadius: 6 },
+  qrHint: { color: 'rgba(0,0,0,0.45)', marginTop: 40, fontSize: responsiveFont(15), textAlign: 'center', fontWeight: '600' },
 
   qrFooter: { padding: 24, paddingBottom: 60, gap: 16 },
   qrScanBtn: {
     backgroundColor: Colors.neonLime, borderRadius: Radius.xl,
     padding: 20, alignItems: 'center',
   },
-  qrScanBtnText: { fontSize: responsiveFont(16), fontWeight: '900', color: '#000', letterSpacing: 1 },
+  qrScanBtnText: { fontSize: responsiveFont(16), fontWeight: '900', color: '#FFF', letterSpacing: 1 },
   myQrBtn: {
     borderRadius: Radius.xl, padding: 16, alignItems: 'center',
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
   },
-  myQrBtnText: { fontSize: responsiveFont(14), color: '#FFF', fontWeight: '800', letterSpacing: 1 },
+  myQrBtnText: { fontSize: responsiveFont(14), color: '#1C1C1E', fontWeight: '800', letterSpacing: 1 },
 
   // ── MY QR MODAL STYLES ──
-  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.85)' },
+  modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.05)' },
   myQrCard: {
     width: W * 0.85,
     backgroundColor: '#12142d',
@@ -923,14 +923,14 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     position: 'relative',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
   },
   closeQr: {
     position: 'absolute',
     top: 20,
     right: 20,
     padding: 8,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(0,0,0,0.08)',
     borderRadius: 12,
   },
   myQrHeader: {
@@ -949,12 +949,12 @@ const styles = StyleSheet.create({
   myQrAvatarText: {
     fontSize: responsiveFont(28),
     fontWeight: '900',
-    color: '#000',
+    color: '#FFF',
   },
   myQrName: {
     fontSize: responsiveFont(22),
     fontWeight: '900',
-    color: '#FFF',
+    color: '#1C1C1E',
   },
   myQrId: {
     fontSize: responsiveFont(16),
@@ -965,7 +965,7 @@ const styles = StyleSheet.create({
   realQrContainer: {
     width: 240,
     height: 240,
-    backgroundColor: '#FFF',
+    backgroundColor: '#1C1C1E',
     padding: 20,
     borderRadius: 24,
     alignItems: 'center',
@@ -985,17 +985,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
     marginBottom: 16,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.2)',
   },
   upiBadgeText: {
     fontSize: responsiveFont(14),
     fontWeight: '900',
-    color: '#FFF',
+    color: '#1C1C1E',
     letterSpacing: 1,
   },
   scanToPayText: {
     fontSize: responsiveFont(13),
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(0,0,0,0.45)',
     textAlign: 'center',
     lineHeight: 20,
     fontWeight: '600',

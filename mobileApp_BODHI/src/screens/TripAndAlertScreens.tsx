@@ -178,9 +178,9 @@ const aStyles = StyleSheet.create({
 
   alertCard: {
     width:           '100%',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: 'rgba(0,0,0,0.03)',
     borderWidth:     1,
-    borderColor:     'rgba(255,255,255,0.06)',
+    borderColor:     'rgba(0,0,0,0.06)',
     borderRadius:    Radius.xl,
     padding:         S.xxl + 4,
     overflow:        'hidden',
@@ -215,7 +215,7 @@ const aStyles = StyleSheet.create({
     flexDirection:   'row',
     alignItems:      'center',
     gap:             8,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(0,0,0,0.08)',
     borderRadius:    Radius.full,
     paddingHorizontal: S.lg,
     paddingVertical:   10,
@@ -258,9 +258,9 @@ const aStyles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   proceedBtn: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(0,0,0,0.04)',
     borderWidth:     1,
-    borderColor:     'rgba(255,255,255,0.10)',
+    borderColor:     'rgba(0,0,0,0.10)',
     borderRadius:    Radius.lg,
     paddingVertical: 22,
     alignItems:      'center',

@@ -43,9 +43,9 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
   };
 
   const getColors = () => {
-    if (disabled) return ['#333', '#222'];
-    if (variant === 'signup') return ['#FF5A00', '#FFE600']; // Premium Warm Fire
-    return Gradients.authCTA.colors;
+    if (disabled) return ['#E0E0E0', '#E0E0E0'];
+    if (variant === 'signup') return ['#1C1C1E', '#1C1C1E']; 
+    return ['#1C1C1E', '#1C1C1E'];
   };
 
   return (
@@ -59,23 +59,22 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
         styles.container, 
         style, 
         disabled && styles.disabled, 
-        variant === 'signup' && { shadowColor: '#FF5A00' },
         animatedStyle
       ]}
     >
       <LinearGradient
         colors={getColors() as (string | number)[]}
-        start={Gradients.authCTA.start}
-        end={Gradients.authCTA.end}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
         style={styles.gradient}
       >
         {isLoading ? (
-          <ActivityIndicator color="#000" />
+          <ActivityIndicator color="#FFFFFF" />
         ) : (
           <>
             <Text style={[styles.text, textStyle, disabled && styles.disabledText]}>{title}</Text>
             {showArrow && !disabled && (
-              <ChevronRight size={20} color="#000" style={styles.arrow} />
+              <ChevronRight size={20} color="#FFFFFF" style={styles.arrow} />
             )}
           </>
         )}
@@ -87,12 +86,12 @@ export const AuthButton: React.FC<AuthButtonProps> = ({
 const styles = StyleSheet.create({
   container: {
     height: 56,
-    borderRadius: Radius.md,
+    borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#FFE600',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
     elevation: 4,
   },
   disabled: {
@@ -107,13 +106,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   text: {
-    color: '#000',
-    fontSize: FontSize.md,
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '800',
     letterSpacing: 0.5,
   },
   disabledText: {
-    color: '#666',
+    color: '#999',
   },
   arrow: {
     position: 'absolute',

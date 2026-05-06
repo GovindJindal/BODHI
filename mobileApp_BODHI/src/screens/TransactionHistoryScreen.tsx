@@ -103,11 +103,11 @@ export function TransactionHistoryScreen() {
         onPress={() => setSelectedTx(item)}
       >
         <View style={styles.txLeft}>
-          <View style={[styles.iconWrap, { backgroundColor: isCredit ? 'rgba(200,255,0,0.1)' : 'rgba(255,255,255,0.05)' }]}>
+          <View style={[styles.iconWrap, { backgroundColor: isCredit ? 'rgba(200,255,0,0.1)' : 'rgba(0,0,0,0.05)' }]}>
             {isCredit ? (
               <ArrowDownRight size={20} color="#FFE600" />
             ) : (
-              <ArrowUpRight size={20} color="#FFF" />
+              <ArrowUpRight size={20} color="#1C1C1E" />
             )}
           </View>
           <View style={styles.txTextWrap}>
@@ -119,7 +119,7 @@ export function TransactionHistoryScreen() {
         </View>
 
         <View style={styles.txRight}>
-          <Text style={[styles.txAmount, { color: isCredit ? '#FFE600' : '#FFF' }]} numberOfLines={1}>
+          <Text style={[styles.txAmount, { color: isCredit ? '#3D4DFF' : '#1C1C1E' }]} numberOfLines={1}>
             {isCredit ? '+' : '-'}₹{item.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </Text>
         </View>
@@ -132,7 +132,7 @@ export function TransactionHistoryScreen() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}>
-          <ChevronLeft size={24} color="#FFF" />
+          <ChevronLeft size={24} color="#1C1C1E" />
         </TouchableOpacity>
         <Text style={styles.title}>History</Text>
         <View style={{ width: 24 }} />
@@ -176,11 +176,11 @@ export function TransactionHistoryScreen() {
 
             {selectedTx && (
               <View style={styles.receiptMain}>
-                <View style={[styles.receiptIcon, { backgroundColor: selectedTx.type.toUpperCase() === 'CREDIT' ? 'rgba(200,255,0,0.1)' : 'rgba(255,255,255,0.05)' }]}>
-                  {selectedTx.type.toUpperCase() === 'CREDIT' ? <ArrowDownRight size={32} color="#FFE600" /> : <ArrowUpRight size={32} color="#FFF" />}
+                <View style={[styles.receiptIcon, { backgroundColor: selectedTx.type.toUpperCase() === 'CREDIT' ? 'rgba(200,255,0,0.1)' : 'rgba(0,0,0,0.05)' }]}>
+                  {selectedTx.type.toUpperCase() === 'CREDIT' ? <ArrowDownRight size={32} color="#FFE600" /> : <ArrowUpRight size={32} color="#1C1C1E" />}
                 </View>
                 <Text style={styles.receiptMerchant}>{selectedTx.merchant}</Text>
-                <Text style={[styles.receiptAmount, { color: selectedTx.type.toUpperCase() === 'CREDIT' ? '#FFE600' : '#FFF' }]}>
+                <Text style={[styles.receiptAmount, { color: selectedTx.type.toUpperCase() === 'CREDIT' ? '#3D4DFF' : '#1C1C1E' }]}>
                   {selectedTx.type.toUpperCase() === 'CREDIT' ? '+' : '-'}₹{selectedTx.amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </Text>
 
@@ -213,37 +213,45 @@ export function TransactionHistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000000' },
+  root: { flex: 1, backgroundColor: '#FDFDF9' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.1)',
   },
-  title: { fontSize: responsiveFont(18), fontWeight: '700', color: '#FFF' },
+  title: { fontSize: responsiveFont(18), fontWeight: '800', color: '#1C1C1E' },
   listContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 60 },
 
   txRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#0F0F0F',
+    backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 20,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(0,0,0,0.05)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
   },
   txLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 10 },
   iconWrap: {
@@ -255,23 +263,23 @@ const styles = StyleSheet.create({
     marginRight: 14,
   },
   txTextWrap: { flex: 1 },
-  txMerchant: { color: '#FFF', fontSize: responsiveFont(16), fontWeight: '700', marginBottom: 4 },
-  txCategory: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(12), fontWeight: '500' },
+  txMerchant: { color: '#1C1C1E', fontSize: responsiveFont(16), fontWeight: '700', marginBottom: 4 },
+  txCategory: { color: 'rgba(0,0,0,0.4)', fontSize: responsiveFont(12), fontWeight: '500' },
   txRight: { alignItems: 'flex-end', flexShrink: 0 },
   txAmount: { fontSize: responsiveFont(16), fontWeight: '800' },
 
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#0A0A0A', borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, paddingBottom: 40 },
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, paddingBottom: 40 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  modalTitle: { color: '#FFF', fontSize: responsiveFont(18), fontWeight: '700' },
-  modalCloseBtn: { paddingVertical: 6, paddingHorizontal: 12, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 16 },
-  modalCloseText: { color: '#FFF', fontSize: responsiveFont(14), fontWeight: '600' },
+  modalTitle: { color: '#1C1C1E', fontSize: responsiveFont(20), fontWeight: '800' },
+  modalCloseBtn: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 16 },
+  modalCloseText: { color: '#1C1C1E', fontSize: responsiveFont(14), fontWeight: '700' },
   receiptMain: { alignItems: 'center' },
   receiptIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  receiptMerchant: { color: '#FFF', fontSize: responsiveFont(20), fontWeight: '700', marginBottom: 6 },
-  receiptAmount: { fontSize: responsiveFont(28), fontWeight: '800', marginBottom: 24 },
-  receiptDivider: { width: '100%', height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginBottom: 24 },
+  receiptMerchant: { color: '#1C1C1E', fontSize: responsiveFont(20), fontWeight: '800', marginBottom: 6 },
+  receiptAmount: { fontSize: responsiveFont(32), fontWeight: '900', marginBottom: 24 },
+  receiptDivider: { width: '100%', height: 1, backgroundColor: 'rgba(0,0,0,0.08)', marginBottom: 24 },
   receiptRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 16 },
-  receiptLabel: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(14), fontWeight: '500' },
-  receiptResult: { color: '#FFF', fontSize: responsiveFont(14), fontWeight: '600' },
+  receiptLabel: { color: 'rgba(0,0,0,0.4)', fontSize: responsiveFont(14), fontWeight: '600' },
+  receiptResult: { color: '#1C1C1E', fontSize: responsiveFont(14), fontWeight: '700' },
 });

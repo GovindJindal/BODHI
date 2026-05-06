@@ -17,11 +17,11 @@ export const AuthCard: React.FC<AuthCardProps> = ({ children, style }) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: 'rgba(15, 12, 35, 0.85)',
+    backgroundColor: '#f7f5eaef',
     borderRadius: Radius.xl,
     padding: Spacing.xxl,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
     width: '100%',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 12 },

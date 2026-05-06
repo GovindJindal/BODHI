@@ -81,7 +81,7 @@ export const OnboardingScreen = ({ onFinish }: { onFinish: () => void }) => {
   return (
     <View style={styles.container}>
       {/* Light background means dark status bar text */}
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
       {/* Header with Skip Button */}
       <View style={styles.header}>
@@ -117,9 +117,9 @@ export const OnboardingScreen = ({ onFinish }: { onFinish: () => void }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' }, // Pure white background
+  container: { flex: 1, backgroundColor: '#FDFDF9' }, // Pure white-ish background
   header: { width: '100%', flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 32, paddingTop: Platform.OS === 'ios' ? 60 : 40, zIndex: 10 },
-  skipText: { fontSize: 18, fontWeight: '500', color: '#4B5563' },
+  skipText: { fontSize: 18, fontWeight: '700', color: '#1C1C1E' },
   bottomHUD: { position: 'absolute', bottom: Platform.OS === 'ios' ? 50 : 30, width: '100%', alignItems: 'center' },
   arcContainer: { alignItems: 'center', justifyContent: 'center', width: 100, height: 100 },
   actionButton: { position: 'absolute', width: 70, height: 70, borderRadius: 35 },

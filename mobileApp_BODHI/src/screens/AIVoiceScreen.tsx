@@ -32,7 +32,7 @@ import {
   ShieldClose,
   Globe,
 } from 'lucide-react-native';
-import { Colors, Radius, Spacing } from '../theme/tokens';
+import { Colors, Radius, Spacing, ScreenColors } from '../theme/tokens';
 import RNFS from 'react-native-fs';
 import { WebView } from 'react-native-webview';
 
@@ -44,16 +44,24 @@ const BAR_MIN_HEIGHT = 8;
 const BAR_MAX_HEIGHT = 64;
 const IDLE_HEIGHTS = [24, 40, 56, 32, 20];
 const BAR_COLORS = [
-  'rgba(255,255,255,0.8)',
-  'rgba(255,255,255,0.8)',
-  '#D4FF00', // neonLime center bar
-  'rgba(255,255,255,0.8)',
-  'rgba(255,255,255,0.8)',
+  '#1A1A4E',
+  '#D85A30',
+  '#1A1A4E',
+  '#D85A30',
+  '#1A1A4E',
 ];
 
 export function AIVoiceScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const openProfile = () => {
+    const parentNav = (navigation as any).getParent?.();
+    if (parentNav) {
+      parentNav.navigate('Profile');
+      return;
+    }
+    (navigation as any).navigate('Profile');
+  };
 
   const [inputText, setInputText] = useState('');
   const [transcription, setTranscription] = useState('');
@@ -415,7 +423,7 @@ export function AIVoiceScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <LinearGradient
-        colors={['#000000', '#0A0000', '#2B0000']}
+        colors={[ScreenColors.brand.appBgWarmWhite, '#FFFFFF', ScreenColors.brand.appBgWarmWhite]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -435,17 +443,17 @@ export function AIVoiceScreen() {
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.avatarContainer}
-            onPress={() => (navigation as any).navigate('Profile')}
+            onPress={openProfile}
           >
-            <View style={styles.avatarPlaceholder}>
-              {profile?.avatar_url ? (
-                <Image source={{ uri: profile.avatar_url }} style={styles.avatarImage} />
-              ) : (
+            {profile?.avatar_url ? (
+              <Image source={{ uri: profile.avatar_url }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarText}>
                   {(profile?.full_name || userName || 'U').charAt(0).toUpperCase()}
                 </Text>
-              )}
-            </View>
+              </View>
+            )}
             <View style={styles.onlineDot} />
           </TouchableOpacity>
 
@@ -460,7 +468,7 @@ export function AIVoiceScreen() {
               style={styles.iconBtn}
               onPress={() => (navigation as any).navigate('Notifications')}
             >
-              <Bell size={22} color="#FFF" />
+              <Bell size={22} color="#1C1C1E" />
               {unreadCount > 0 && <View style={styles.notifBadge} />}
             </TouchableOpacity>
           </View>
@@ -494,7 +502,7 @@ export function AIVoiceScreen() {
               styles.pulseRing,
               styles.ring1,
               { transform: [{ scale: pulse1 }] },
-              isRecording && { borderColor: Colors.neonLime },
+              isRecording && { borderColor: '#3D4DFF' },
             ]}
           />
           <Animated.View
@@ -502,7 +510,7 @@ export function AIVoiceScreen() {
               styles.pulseRing,
               styles.ring2,
               { transform: [{ scale: pulse2 }] },
-              isRecording && { borderColor: Colors.neonLime },
+              isRecording && { borderColor: '#3D4DFF' },
             ]}
           />
 
@@ -511,11 +519,7 @@ export function AIVoiceScreen() {
             <View style={styles.orbShadowLayer} />
 
             <LinearGradient
-              colors={
-                isRecording
-                  ? [Colors.neonLime, '#0A0000']
-                  : ['#2B0000', '#0A0000']
-              }
+              colors={['#FFFFFF', '#FFFFFF']}
               style={styles.orb}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -558,13 +562,13 @@ export function AIVoiceScreen() {
         {(transcription !== '' || isProcessing) && (
           <View style={styles.transcriptionContainer}>
             <View style={styles.transcriptionBadge}>
-              <Sparkles size={12} color={Colors.neonLime} />
+              <Sparkles size={12} color={'#3D4DFF'} />
               <Text style={styles.transcriptionLabel}>LIVE TRANSCRIBE</Text>
             </View>
             {isProcessing && !transcription ? (
               <ActivityIndicator
                 size="small"
-                color={Colors.neonLime}
+                color={'#3D4DFF'}
                 style={{ alignSelf: 'flex-start', marginTop: 4 }}
               />
             ) : (
@@ -576,7 +580,7 @@ export function AIVoiceScreen() {
         {/* ─── Try Saying Chips ─── */}
         <View style={styles.trySayingSection}>
           <View style={styles.trySayingHeader}>
-            <Sparkles size={16} color="#FF5A00" />
+              <Sparkles size={16} color={ScreenColors.brand.navy} />
             <Text style={styles.trySayingText}>Try saying</Text>
           </View>
 
@@ -589,7 +593,7 @@ export function AIVoiceScreen() {
               style={styles.chip}
               onPress={() => handleChipPress('How is my portfolio doing?')}
             >
-              <TrendingUp size={16} color={Colors.neonLime} />
+              <TrendingUp size={16} color={'#3D4DFF'} />
               <Text style={styles.chipText}>How is my{'\n'}portfolio doing?</Text>
             </TouchableOpacity>
 
@@ -599,7 +603,7 @@ export function AIVoiceScreen() {
                 handleChipPress('How much can I save this month?')
               }
             >
-              <PiggyBank size={16} color="#FF2D2D" />
+              <PiggyBank size={16} color="#C83232" />
               <Text style={styles.chipText}>
                 How much can{'\n'}I save this month?
               </Text>
@@ -609,7 +613,7 @@ export function AIVoiceScreen() {
               style={styles.chip}
               onPress={() => handleChipPress('Upcoming payments?')}
             >
-              <Calendar size={16} color="#FF5A00" />
+              <Calendar size={16} color="#C83232" />
               <Text style={styles.chipText}>Upcoming{'\n'}payments?</Text>
             </TouchableOpacity>
           </ScrollView>
@@ -628,7 +632,7 @@ export function AIVoiceScreen() {
           <TextInput
             style={styles.chatInput}
             placeholder="Type your message..."
-            placeholderTextColor="rgba(255,255,255,0.4)"
+            placeholderTextColor="rgba(0,0,0,0.4)"
             value={inputText}
             onChangeText={setInputText}
           />
@@ -639,20 +643,20 @@ export function AIVoiceScreen() {
               {
                 backgroundColor:
                   inputText.length > 0
-                    ? Colors.neonLime
+                    ? ScreenColors.brand.navy
                     : isRecording
-                      ? '#FF2D2D'
-                      : 'rgba(255,255,255,0.1)',
+                      ? '#C83232'
+                      : 'rgba(0,0,0,0.1)',
               },
             ]}
             onPress={() => inputText.length > 0 ? handleSendText() : toggleRecording()}
           >
             {inputText.length > 0 ? (
-              <Send size={16} color="#000" />
+              <Send size={16} color="#FFF" />
             ) : isRecording ? (
               <StopCircle size={16} color="#FFF" />
             ) : (
-              <Mic size={16} color="#FFF" />
+              <Mic size={16} color="#1C1C1E" />
             )}
           </TouchableOpacity>
         </View>
@@ -662,7 +666,7 @@ export function AIVoiceScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000000' },
+  root: { flex: 1, backgroundColor: ScreenColors.brand.appBgWarmWhite },
   scrollContent: { paddingBottom: 40 },
   header: {
     flexDirection: 'row',
@@ -676,13 +680,15 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.neonLime,
+    overflow: 'hidden',
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
   },
   avatarImage: { width: '100%', height: '100%' },
-  avatarText: { fontSize: responsiveFont(20), fontWeight: '800', color: '#000' },
+  avatarText: { fontSize: responsiveFont(20), fontWeight: '800', color: '#1C1C1E' },
   onlineDot: {
     position: 'absolute',
     bottom: -2,
@@ -690,11 +696,11 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: Colors.neonLime,
+    backgroundColor: '#3D4DFF',
     borderWidth: 2,
-    borderColor: '#000000',
+    borderColor: '#FFFFFF',
   },
-  logo: { height: 35, width: 150, tintColor: '#FFF' },
+  logo: { height: 35, width: 150, tintColor: '#1C1C1E' },
   headerIcons: { flexDirection: 'row', gap: 10 },
   iconBtn: { position: 'relative' },
   notifBadge: {
@@ -704,9 +710,9 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#FF2D2D',
+    backgroundColor: '#C83232',
     borderWidth: 1.5,
-    borderColor: '#000000',
+    borderColor: '#FFFFFF',
   },
   orbContainer: {
     alignItems: 'center',
@@ -718,10 +724,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(255,90,0,0.3)',
+    borderColor: 'rgba(200,50,50,0.32)',
   },
-  ring1: { width: 180, height: 180, opacity: 0.5 },
-  ring2: { width: 260, height: 260, opacity: 0.2 },
+  ring1: { width: 180, height: 180, opacity: 0.45 },
+  ring2: { width: 260, height: 260, opacity: 0.22 },
   orbWrapper: {
     width: 140,
     height: 140,
@@ -733,8 +739,8 @@ const styles = StyleSheet.create({
   orbShadowLayer: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 70,
-    backgroundColor: '#0A0000', // Solid background for shadow anchor
-    shadowColor: '#FF5A00',
+    backgroundColor: '#FFFFFF', // Solid background for shadow anchor
+    shadowColor: '#C83232',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
     shadowRadius: 30,
@@ -746,12 +752,14 @@ const styles = StyleSheet.create({
     borderRadius: 70,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(26,26,78,0.1)',
   },
   orbInner: {
     width: 124,
     height: 124,
     borderRadius: 62,
-    backgroundColor: '#0A0000',
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -762,23 +770,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     marginBottom: 15,
   },
-  greeting: { fontSize: responsiveFont(20), fontWeight: '500', color: '#FFF', marginBottom: 8 },
-  headline: { fontSize: responsiveFont(32), fontWeight: '800', color: '#FFF', letterSpacing: -0.5 },
+  greeting: { fontSize: responsiveFont(20), fontWeight: '500', color: '#1C1C1E', marginBottom: 8 },
+  headline: { fontSize: responsiveFont(32), fontWeight: '800', color: '#1C1C1E', letterSpacing: -0.5 },
   headlineAccent: {
     fontSize: responsiveFont(32),
     fontWeight: '800',
-    color: Colors.neonLime,
+    color: '#D85A30',
     letterSpacing: -0.5,
     marginBottom: 8,
   },
-  subtitle: { fontSize: responsiveFont(14), fontWeight: '400', color: 'rgba(255,255,255,0.6)' },
+  subtitle: { fontSize: responsiveFont(14), fontWeight: '400', color: '#AAAAAA' },
   transcriptionContainer: {
-    backgroundColor: 'rgba(212,255,0,0.05)',
+    backgroundColor: 'rgba(61,77,255,0.05)',
     marginHorizontal: 20,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(212,255,0,0.3)',
+    borderColor: 'rgba(61,77,255,0.3)',
     borderStyle: 'dashed',
     marginBottom: 40,
   },
@@ -789,13 +797,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   transcriptionLabel: {
-    color: Colors.neonLime,
+    color: '#3D4DFF',
     fontSize: responsiveFont(10),
     fontWeight: '800',
     letterSpacing: 1,
   },
   transcriptionText: {
-    color: '#FFF',
+    color: '#1C1C1E',
     fontSize: responsiveFont(15),
     fontStyle: 'italic',
     lineHeight: 22,
@@ -807,47 +815,47 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 12,
   },
-  trySayingText: { color: 'rgba(255,255,255,0.8)', fontSize: responsiveFont(14), fontWeight: '500' },
+  trySayingText: { color: 'rgba(0,0,0,0.8)', fontSize: responsiveFont(14), fontWeight: '500' },
   chipsScroll: { paddingRight: 40, gap: 12 },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: '#F0EEF8',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: '#D8D4F0',
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 16,
     gap: 12,
   },
   chipText: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#1A1A4E',
     fontSize: responsiveFont(12),
     fontWeight: '500',
     lineHeight: 16,
   },
   chatContainer: {
     width: '100%',
-    backgroundColor: '#000000',
+    backgroundColor: '#FDFDF9',
     paddingHorizontal: 20,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.05)',
+    borderTopColor: 'rgba(0,0,0,0.05)',
     zIndex: 10,
     elevation: 10,
   },
   chatInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(0,0,0,0.08)',
     borderRadius: Radius.full,
     paddingLeft: 20,
     paddingRight: 6,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(0,0,0,0.1)',
   },
-  chatInput: { flex: 1, color: '#FFF', fontSize: responsiveFont(15), minHeight: 40 },
+  chatInput: { flex: 1, color: '#1C1C1E', fontSize: responsiveFont(15), minHeight: 40 },
   sendBtn: {
     width: 36,
     height: 36,

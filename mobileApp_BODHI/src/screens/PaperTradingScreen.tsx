@@ -10,12 +10,12 @@ import CandlestickChart, { CandlestickData } from './CandlestickChart';
 const { width: W } = Dimensions.get("window");
 
 // ─── Theme Constants ───
-const LIME = "#FFE600";
+const LIME = '#3D4DFF';
 const PURPLE = "#FF5A00";
-const DARK_BG = "#000000";
-const CARD_BG = "#0A0A0A";
-const CARD_BORDER = "rgba(255,255,255,0.06)";
-const RED = "#FF2D2D";
+const DARK_BG = "#FDFDF9";
+const CARD_BG = '#FFFFFF';
+const CARD_BORDER = "rgba(0,0,0,0.06)";
+const RED = '#C83232';
 
 // ─── Formatters ───
 const fmt = (n: number) => "₹" + Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2, minimumFractionDigits: 2 });
@@ -232,9 +232,9 @@ export function PaperTradingScreen() {
             <Text style={styles.pageTitle}>Paper <Text style={{ color: LIME }}>Trade</Text></Text>
             <Text style={styles.pageSub}>Real markets. Virtual capital.</Text>
           </View>
-          <View style={[styles.marketBadge, !portfolio.market_status?.open && { borderColor: 'rgba(255,153,0,0.3)', backgroundColor: 'rgba(255,153,0,0.1)' }]}>
-            <View style={[styles.marketDot, !portfolio.market_status?.open && { backgroundColor: '#FFB000' }]} />
-            <Text style={[styles.marketText, !portfolio.market_status?.open && { color: '#FFB000' }]}>
+          <View style={[styles.marketBadge, !portfolio.market_status?.open && { borderColor: 'rgba(200,50,50,0.3)', backgroundColor: 'rgba(200,50,50,0.1)' }]}>
+            <View style={[styles.marketDot, !portfolio.market_status?.open && { backgroundColor: '#C83232' }]} />
+            <Text style={[styles.marketText, !portfolio.market_status?.open && { color: '#C83232' }]}>
               {portfolio.market_status?.open ? "OPEN" : "CLOSED"}
             </Text>
           </View>
@@ -248,7 +248,7 @@ export function PaperTradingScreen() {
             { id: "history", label: "History", icon: Clock },
           ].map(tab => (
             <TouchableOpacity key={tab.id} onPress={() => setActiveTab(tab.id)} style={[styles.tabBtn, activeTab === tab.id && styles.tabBtnActive]}>
-              <tab.icon size={14} color={activeTab === tab.id ? "#FFF" : "rgba(255,255,255,0.4)"} />
+              <tab.icon size={14} color={activeTab === tab.id ? '#1C1C1E' : "rgba(0,0,0,0.4)"} />
               <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>{tab.label}</Text>
             </TouchableOpacity>
           ))}
@@ -284,7 +284,7 @@ export function PaperTradingScreen() {
             <Text style={[styles.sectionHeading, { marginVertical: 16 }]}>OPEN POSITIONS ({portfolio.holdings.length})</Text>
             
             {portfolio.holdings.length === 0 ? (
-               <Text style={{color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: 20}}>No open positions yet.</Text>
+               <Text style={{color: 'rgba(0,0,0,0.4)', textAlign: 'center', marginTop: 20}}>No open positions yet.</Text>
             ) : (
               <View style={[styles.card, { paddingHorizontal: 16 }]}>
                 {portfolio.holdings.map((h, i) => (
@@ -299,7 +299,7 @@ export function PaperTradingScreen() {
                       <Text style={[styles.hMeta, { color: h.pnl >= 0 ? LIME : RED, fontWeight: '700' }]}>{h.pnl >= 0 ? "+" : ""}{fmt(h.pnl)}</Text>
                     </View>
                     <View style={styles.hActions}>
-                      <TouchableOpacity style={[styles.hBtn, { backgroundColor: LIME }]} onPress={() => handleOpenTrade("BUY", h.symbol, h.live_price)}><Text style={[styles.hBtnText, { color: "#000" }]}>B</Text></TouchableOpacity>
+                      <TouchableOpacity style={[styles.hBtn, { backgroundColor: LIME }]} onPress={() => handleOpenTrade("BUY", h.symbol, h.live_price)}><Text style={[styles.hBtnText, { color: '#1C1C1E' }]}>B</Text></TouchableOpacity>
                       <TouchableOpacity style={[styles.hBtn, { backgroundColor: RED }]} onPress={() => handleOpenTrade("SELL", h.symbol, h.live_price)}><Text style={styles.hBtnText}>S</Text></TouchableOpacity>
                     </View>
                   </View>
@@ -319,7 +319,7 @@ export function PaperTradingScreen() {
               style={styles.resetBtn} 
               onPress={handleResetPortfolio}
             >
-              <Clock size={16} color="rgba(255,255,255,0.4)" />
+              <Clock size={16} color="rgba(0,0,0,0.4)" />
               <Text style={styles.resetBtnText}>RESET ALL PAPER DATA</Text>
             </TouchableOpacity>
           </View>
@@ -329,11 +329,11 @@ export function PaperTradingScreen() {
         {activeTab === "discover" && (
           <View>
             <View style={styles.searchBox}>
-              <Search size={18} color="rgba(255,255,255,0.4)" />
+              <Search size={18} color="rgba(0,0,0,0.4)" />
               <TextInput 
                 style={styles.searchInput} 
                 placeholder="Search stocks (e.g. RELIANCE)..." 
-                placeholderTextColor="rgba(255,255,255,0.3)" 
+                placeholderTextColor="rgba(0,0,0,0.3)" 
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 autoCapitalize="characters"
@@ -348,7 +348,7 @@ export function PaperTradingScreen() {
             {searchQuery.length > 0 ? (
               <View style={[styles.card, { paddingHorizontal: 16 }]}>
                 {searchResults.length === 0 && !searchLoading ? (
-                  <Text style={{color: 'rgba(255,255,255,0.4)', textAlign: 'center', paddingVertical: 20}}>No stocks found.</Text>
+                  <Text style={{color: 'rgba(0,0,0,0.4)', textAlign: 'center', paddingVertical: 20}}>No stocks found.</Text>
                 ) : (
                   searchResults.map((s, i) => (
                     <View key={i} style={styles.holdingRow}>
@@ -368,7 +368,7 @@ export function PaperTradingScreen() {
                         )}
                       </View>
                       <TouchableOpacity style={[styles.hBtn, { backgroundColor: LIME, paddingHorizontal: 16 }]} onPress={() => handleOpenTrade("BUY", s.symbol, s.price || 0)}>
-                        <Text style={[styles.hBtnText, { color: "#000" }]}>BUY</Text>
+                        <Text style={[styles.hBtnText, { color: '#1C1C1E' }]}>BUY</Text>
                       </TouchableOpacity>
                     </View>
                   ))
@@ -376,8 +376,8 @@ export function PaperTradingScreen() {
               </View>
             ) : (
               <View style={{ alignItems: 'center', marginTop: 40, opacity: 0.5 }}>
-                <Search size={48} color="rgba(255,255,255,0.2)" />
-                <Text style={{ color: 'rgba(255,255,255,0.5)', marginTop: 16 }}>Search for a stock to simulate a trade.</Text>
+                <Search size={48} color="rgba(0,0,0,0.2)" />
+                <Text style={{ color: 'rgba(0,0,0,0.5)', marginTop: 16 }}>Search for a stock to simulate a trade.</Text>
               </View>
             )}
           </View>
@@ -388,7 +388,7 @@ export function PaperTradingScreen() {
           <View>
             <Text style={[styles.sectionHeading, { marginBottom: 16 }]}>TRANSACTION HISTORY</Text>
             {history.length === 0 ? (
-               <Text style={{color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: 20}}>No past transactions.</Text>
+               <Text style={{color: 'rgba(0,0,0,0.4)', textAlign: 'center', marginTop: 20}}>No past transactions.</Text>
             ) : (
               <View style={[styles.card, { paddingHorizontal: 16 }]}>
                 {history.map((t, i) => {
@@ -425,13 +425,13 @@ export function PaperTradingScreen() {
       <Modal visible={tradeModal} animationType="slide" transparent>
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalContent}>
-            <TouchableOpacity style={styles.modalClose} onPress={() => setTradeModal(false)}><X size={24} color="#FFF" /></TouchableOpacity>
+            <TouchableOpacity style={styles.modalClose} onPress={() => setTradeModal(false)}><X size={24} color='#1C1C1E' /></TouchableOpacity>
 
             {tradeStep === "INPUT" && (
               <>
                 <View style={styles.modalToggleRow}>
-                  <TouchableOpacity style={[styles.mToggle, tradeSide === "BUY" ? { backgroundColor: LIME } : null]} onPress={() => setTradeSide("BUY")}><Text style={[styles.mToggleText, tradeSide === "BUY" && { color: "#000" }]}>BUY</Text></TouchableOpacity>
-                  <TouchableOpacity style={[styles.mToggle, tradeSide === "SELL" ? { backgroundColor: RED } : null]} onPress={() => setTradeSide("SELL")}><Text style={[styles.mToggleText, tradeSide === "SELL" && { color: "#FFF" }]}>SELL</Text></TouchableOpacity>
+                  <TouchableOpacity style={[styles.mToggle, tradeSide === "BUY" ? { backgroundColor: LIME } : null]} onPress={() => setTradeSide("BUY")}><Text style={[styles.mToggleText, tradeSide === "BUY" && { color: '#1C1C1E' }]}>BUY</Text></TouchableOpacity>
+                  <TouchableOpacity style={[styles.mToggle, tradeSide === "SELL" ? { backgroundColor: RED } : null]} onPress={() => setTradeSide("SELL")}><Text style={[styles.mToggleText, tradeSide === "SELL" && { color: '#1C1C1E' }]}>SELL</Text></TouchableOpacity>
                 </View>
 
                 <Text style={styles.mTitle}>{tradeSide} <Text style={{ color: PURPLE }}>{tradeSymbol}</Text></Text>
@@ -444,7 +444,7 @@ export function PaperTradingScreen() {
                   {chartLoading ? (
                     <View style={{ height: 200, justifyContent: 'center', alignItems: 'center', borderColor: CARD_BORDER, borderWidth: 1, borderRadius: 16 }}>
                       <ActivityIndicator color={PURPLE} />
-                      <Text style={{ color: 'rgba(255,255,255,0.4)', marginTop: 10, fontSize: responsiveFont(12) }}>Loading 1M Chart...</Text>
+                      <Text style={{ color: 'rgba(0,0,0,0.4)', marginTop: 10, fontSize: responsiveFont(12) }}>Loading 1M Chart...</Text>
                     </View>
                   ) : candleData.length > 0 ? (
                     <CandlestickChart data={candleData} height={200} />
@@ -458,7 +458,7 @@ export function PaperTradingScreen() {
 
                 <View style={styles.mainInputWrap}>
                   {inputMode === "AMOUNT" && <Text style={styles.inputCurrency}>₹</Text>}
-                  <TextInput value={inputVal} onChangeText={setInputVal} keyboardType="numeric" style={styles.hugeInput} placeholder="0" placeholderTextColor="rgba(255,255,255,0.2)" />
+                  <TextInput value={inputVal} onChangeText={setInputVal} keyboardType="numeric" style={styles.hugeInput} placeholder="0" placeholderTextColor="rgba(0,0,0,0.2)" />
                 </View>
 
                 <View style={styles.mSummaryCard}>
@@ -468,7 +468,7 @@ export function PaperTradingScreen() {
                 </View>
 
                 <TouchableOpacity style={[styles.mActionBtn, { backgroundColor: tradeSide === "BUY" ? LIME : RED }]} onPress={() => setTradeStep("REVIEW")}>
-                  <Text style={[styles.mActionText, tradeSide === "BUY" ? { color: "#000" } : { color: "#FFF" }]}>REVIEW ORDER →</Text>
+                  <Text style={[styles.mActionText, tradeSide === "BUY" ? { color: '#1C1C1E' } : { color: '#1C1C1E' }]}>REVIEW ORDER →</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -479,7 +479,7 @@ export function PaperTradingScreen() {
                 
                 {!(portfolio?.market_status?.open) && (
                   <View style={styles.amoWarningBox}>
-                    <Clock size={18} color="#FFB000" />
+                    <Clock size={18} color='#C83232' />
                     <Text style={styles.amoWarningText}>
                       Market is closed. This will be placed as an After Market Order (AMO).
                     </Text>
@@ -488,16 +488,16 @@ export function PaperTradingScreen() {
 
                 <View style={[styles.mSummaryCard, { alignItems: 'center', paddingVertical: 30 }]}>
                   <Text style={styles.mSumLabel}>You are {tradeSide === "BUY" ? "buying" : "selling"}</Text>
-                  <Text style={{ fontSize: responsiveFont(40), fontWeight: '900', color: '#FFF', marginVertical: 8 }}>{qty}</Text>
+                  <Text style={{ fontSize: responsiveFont(40), fontWeight: '900', color: '#1C1C1E', marginVertical: 8 }}>{qty}</Text>
                   <Text style={styles.mSumLabel}>shares of <Text style={{ color: PURPLE, fontWeight: '800' }}>{tradeSymbol}</Text></Text>
                 </View>
 
                 <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
                   <TouchableOpacity style={[styles.mActionBtn, { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: CARD_BORDER }]} onPress={() => setTradeStep("INPUT")}>
-                    <Text style={[styles.mActionText, { color: "rgba(255,255,255,0.6)" }]}>BACK</Text>
+                    <Text style={[styles.mActionText, { color: "rgba(0,0,0,0.6)" }]}>BACK</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.mActionBtn, { flex: 2, backgroundColor: tradeSide === "BUY" ? LIME : RED }]} onPress={handleConfirmTrade} disabled={executing || livePrice === 0}>
-                    {executing ? <ActivityIndicator color="#000" /> : <Text style={[styles.mActionText, tradeSide === "BUY" ? { color: "#000" } : { color: "#FFF" }]}>CONFIRM {tradeSide}</Text>}
+                    {executing ? <ActivityIndicator color="#000" /> : <Text style={[styles.mActionText, tradeSide === "BUY" ? { color: '#1C1C1E' } : { color: '#1C1C1E' }]}>CONFIRM {tradeSide}</Text>}
                   </TouchableOpacity>
                 </View>
               </>
@@ -518,7 +518,7 @@ export function PaperTradingScreen() {
                   }
                 </Text>
                 <TouchableOpacity style={[styles.mActionBtn, { backgroundColor: LIME, width: '100%' }]} onPress={() => setTradeModal(false)}>
-                  <Text style={[styles.mActionText, { color: "#000" }]}>VIEW PORTFOLIO</Text>
+                  <Text style={[styles.mActionText, { color: '#1C1C1E' }]}>VIEW PORTFOLIO</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -537,72 +537,72 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: DARK_BG },
   header: { paddingHorizontal: 30 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  pageTitle: { fontSize: responsiveFont(32), fontWeight: '900', color: '#FFF', letterSpacing: -1 },
-  pageSub: { fontSize: responsiveFont(13), color: 'rgba(255,255,255,0.5)', marginTop: 4 },
+  pageTitle: { fontSize: responsiveFont(32), fontWeight: '900', color: '#1C1C1E', letterSpacing: -1 },
+  pageSub: { fontSize: responsiveFont(13), color: 'rgba(0,0,0,0.5)', marginTop: 4 },
   marketBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(200,255,0,0.1)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, borderWidth: 1, borderColor: 'rgba(200,255,0,0.2)' },
   marketDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: LIME, marginRight: 6 },
   marketText: { fontSize: responsiveFont(11), fontWeight: '800', color: LIME },
   
   tabContainer: { flexDirection: 'row', backgroundColor: CARD_BG, borderRadius: 16, padding: 6, marginTop: 24, marginBottom: 20, borderWidth: 1, borderColor: CARD_BORDER },
   tabBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 12 },
-  tabBtnActive: { backgroundColor: 'rgba(255,255,255,0.1)' },
-  tabText: { fontSize: responsiveFont(13), fontWeight: '700', color: 'rgba(255,255,255,0.4)' },
-  tabTextActive: { color: '#FFF' },
+  tabBtnActive: { backgroundColor: 'rgba(0,0,0,0.1)' },
+  tabText: { fontSize: responsiveFont(13), fontWeight: '700', color: 'rgba(0,0,0,0.4)' },
+  tabTextActive: { color: '#1C1C1E' },
 
   scroll: { paddingHorizontal: 20 },
-  sectionHeading: { fontSize: responsiveFont(10), fontWeight: '800', color: 'rgba(255,255,255,0.4)', letterSpacing: 1.5 },
+  sectionHeading: { fontSize: responsiveFont(10), fontWeight: '800', color: 'rgba(0,0,0,0.4)', letterSpacing: 1.5 },
   
   card: { backgroundColor: CARD_BG, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: CARD_BORDER, marginBottom: 24 },
   cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  mainValue: { fontSize: responsiveFont(36), fontWeight: '900', color: '#FFF', letterSpacing: -1 },
+  mainValue: { fontSize: responsiveFont(36), fontWeight: '900', color: '#1C1C1E', letterSpacing: -1 },
   pnlValue: { fontSize: responsiveFont(14), fontWeight: '700', marginTop: 4, marginBottom: 16 },
   
   statsGrid: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  statBox: { flex: 1, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: CARD_BORDER, marginHorizontal: 4 },
-  statLabel: { fontSize: responsiveFont(10), color: 'rgba(255,255,255,0.4)', fontWeight: '700', marginBottom: 4 },
-  statVal: { fontSize: responsiveFont(14), fontWeight: '800', color: '#FFF' },
+  statBox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: CARD_BORDER, marginHorizontal: 4 },
+  statLabel: { fontSize: responsiveFont(10), color: 'rgba(0,0,0,0.4)', fontWeight: '700', marginBottom: 4 },
+  statVal: { fontSize: responsiveFont(14), fontWeight: '800', color: '#1C1C1E' },
 
   holdingRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: CARD_BORDER },
   holdingIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,90,0,0.1)', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   holdingIconText: { color: PURPLE, fontWeight: '800', fontSize: responsiveFont(12) },
-  hName: { fontSize: responsiveFont(14), fontWeight: '700', color: '#FFF', marginBottom: 2 },
-  hMeta: { fontSize: responsiveFont(11), color: 'rgba(255,255,255,0.4)' },
+  hName: { fontSize: responsiveFont(14), fontWeight: '700', color: '#1C1C1E', marginBottom: 2 },
+  hMeta: { fontSize: responsiveFont(11), color: 'rgba(0,0,0,0.4)' },
   hActions: { flexDirection: 'row', gap: 6 },
   hBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  hBtnText: { fontSize: responsiveFont(11), fontWeight: '800', color: '#FFF' },
+  hBtnText: { fontSize: responsiveFont(11), fontWeight: '800', color: '#1C1C1E' },
 
   searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: CARD_BG, borderRadius: 16, paddingHorizontal: 16, marginBottom: 24, borderWidth: 1, borderColor: CARD_BORDER },
-  searchInput: { flex: 1, paddingVertical: 16, paddingHorizontal: 12, color: '#FFF', fontSize: responsiveFont(15) },
+  searchInput: { flex: 1, paddingVertical: 16, paddingHorizontal: 12, color: '#1C1C1E', fontSize: responsiveFont(15) },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.8)' },
   modalContent: { backgroundColor: CARD_BG, borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, borderWidth: 1, borderColor: CARD_BORDER, maxHeight: '90%', width: '100%', maxWidth: isTablet ? (isLandscape() ? 700 : 600) : '100%', alignSelf: 'center' },
   modalClose: { position: 'absolute', top: 20, right: 20, zIndex: 10 },
   
   modalToggleRow: { flexDirection: 'row', gap: 8, marginBottom: 20, marginRight: 40 },
-  mToggle: { flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center' },
-  mToggleText: { fontSize: responsiveFont(14), fontWeight: '800', color: 'rgba(255,255,255,0.4)' },
+  mToggle: { flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center' },
+  mToggleText: { fontSize: responsiveFont(14), fontWeight: '800', color: 'rgba(0,0,0,0.4)' },
   
-  mTitle: { fontSize: responsiveFont(24), fontWeight: '800', color: '#FFF' },
-  mSub: { fontSize: responsiveFont(13), color: 'rgba(255,255,255,0.5)', marginTop: 4, marginBottom: 24 },
+  mTitle: { fontSize: responsiveFont(24), fontWeight: '800', color: '#1C1C1E' },
+  mSub: { fontSize: responsiveFont(13), color: 'rgba(0,0,0,0.5)', marginTop: 4, marginBottom: 24 },
   
-  mInputToggleRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 4, marginBottom: 20 },
+  mInputToggleRow: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 12, padding: 4, marginBottom: 20 },
   mSubToggle: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
-  mSubToggleActive: { backgroundColor: 'rgba(255,255,255,0.1)' },
+  mSubToggleActive: { backgroundColor: 'rgba(0,0,0,0.1)' },
   
   mainInputWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
-  inputCurrency: { fontSize: responsiveFont(32), fontWeight: '800', color: 'rgba(255,255,255,0.4)', marginRight: 8 },
-  hugeInput: { fontSize: responsiveFont(52), fontWeight: '800', color: '#FFF', minWidth: 100, textAlign: 'center' },
+  inputCurrency: { fontSize: responsiveFont(32), fontWeight: '800', color: 'rgba(0,0,0,0.4)', marginRight: 8 },
+  hugeInput: { fontSize: responsiveFont(52), fontWeight: '800', color: '#1C1C1E', minWidth: 100, textAlign: 'center' },
   
-  mSummaryCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: CARD_BORDER, marginBottom: 24 },
+  mSummaryCard: { backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: CARD_BORDER, marginBottom: 24 },
   mSummaryRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  mSumLabel: { fontSize: responsiveFont(13), color: 'rgba(255,255,255,0.5)' },
-  mSumVal: { fontSize: responsiveFont(14), fontWeight: '700', color: '#FFF' },
+  mSumLabel: { fontSize: responsiveFont(13), color: 'rgba(0,0,0,0.5)' },
+  mSumVal: { fontSize: responsiveFont(14), fontWeight: '700', color: '#1C1C1E' },
   
   mActionBtn: { paddingVertical: 18, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   mActionText: { fontSize: responsiveFont(15), fontWeight: '800', letterSpacing: 1 },
 
-  amoWarningBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255, 153, 0, 0.1)', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255, 153, 0, 0.3)', marginBottom: 20 },
-  amoWarningText: { flex: 1, fontSize: responsiveFont(12), color: '#FFB000', lineHeight: 18, marginLeft: 8 },
+  amoWarningBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(200, 50, 50, 0.1)', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(200, 50, 50, 0.3)', marginBottom: 20 },
+  amoWarningText: { flex: 1, fontSize: responsiveFont(12), color: '#C83232', lineHeight: 18, marginLeft: 8 },
 
   resetBtn: {
     flexDirection: 'row',
@@ -617,7 +617,7 @@ const styles = StyleSheet.create({
   resetBtnText: {
     fontSize: responsiveFont(11),
     fontWeight: '800',
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(0,0,0,0.4)',
     letterSpacing: 1,
     textDecorationLine: 'underline'
   },

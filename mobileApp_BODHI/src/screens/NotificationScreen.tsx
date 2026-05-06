@@ -9,12 +9,12 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { isTablet, isLandscape, responsiveFont, responsiveWidth, responsiveHeight } from '../utils/responsive';
 import { ChevronLeft, Bell, CheckCheck, Info, AlertTriangle, Briefcase, CheckCircle2 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NotificationAPI } from '../api/client';
-import { Colors } from '../theme/tokens';
+import { ScreenColors } from '../theme/tokens';
 
 interface Notification {
   id: string;
@@ -27,7 +27,6 @@ interface Notification {
 
 export const NotificationScreen = () => {
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -73,12 +72,12 @@ export const NotificationScreen = () => {
   };
 
   const getIcon = (type: string, isRead: boolean) => {
-    const color = isRead ? 'rgba(255,255,255,0.3)' : Colors.neonLime;
+    const color = isRead ? ScreenColors.notifications.timestamp : ScreenColors.notifications.iconInfo;
     switch (type) {
       case 'SUCCESS': return <CheckCircle2 size={20} color={color} />;
-      case 'WARNING': return <AlertTriangle size={20} color="#FFD700" />;
-      case 'ALERT': return <AlertTriangle size={20} color="#FF2D2D" />;
-      case 'TRADE': return <Briefcase size={20} color={color} />;
+      case 'WARNING': return <AlertTriangle size={20} color={ScreenColors.notifications.iconMarket} />;
+      case 'ALERT': return <AlertTriangle size={20} color={ScreenColors.notifications.iconSecurity} />;
+      case 'TRADE': return <Briefcase size={20} color={ScreenColors.notifications.iconMarket} />;
       default: return <Info size={20} color={color} />;
     }
   };
@@ -104,23 +103,23 @@ export const NotificationScreen = () => {
   );
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" />
       
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ChevronLeft size={24} color="#FFF" />
+          <ChevronLeft size={24} color={ScreenColors.notifications.title} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>
         <TouchableOpacity onPress={markAllAsRead} style={styles.headerAction}>
-          <CheckCheck size={20} color={Colors.neonLime} />
+          <CheckCheck size={20} color={ScreenColors.notifications.markAllRead} />
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={Colors.neonLime} size="large" />
+          <ActivityIndicator color={ScreenColors.notifications.markAllRead} size="large" />
         </View>
       ) : (
       <View style={{ flex: 1, maxWidth: isTablet ? (isLandscape() ? 900 : 700) : '100%', alignSelf: 'center', width: '100%' }}>
@@ -130,11 +129,11 @@ export const NotificationScreen = () => {
           keyExtractor={item => item.id}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.neonLime} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={ScreenColors.notifications.markAllRead} />
           }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Bell size={64} color="rgba(255,255,255,0.1)" />
+              <Bell size={64} color={ScreenColors.notifications.timestamp} />
               <Text style={styles.emptyText}>All caught up!</Text>
               <Text style={styles.emptySub}>No new notifications for you.</Text>
             </View>
@@ -142,12 +141,12 @@ export const NotificationScreen = () => {
         />
       </View>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#05050A' },
+  container: { flex: 1, backgroundColor: ScreenColors.notifications.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
@@ -156,28 +155,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: ScreenColors.notifications.itemBorder,
   },
   backBtn: { padding: 4 },
-  headerTitle: { color: '#FFF', fontSize: responsiveFont(18), fontWeight: '700' },
+  headerTitle: { color: ScreenColors.notifications.title, fontSize: responsiveFont(18), fontWeight: '700' },
   headerAction: { padding: 4 },
   listContent: { paddingBottom: 20 },
   notificationItem: {
     flexDirection: 'row',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: ScreenColors.notifications.itemBackground,
+    borderBottomColor: ScreenColors.notifications.itemBorder,
   },
-  unreadItem: { backgroundColor: 'rgba(200, 255, 0, 0.03)' },
+  unreadItem: { backgroundColor: ScreenColors.notifications.unreadBackground, borderLeftWidth: 3, borderLeftColor: ScreenColors.notifications.unreadAccent },
   iconContainer: { marginRight: 16, paddingTop: 2 },
   contentContainer: { flex: 1 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  title: { color: 'rgba(255,255,255,0.6)', fontSize: responsiveFont(16), fontWeight: '600' },
-  unreadText: { color: '#FFF' },
-  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.neonLime },
-  message: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(14), lineHeight: 20 },
-  time: { color: 'rgba(255,255,255,0.3)', fontSize: responsiveFont(12), marginTop: 8 },
+  title: { color: ScreenColors.notifications.title, fontSize: responsiveFont(15), fontWeight: '600' },
+  unreadText: { color: ScreenColors.notifications.title },
+  unreadDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: ScreenColors.notifications.unreadAccent },
+  message: { color: ScreenColors.notifications.body, fontSize: responsiveFont(13), lineHeight: 20 },
+  time: { color: ScreenColors.notifications.timestamp, fontSize: responsiveFont(12), marginTop: 8 },
   emptyContainer: { alignItems: 'center', justifyContent: 'center', marginTop: 100 },
-  emptyText: { color: '#FFF', fontSize: responsiveFont(18), fontWeight: '700', marginTop: 20 },
-  emptySub: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(14), marginTop: 8 },
+  emptyText: { color: ScreenColors.notifications.title, fontSize: responsiveFont(18), fontWeight: '700', marginTop: 20 },
+  emptySub: { color: ScreenColors.notifications.body, fontSize: responsiveFont(14), marginTop: 8 },
 });

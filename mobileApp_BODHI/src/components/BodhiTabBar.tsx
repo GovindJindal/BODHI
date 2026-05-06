@@ -44,7 +44,7 @@ export function BodhiTabBar({ state, descriptors, navigation, isDarkScreen }: Bo
 
   const barBg = dark ? 'rgba(5,5,5,0.85)' : 'rgba(255,255,255,0.72)';
   const iconCol = dark ? 'rgba(255,255,255,0.35)' : Colors.tabInactive;
-  const activeCol = dark ? '#FF5A00' : Colors.electricViolet;
+  const activeCol = dark ? '#3D4DFF' : Colors.electricViolet;
   const labelCol = dark ? 'rgba(255,255,255,0.35)' : Colors.tabInactive;
 
   return (
@@ -87,13 +87,13 @@ export function BodhiTabBar({ state, descriptors, navigation, isDarkScreen }: Bo
                     styles.aiButton,
                     {
                       backgroundColor: dark ? '#0F0F0F' : '#FFFFFF',
-                      shadowColor: isFocused ? '#FF5A00' : '#FF6A00',
+                      shadowColor: isFocused ? '#3D4DFF' : '#3D4DFF',
                     }
                   ]}
                 >
                   <IconComponent
                     size={28}
-                    color={dark ? '#FF5A00' : '#12102A'}
+                    color={dark ? '#3D4DFF' : '#12102A'}
                     strokeWidth={2}
                   />
                 </TouchableOpacity>

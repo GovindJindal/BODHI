@@ -13,6 +13,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ArrowLeft, ArrowDownToLine, Clock, CheckCircle, X, ChevronRight } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { BASE_URL } from '../api/client';
+import { ScreenColors } from '../theme/tokens';
+import { SectionLabel, PrimaryCTAButton } from '../components/shared';
 
 const API = `${BASE_URL}/transfers`;
 
@@ -174,7 +176,7 @@ export function RequestMoneyScreen() {
             <Text style={styles.doneBtnText}>Done</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={resetForm} style={{ marginTop: 14 }}>
-            <Text style={{ color: '#FF5A00', fontSize: responsiveFont(14) }}>Request from someone else</Text>
+            <Text style={{ color: '#C83232', fontSize: responsiveFont(14) }}>Request from someone else</Text>
           </TouchableOpacity>
         </View>
       );
@@ -185,19 +187,19 @@ export function RequestMoneyScreen() {
         <View style={[styles.formContainer, { maxWidth: isTablet ? (isLandscape() ? 800 : 600) : '100%', alignSelf: 'center', width: '100%' }]}>
           <Text style={styles.sectionTitle}>Who do you want to request from?</Text>
 
-          <Text style={styles.inputLabel}>EMAIL OR PHONE NUMBER</Text>
+          <SectionLabel title="Email or Phone Number" style={styles.inputLabel} />
           <TextInput
             style={styles.input}
             value={recipientId}
             onChangeText={setRecipientId}
             placeholder="name@example.com or +91xxxxxxxxxx"
-            placeholderTextColor="rgba(255,255,255,0.3)"
+            placeholderTextColor="rgba(0,0,0,0.3)"
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="email-address"
           />
 
-          <Text style={styles.inputLabel}>AMOUNT (₹)</Text>
+          <SectionLabel title="Amount (₹)" style={styles.inputLabel} />
           <View style={styles.amtRow}>
             <Text style={styles.rupee}>₹</Text>
             <TextInput
@@ -206,49 +208,41 @@ export function RequestMoneyScreen() {
               onChangeText={setAmount}
               keyboardType="decimal-pad"
               placeholder="0"
-              placeholderTextColor="rgba(255,255,255,0.2)"
+              placeholderTextColor="rgba(0,0,0,0.2)"
             />
           </View>
 
           {/* Quick amounts */}
           <View style={styles.quickAmounts}>
             {[100, 500, 1000, 5000].map(q => (
-              <TouchableOpacity key={q} style={styles.quickPill} onPress={() => setAmount(String(q))}>
-                <Text style={styles.quickPillText}>₹{q >= 1000 ? `${q / 1000}k` : q}</Text>
+              <TouchableOpacity
+                key={q}
+                style={[styles.quickPill, amount === String(q) && styles.quickPillSelected]}
+                onPress={() => setAmount(String(q))}
+              >
+                <Text style={[styles.quickPillText, amount === String(q) && styles.quickPillTextSelected]}>
+                  ₹{q >= 1000 ? `${q / 1000}k` : q}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          <Text style={styles.inputLabel}>NOTE (OPTIONAL)</Text>
+          <SectionLabel title="Note (Optional)" style={styles.inputLabel} />
           <TextInput
             style={[styles.input, { marginBottom: 32 }]}
             value={note}
             onChangeText={setNote}
             placeholder="What's it for? e.g. Dinner split"
-            placeholderTextColor="rgba(255,255,255,0.3)"
+            placeholderTextColor="rgba(0,0,0,0.3)"
           />
 
-          <TouchableOpacity
+          <PrimaryCTAButton
+            label={`Send Request${amount ? ` for ₹${parseFloat(amount).toFixed(2)}` : ''}`}
             onPress={handleCreateRequest}
             disabled={isSending || !recipientId || !amount}
-            style={{ opacity: isSending || !recipientId || !amount ? 0.5 : 1 }}
-          >
-            <LinearGradient
-              colors={['#9B111E', '#8B0000']}
-              style={styles.requestBtn}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-            >
-              {isSending
-                ? <ActivityIndicator color="#FFF" />
-                : <>
-                    <ArrowDownToLine size={18} color="#FFF" />
-                    <Text style={styles.requestBtnText}>
-                      Send Request {amount ? `for ₹${parseFloat(amount).toFixed(2)}` : ''}
-                    </Text>
-                  </>
-              }
-            </LinearGradient>
-          </TouchableOpacity>
+            rightIcon={isSending ? <ActivityIndicator color="#FFFFFF" /> : <ArrowDownToLine size={18} color="#FFFFFF" />}
+            style={styles.requestBtn}
+          />
         </View>
       </KeyboardAvoidingView>
     );
@@ -256,13 +250,13 @@ export function RequestMoneyScreen() {
 
   const renderPendingTab = () => {
     if (isLoadingPending) {
-      return <View style={styles.centered}><ActivityIndicator color="#FF5A00" size="large" /></View>;
+      return <View style={styles.centered}><ActivityIndicator color="#C83232" size="large" /></View>;
     }
 
     if (pendingRequests.length === 0) {
       return (
         <View style={styles.centered}>
-          <CheckCircle size={52} color="rgba(255,255,255,0.1)" />
+          <CheckCircle size={52} color="rgba(0,0,0,0.1)" />
           <Text style={styles.emptyTitle}>All clear!</Text>
           <Text style={styles.emptySub}>You have no pending payment requests.</Text>
         </View>
@@ -274,7 +268,7 @@ export function RequestMoneyScreen() {
       <FlatList
         data={pendingRequests}
         keyExtractor={item => item.request_id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPending(); }} tintColor="#FF5A00" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPending(); }} tintColor="#C83232" />}
         contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
         renderItem={({ item }) => (
           <View style={styles.requestCard}>
@@ -313,13 +307,13 @@ export function RequestMoneyScreen() {
   return (
     <View style={styles.root}>
       {/* Header */}
-      <LinearGradient colors={['#1A0000', '#8B0000']} style={styles.header}>
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ArrowLeft size={22} color="#FFF" />
+          <ArrowLeft size={22} color="#1C1C1E" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Request Money</Text>
         <View style={{ width: 40 }} />
-      </LinearGradient>
+      </View>
 
       {/* Tab Toggle */}
       <View style={styles.tabToggle}>
@@ -371,7 +365,7 @@ export function RequestMoneyScreen() {
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Pay Request</Text>
                   <TouchableOpacity onPress={() => setShowFulfillModal(false)}>
-                    <X size={22} color="#FFF" />
+                    <X size={22} color="#1C1C1E" />
                   </TouchableOpacity>
                 </View>
 
@@ -389,13 +383,13 @@ export function RequestMoneyScreen() {
                   style={{ opacity: isFulfilling ? 0.6 : 1 }}
                 >
                   <LinearGradient
-                    colors={['#FFE600', '#FFE600']}
+                    colors={['#3D4DFF', '#3D4DFF']}
                     style={styles.requestBtn}
                     start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                   >
                     {isFulfilling
                       ? <ActivityIndicator color="#000" />
-                      : <Text style={[styles.requestBtnText, { color: '#000' }]}>
+                      : <Text style={[styles.requestBtnText, { color: '#FFF' }]}>
                           Confirm & Pay ₹{fulfillTarget?.amount.toFixed(2)}
                         </Text>
                     }
@@ -415,7 +409,7 @@ export function RequestMoneyScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#05050A' },
+  root: { flex: 1, backgroundColor: '#FDFDF9' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
 
   header: {
@@ -423,94 +417,106 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'ios' ? 60 : 24,
     paddingBottom: 20,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
   },
-  headerTitle: { color: '#FFF', fontSize: responsiveFont(18), fontWeight: '700' },
+  headerTitle: { color: '#1C1C1E', fontSize: responsiveFont(18), fontWeight: '800' },
 
   tabToggle: {
-    flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.04)',
+    flexDirection: 'row', backgroundColor: '#F0EDE8',
     margin: 16, borderRadius: 14, padding: 4,
   },
   toggleBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 10, flexDirection: 'row', justifyContent: 'center' },
-  toggleBtnActive: { backgroundColor: 'rgba(255,90,0,0.25)' },
-  toggleBtnText: { color: 'rgba(255,255,255,0.4)', fontSize: responsiveFont(14), fontWeight: '600' },
-  toggleBtnTextActive: { color: '#FF5A00' },
-  badge: { backgroundColor: '#FF5A00', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 },
-  badgeText: { color: '#FFF', fontSize: responsiveFont(11), fontWeight: '700' },
+  toggleBtnActive: { backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
+  toggleBtnText: { color: '#9B9B9B', fontSize: responsiveFont(14), fontWeight: '700' },
+  toggleBtnTextActive: { color: '#111111' },
+  badge: { backgroundColor: '#1A1A4E', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 },
+  badgeText: { color: '#FFFFFF', fontSize: responsiveFont(11), fontWeight: '700' },
 
   formContainer: { padding: 20, flex: 1 },
-  sectionTitle: { color: '#FFF', fontSize: responsiveFont(18), fontWeight: '700', marginBottom: 24 },
-  inputLabel: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(11), fontWeight: '700', letterSpacing: 1.5, marginBottom: 8 },
+  sectionTitle: { color: '#1C1C1E', fontSize: responsiveFont(18), fontWeight: '800', marginBottom: 24 },
+  inputLabel: { color: 'rgba(0,0,0,0.4)', fontSize: responsiveFont(11), fontWeight: '700', letterSpacing: 1.5, marginBottom: 8 },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 14,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-    padding: 16, color: '#FFF', fontSize: responsiveFont(15), marginBottom: 20,
+    backgroundColor: '#FFFFFF', borderRadius: 16,
+    borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.08)',
+    padding: 16, color: '#1C1C1E', fontSize: responsiveFont(15), marginBottom: 20,
   },
-  amtRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
-  rupee: { color: 'rgba(255,255,255,0.4)', fontSize: responsiveFont(40), fontWeight: '300', marginRight: 8 },
-  amtInput: { color: '#FFF', fontSize: responsiveFont(56), fontWeight: '800', flex: 1 },
-  quickAmounts: { flexDirection: 'row', gap: 10, marginBottom: 20, flexWrap: 'wrap' },
+  amtRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, justifyContent: 'center' },
+  rupee: { color: '#CCCCCC', fontSize: responsiveFont(24), fontWeight: '400', marginRight: 8 },
+  amtInput: { color: '#111111', fontSize: responsiveFont(52), fontWeight: '800', textAlign: 'center' },
+  quickAmounts: { flexDirection: 'row', gap: 10, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'center' },
   quickPill: {
-    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 20,
+    backgroundColor: '#EEF0FF', borderRadius: 20,
     paddingHorizontal: 16, paddingVertical: 9,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1, borderColor: '#C8CCF5',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 4, elevation: 1,
   },
-  quickPillText: { color: '#FF5A00', fontSize: responsiveFont(13), fontWeight: '600' },
+  quickPillSelected: {
+    backgroundColor: '#1A1A4E',
+    borderColor: '#1A1A4E',
+  },
+  quickPillText: { color: '#1A1A4E', fontSize: responsiveFont(13), fontWeight: '700' },
+  quickPillTextSelected: { color: '#FFFFFF' },
   requestBtn: {
-    borderRadius: 30, paddingVertical: 18,
+    borderRadius: 16, paddingVertical: 18,
     alignItems: 'center', justifyContent: 'center',
     flexDirection: 'row', gap: 10,
+    backgroundColor: '#1A1A4E',
   },
-  requestBtnText: { color: '#FFF', fontSize: responsiveFont(16), fontWeight: '700' },
+  requestBtnText: { color: '#FFFFFF', fontSize: responsiveFont(16), fontWeight: '800' },
 
   // pending
   requestCard: {
-    backgroundColor: '#0F0F0F', borderRadius: 16,
+    backgroundColor: '#FFFFFF', borderRadius: 20,
     padding: 16, marginBottom: 12,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
   },
   requestCardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 },
   reqAvatar: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: '#9B111E', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#3D4DFF', alignItems: 'center', justifyContent: 'center',
   },
-  reqAvatarText: { color: '#FFF', fontSize: responsiveFont(16), fontWeight: '700' },
-  reqName: { color: '#FFF', fontSize: responsiveFont(15), fontWeight: '600', marginBottom: 2 },
-  reqNote: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(12), fontStyle: 'italic', marginBottom: 2 },
-  reqTime: { color: 'rgba(255,255,255,0.3)', fontSize: responsiveFont(11) },
+  reqAvatarText: { color: '#FFFFFF', fontSize: responsiveFont(16), fontWeight: '700' },
+  reqName: { color: '#1C1C1E', fontSize: responsiveFont(15), fontWeight: '700', marginBottom: 2 },
+  reqNote: { color: 'rgba(0,0,0,0.6)', fontSize: responsiveFont(13), fontStyle: 'italic', marginBottom: 4 },
+  reqTime: { color: 'rgba(0,0,0,0.4)', fontSize: responsiveFont(12) },
   requestCardRight: { alignItems: 'flex-end', gap: 8 },
-  reqAmount: { color: '#FFE600', fontSize: responsiveFont(17), fontWeight: '800' },
-  payReqBtn: { backgroundColor: '#FF5A00', paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20 },
-  payReqBtnText: { color: '#FFF', fontSize: responsiveFont(13), fontWeight: '700' },
+  reqAmount: { color: '#1C1C1E', fontSize: responsiveFont(17), fontWeight: '800' },
+  payReqBtn: { backgroundColor: '#1C1C1E', paddingHorizontal: 18, paddingVertical: 8, borderRadius: 20 },
+  payReqBtnText: { color: '#FFFFFF', fontSize: responsiveFont(13), fontWeight: '700' },
 
-  emptyTitle: { color: '#FFF', fontSize: responsiveFont(20), fontWeight: '700', marginTop: 16, marginBottom: 8 },
-  emptySub: { color: 'rgba(255,255,255,0.4)', fontSize: responsiveFont(14), textAlign: 'center' },
+  emptyTitle: { color: '#1C1C1E', fontSize: responsiveFont(20), fontWeight: '800', marginTop: 16, marginBottom: 8 },
+  emptySub: { color: 'rgba(0,0,0,0.5)', fontSize: responsiveFont(14), textAlign: 'center' },
 
   // modal
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.6)' },
   modalSheet: {
-    backgroundColor: '#0A0A0A', borderTopLeftRadius: 28, borderTopRightRadius: 28,
+    backgroundColor: '#FFFFFF', borderTopLeftRadius: 32, borderTopRightRadius: 32,
     padding: 24, paddingBottom: 44,
-    borderWidth: 1, borderColor: 'rgba(255,90,0,0.3)',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)',
   },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
-  modalTitle: { color: '#FFF', fontSize: responsiveFont(20), fontWeight: '700' },
+  modalTitle: { color: '#1C1C1E', fontSize: responsiveFont(22), fontWeight: '800' },
   fulfillSummary: { alignItems: 'center', paddingVertical: 20, marginBottom: 24 },
-  fulfillFrom: { color: 'rgba(255,255,255,0.6)', fontSize: responsiveFont(15), marginBottom: 8 },
-  fulfillAmt: { color: '#FFE600', fontSize: responsiveFont(48), fontWeight: '800', marginBottom: 8 },
-  fulfillNote: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(14), fontStyle: 'italic' },
-  declineBtn: { marginTop: 14, alignItems: 'center' },
-  declineBtnText: { color: '#FF3B30', fontSize: responsiveFont(15), fontWeight: '600' },
+  fulfillFrom: { color: 'rgba(0,0,0,0.6)', fontSize: responsiveFont(15), marginBottom: 8 },
+  fulfillAmt: { color: '#1C1C1E', fontSize: responsiveFont(48), fontWeight: '900', marginBottom: 8 },
+  fulfillNote: { color: 'rgba(0,0,0,0.6)', fontSize: responsiveFont(14), fontStyle: 'italic' },
+  declineBtn: { marginTop: 18, alignItems: 'center' },
+  declineBtnText: { color: '#C83232', fontSize: responsiveFont(15), fontWeight: '700' },
 
   // success
   successContainer: { alignItems: 'center', paddingVertical: 16 },
-  successTitle: { color: '#FFF', fontSize: responsiveFont(26), fontWeight: '800', marginTop: 16, marginBottom: 8 },
-  successSub: { color: 'rgba(255,255,255,0.7)', fontSize: responsiveFont(15), textAlign: 'center', lineHeight: 22, marginBottom: 8 },
-  successHint: { color: 'rgba(255,255,255,0.4)', fontSize: responsiveFont(13), textAlign: 'center', marginBottom: 32 },
+  successTitle: { color: '#1C1C1E', fontSize: responsiveFont(26), fontWeight: '900', marginTop: 16, marginBottom: 8 },
+  successSub: { color: 'rgba(0,0,0,0.7)', fontSize: responsiveFont(15), textAlign: 'center', lineHeight: 22, marginBottom: 8 },
+  successHint: { color: 'rgba(0,0,0,0.4)', fontSize: responsiveFont(13), textAlign: 'center', marginBottom: 32 },
   doneBtn: { backgroundColor: '#34c759', paddingHorizontal: 48, paddingVertical: 16, borderRadius: 30 },
-  doneBtnText: { color: '#FFF', fontSize: responsiveFont(16), fontWeight: '700' },
+  doneBtnText: { color: '#FFFFFF', fontSize: responsiveFont(16), fontWeight: '800' },
 });

@@ -20,7 +20,7 @@ import {
   Sparkles, 
   Diamond 
 } from 'lucide-react-native';
-import { Colors, Spacing, Radius } from '../theme/tokens';
+import { Colors, Spacing, Radius, ScreenColors } from '../theme/tokens';
 import { InsuranceAPI } from '../api/client';
 
 const { width: W, height: H } = Dimensions.get('window');
@@ -38,14 +38,14 @@ interface ChatMessage {
 }
 
 const STORY_QUESTIONS = [
-  { q: 'What does this policy cover?', icon: '◈', bgColor: '#1A0800' },
-  { q: 'What are the exclusions and things not covered?', icon: '✕', bgColor: '#0D1A0A' },
-  { q: 'What is the claim process and timeline?', icon: '≡', bgColor: '#1A0A00' },
-  { q: 'What are the premium and payment details?', icon: '₹', bgColor: '#0A0F1A' },
-  { q: 'Are there any hidden clauses or loopholes I should know about?', icon: '?', bgColor: '#1A0000' },
+  { q: 'What does this policy cover?', icon: '◈', bgColor: '#FFFFFF' },
+  { q: 'What are the exclusions and things not covered?', icon: '✕', bgColor: '#FFFFFF' },
+  { q: 'What is the claim process and timeline?', icon: '≡', bgColor: '#FFFFFF' },
+  { q: 'What are the premium and payment details?', icon: '₹', bgColor: '#FFFFFF' },
+  { q: 'Are there any hidden clauses or loopholes I should know about?', icon: '?', bgColor: '#FFFFFF' },
 ];
 
-const CONFIDENCE_COLORS = { High: Colors.neonLime, Medium: '#FFB000', Low: Colors.hotPink };
+const CONFIDENCE_COLORS = { High: ScreenColors.brand.navy, Medium: '#BA7517', Low: '#E24B4A' };
 const PRESET_QUESTIONS = ['Is maternity covered?', 'Pre-existing conditions?', 'Network hospitals?', 'What is my claim limit?', 'Is dental included?', 'How to file a claim?'];
 const genId = () => Math.random().toString(36).slice(2);
 
@@ -167,9 +167,9 @@ export const InsuranceScreen: React.FC<Props> = ({ visible, onClose }) => {
     <Modal visible={visible} animationType="slide" statusBarTranslucent>
       <View style={styles.container}>
         
-        {/* ── GLOBAL DEEP SPACE BACKGROUND ── */}
+        {/* ── GLOBAL SOFT-UI BACKGROUND ── */}
         <LinearGradient
-          colors={['#000000', '#0A0000', '#2B0000']}
+          colors={['#FDFDF9', '#FFFFFF', '#FDFDF9']}
           style={StyleSheet.absoluteFill}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -192,16 +192,16 @@ export const InsuranceScreen: React.FC<Props> = ({ visible, onClose }) => {
                 <View style={styles.orbRing1} />
                 <View style={styles.orbRing2} />
                 <View style={styles.orbShadowLayer} />
-                <LinearGradient colors={['#8B0000', '#FF007F']} style={styles.orbCore} start={{x:0, y:0}} end={{x:1, y:1}}>
+                <LinearGradient colors={[ScreenColors.brand.coral, ScreenColors.brand.coral]} style={styles.orbCore} start={{x:0, y:0}} end={{x:1, y:1}}>
                    <View style={styles.orbInnerCutout}>
-                     <Diamond size={28} color={Colors.neonLime} />
+                     <Diamond size={28} color="#FFFFFF" />
                    </View>
                 </LinearGradient>
               </View>
 
               {/* Headers */}
               <Text style={styles.mainTitle}>
-                Insurance{'\n'}Explained in <Text style={{ color: Colors.neonLime }}>30 sec</Text>
+                Insurance{'\n'}Explained in <Text style={{ color: ScreenColors.brand.coral }}>30 sec</Text>
               </Text>
               <Text style={styles.mainSubtitle}>
                 Upload your policy document and our AI will break it{'\n'}down — no jargon, no confusion.
@@ -212,45 +212,45 @@ export const InsuranceScreen: React.FC<Props> = ({ visible, onClose }) => {
                 {/* Fast Setup */}
                 <View style={styles.featureCard}>
                   <View style={styles.featureIconWrap}>
-                    <Zap size={20} color={Colors.neonLime} />
+                    <Zap size={20} color={ScreenColors.brand.navy} />
                   </View>
                   <View style={styles.featureTextWrap}>
-                    <Text style={[styles.featureTitle, { color: Colors.neonLime }]}>FAST SETUP</Text>
+                    <Text style={styles.featureTitle}>FAST SETUP</Text>
                     <Text style={styles.featureDesc}>Full analysis in under 5 minutes.</Text>
                   </View>
-                  <View style={[styles.featureBadge, { borderColor: Colors.neonLime, backgroundColor: 'rgba(200,255,0,0.05)' }]}>
-                    <Clock size={12} color={Colors.neonLime} style={{ marginRight: 4 }} />
-                    <Text style={[styles.featureBadgeText, { color: Colors.neonLime }]}>~5 min</Text>
+                  <View style={styles.featureBadge}>
+                    <Clock size={12} color={ScreenColors.brand.navy} style={{ marginRight: 4 }} />
+                    <Text style={styles.featureBadgeText}>~5 min</Text>
                   </View>
                 </View>
 
                 {/* Hidden Clauses */}
                 <View style={styles.featureCard}>
                   <View style={styles.featureIconWrap}>
-                    <Search size={20} color={Colors.hotPink} />
+                    <Search size={20} color={ScreenColors.brand.navy} />
                   </View>
                   <View style={styles.featureTextWrap}>
-                    <Text style={[styles.featureTitle, { color: Colors.hotPink }]}>HIDDEN CLAUSES</Text>
+                    <Text style={styles.featureTitle}>HIDDEN CLAUSES</Text>
                     <Text style={styles.featureDesc}>Loopholes and exclusions surfaced.</Text>
                   </View>
-                  <View style={[styles.featureBadge, { borderColor: Colors.hotPink, backgroundColor: 'rgba(255,45,120,0.05)' }]}>
-                    <ShieldCheck size={12} color={Colors.hotPink} style={{ marginRight: 4 }} />
-                    <Text style={[styles.featureBadgeText, { color: Colors.hotPink }]}>100% Scan</Text>
+                  <View style={styles.featureBadge}>
+                    <ShieldCheck size={12} color={ScreenColors.brand.navy} style={{ marginRight: 4 }} />
+                    <Text style={styles.featureBadgeText}>100% Scan</Text>
                   </View>
                 </View>
 
                 {/* AI Chatbot */}
                 <View style={styles.featureCard}>
                   <View style={styles.featureIconWrap}>
-                    <MessageCircle size={20} color="#FF5A00" />
+                    <MessageCircle size={20} color={ScreenColors.brand.navy} />
                   </View>
                   <View style={styles.featureTextWrap}>
-                    <Text style={[styles.featureTitle, { color: '#FF5A00' }]}>AI CHATBOT</Text>
+                    <Text style={styles.featureTitle}>AI CHATBOT</Text>
                     <Text style={styles.featureDesc}>Ask follow-up questions instantly.</Text>
                   </View>
-                  <View style={[styles.featureBadge, { borderColor: '#FF5A00', backgroundColor: 'rgba(255,90,0,0.05)' }]}>
-                    <Sparkles size={12} color="#FF5A00" style={{ marginRight: 4 }} />
-                    <Text style={[styles.featureBadgeText, { color: '#FF5A00' }]}>24/7 AI</Text>
+                  <View style={styles.featureBadge}>
+                    <Sparkles size={12} color={ScreenColors.brand.navy} style={{ marginRight: 4 }} />
+                    <Text style={styles.featureBadgeText}>24/7 AI</Text>
                   </View>
                 </View>
               </View>
@@ -259,14 +259,14 @@ export const InsuranceScreen: React.FC<Props> = ({ visible, onClose }) => {
               <View style={styles.buttonShadowWrapper}>
                 <TouchableOpacity style={styles.uploadMainBtn} onPress={handleUpload} disabled={uploading}>
                    <View style={styles.uploadIconCircle}>
-                      <CloudUpload size={22} color="#FFF" />
+                      <CloudUpload size={22} color="#FFFFFF" />
                    </View>
                    <View style={styles.uploadBtnTextWrap}>
                       <Text style={styles.uploadBtnTitle}>UPLOAD POLICY PDF</Text>
                       <Text style={styles.uploadBtnSub}>We support PDF up to 25MB</Text>
                    </View>
                    <View style={styles.uploadArrowCircle}>
-                      <ChevronRight size={20} color="#000" />
+                      <ChevronRight size={20} color="#FFFFFF" />
                    </View>
                 </TouchableOpacity>
               </View>
@@ -284,8 +284,8 @@ export const InsuranceScreen: React.FC<Props> = ({ visible, onClose }) => {
                     <FileText size={22} color="#FF5A00" />
                  </View>
                  <View style={styles.uploadBtnTextWrap}>
-                    <Text style={[styles.uploadBtnTitle, { color: '#FFF' }]}>Try with demo document</Text>
-                    <Text style={[styles.uploadBtnSub, { color: 'rgba(255,255,255,0.5)' }]}>See how BODHI AI works</Text>
+                    <Text style={[styles.uploadBtnTitle, { color: '#1C1C1E' }]}>Try with demo document</Text>
+                    <Text style={[styles.uploadBtnSub, { color: 'rgba(0,0,0,0.5)' }]}>See how BODHI AI works</Text>
                  </View>
                  <ChevronRight size={24} color="#FF5A00" />
               </TouchableOpacity>
@@ -308,7 +308,7 @@ export const InsuranceScreen: React.FC<Props> = ({ visible, onClose }) => {
 
         {/* ═══════════════ STORIES PHASE ════════════════════════════════════ */}
         {phase === 'stories' && currentSlideData && (
-          <View style={[styles.storySlide, { backgroundColor: currentSlideData.bgColor }]}>
+          <View style={[styles.storySlide, { backgroundColor: '#FDFDF9' }]}>
             <View style={styles.progressBars}>
               {STORY_QUESTIONS.map((_, i) => (
                 <View key={i} style={styles.progressBarTrack}><Animated.View style={[styles.progressBarFill, { width: progressAnims[i].interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) }]} /></View>
@@ -353,7 +353,7 @@ export const InsuranceScreen: React.FC<Props> = ({ visible, onClose }) => {
         {phase === 'chat' && (
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
             <View style={styles.chatHeader}>
-              <TouchableOpacity style={styles.chatBackBtn} onPress={() => setPhase(slides.length > 0 ? 'stories' : 'upload')}><Text style={{ fontSize: responsiveFont(20), color: '#FFF' }}>←</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.chatBackBtn} onPress={() => setPhase(slides.length > 0 ? 'stories' : 'upload')}><Text style={{ fontSize: responsiveFont(20), color: '#1C1C1E' }}>←</Text></TouchableOpacity>
               <View style={styles.chatHeaderInfo}>
                 <View style={styles.storyAvatar}><Text style={styles.storyAvatarText}>AI</Text></View>
                 <View><Text style={styles.chatHeaderTitle}>Policy Assistant</Text></View>
@@ -392,9 +392,9 @@ export const InsuranceScreen: React.FC<Props> = ({ visible, onClose }) => {
 
             <View style={styles.chatInputBar}>
               <View style={{ maxWidth: isTablet ? (isLandscape() ? 900 : 700) : '100%', alignSelf: 'center', width: '100%', flexDirection: 'row', alignItems: 'flex-end', gap: 12 }}>
-                <TextInput style={styles.chatInput} placeholder="Ask about your policy…" placeholderTextColor="rgba(255,255,255,0.35)" value={chatInput} onChangeText={setChatInput} onSubmitEditing={() => sendMessage(chatInput)} multiline />
+                <TextInput style={styles.chatInput} placeholder="Ask about your policy…" placeholderTextColor="rgba(0,0,0,0.4)" value={chatInput} onChangeText={setChatInput} onSubmitEditing={() => sendMessage(chatInput)} multiline />
                 <TouchableOpacity style={[styles.sendBtn, (!chatInput.trim() || chatLoading) && { opacity: 0.4 }]} onPress={() => sendMessage(chatInput)} disabled={!chatInput.trim() || chatLoading}>
-                  <Text style={{ fontSize: responsiveFont(18), color: '#000', fontWeight: '700' }}>→</Text>
+                  <Text style={{ fontSize: responsiveFont(18), color: '#FFFFFF', fontWeight: '700' }}>→</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -406,126 +406,125 @@ export const InsuranceScreen: React.FC<Props> = ({ visible, onClose }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000000' },
+  container: { flex: 1, backgroundColor: '#FDFDF9' },
   
-  // ── UPLOAD PHASE CYBERPUNK UI ──
+  // ── UPLOAD PHASE SOFT-UI ──
   uploadPhase: { flex: 1, paddingTop: Platform.OS === 'ios' ? 60 : 40, position: 'relative' },
   closeIconBtn: { position: 'absolute', top: Platform.OS === 'ios' ? 50 : 30, right: 20, zIndex: 10 },
-  closeIconText: { fontSize: responsiveFont(24), color: 'rgba(255,255,255,0.5)', fontWeight: '300' },
+  closeIconText: { fontSize: responsiveFont(24), color: 'rgba(0,0,0,0.5)', fontWeight: '300' },
   
   uploadContent: { paddingHorizontal: 20, paddingBottom: 60, alignItems: 'center' },
   
   orbContainer: { alignItems: 'center', justifyContent: 'center', height: 160, marginTop: 20, marginBottom: 20 },
-  orbRing1: { position: 'absolute', width: 140, height: 140, borderRadius: 70, borderWidth: 1, borderColor: 'rgba(255,90,0,0.3)', opacity: 0.5 },
-  orbRing2: { position: 'absolute', width: 190, height: 190, borderRadius: 95, borderWidth: 1, borderColor: 'rgba(255,90,0,0.1)', opacity: 0.3 },
+  orbRing1: { position: 'absolute', width: 140, height: 140, borderRadius: 70, borderWidth: 1, borderColor: 'rgba(216,90,48,0.22)', opacity: 0.5 },
+  orbRing2: { position: 'absolute', width: 190, height: 190, borderRadius: 95, borderWidth: 1, borderColor: 'rgba(216,90,48,0.12)', opacity: 0.3 },
   orbShadowLayer: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 50,
-    backgroundColor: '#0A0000',
-    shadowColor: '#FF5A00',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
-    elevation: 10,
+    backgroundColor: '#FFFFFF',
+    shadowColor: 'rgba(216,90,48,0.12)',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
   },
   orbCore: { width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center' },
-  orbInnerCutout: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#0A0000', alignItems: 'center', justifyContent: 'center' },
+  orbInnerCutout: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
 
-  mainTitle: { fontSize: responsiveFont(32), fontWeight: '800', color: '#FFF', textAlign: 'center', lineHeight: 38, marginBottom: 16, letterSpacing: -0.5 },
-  mainSubtitle: { fontSize: responsiveFont(13), color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 20, marginBottom: 32, paddingHorizontal: 10 },
+  mainTitle: { fontSize: responsiveFont(32), fontWeight: '800', color: ScreenColors.brand.textPrimary, textAlign: 'center', lineHeight: 38, marginBottom: 16, letterSpacing: -0.5 },
+  mainSubtitle: { fontSize: responsiveFont(13), color: ScreenColors.brand.textSecondary, textAlign: 'center', lineHeight: 20, marginBottom: 32, paddingHorizontal: 10 },
 
   featureList: { width: '100%', gap: 12, marginBottom: 32 },
-  featureCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0B0A1A', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
-  featureIconWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', marginRight: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  featureCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 2 },
+  featureIconWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(26,26,78,0.08)', alignItems: 'center', justifyContent: 'center', marginRight: 16, borderWidth: 1, borderColor: 'rgba(26,26,78,0.12)' },
   featureTextWrap: { flex: 1 },
-  featureTitle: { fontSize: responsiveFont(13), fontWeight: '800', letterSpacing: 0.5, marginBottom: 4 },
-  featureDesc: { fontSize: responsiveFont(11), color: 'rgba(255,255,255,0.5)' },
-  featureBadge: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-  featureBadgeText: { fontSize: responsiveFont(10), fontWeight: '600' },
+  featureTitle: { fontSize: responsiveFont(13), fontWeight: '700', letterSpacing: 0.65, marginBottom: 4, color: '#1A1A4E' },
+  featureDesc: { fontSize: responsiveFont(11), color: ScreenColors.brand.textSecondary },
+  featureBadge: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#EEF0FF', borderColor: '#C8CCF5' },
+  featureBadgeText: { fontSize: responsiveFont(12), fontWeight: '600', color: '#1A1A4E' },
 
   buttonShadowWrapper: {
     width: '100%',
-    borderRadius: 20,
+    borderRadius: 24,
     shadowColor: Colors.neonLime,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
     elevation: 8,
   },
-  uploadMainBtn: { width: '100%', flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.neonLime, borderRadius: 20, padding: 12 },
-  uploadIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(0,0,0,0.1)', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
+  uploadMainBtn: { width: '100%', flexDirection: 'row', alignItems: 'center', backgroundColor: '#1A1A4E', borderRadius: 16, padding: 12, height: 60 },
+  uploadIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   uploadBtnTextWrap: { flex: 1 },
-  uploadBtnTitle: { fontSize: responsiveFont(15), fontWeight: '800', color: '#000', marginBottom: 2 },
-  uploadBtnSub: { fontSize: responsiveFont(12), color: 'rgba(0,0,0,0.6)', fontWeight: '500' },
-  uploadArrowCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.1)', alignItems: 'center', justifyContent: 'center' },
+  uploadBtnTitle: { fontSize: responsiveFont(15), fontWeight: '700', color: '#FFFFFF', marginBottom: 2 },
+  uploadBtnSub: { fontSize: responsiveFont(12), color: 'rgba(255,255,255,0.75)', fontWeight: '500' },
+  uploadArrowCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
 
   dividerRow: { flexDirection: 'row', alignItems: 'center', width: '100%', marginVertical: 24 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
-  dividerText: { marginHorizontal: 16, fontSize: responsiveFont(12), color: 'rgba(255,255,255,0.4)', fontWeight: '500' },
+  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(0,0,0,0.08)' },
+  dividerText: { marginHorizontal: 16, fontSize: responsiveFont(12), color: 'rgba(0,0,0,0.4)', fontWeight: '500' },
 
-  demoMainBtn: { width: '100%', flexDirection: 'row', alignItems: 'center', backgroundColor: '#0B0A1A', borderRadius: 20, padding: 12, borderWidth: 1, borderColor: 'rgba(255,90,0,0.3)' },
+  demoMainBtn: { width: '100%', flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 24, padding: 12, borderWidth: 1, borderColor: 'rgba(255,90,0,0.3)', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
 
   // ── PROCESSING, STORIES, CHAT STYLES ──
-  processingCard: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20, padding: 24, alignItems: 'center', width: W - 40, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  processingTitle: { fontSize: responsiveFont(18), fontWeight: '700', color: '#FFF', marginBottom: 8 },
-  processingSubtitle: { fontSize: responsiveFont(14), color: 'rgba(255,255,255,0.6)', textAlign: 'center' },
+  processingCard: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, alignItems: 'center', width: W - 40, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.05, shadowRadius: 16, elevation: 4 },
+  processingTitle: { fontSize: responsiveFont(18), fontWeight: '800', color: '#1C1C1E', marginBottom: 8 },
+  processingSubtitle: { fontSize: responsiveFont(14), color: 'rgba(0,0,0,0.6)', textAlign: 'center' },
 
   storyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 68 : 48, paddingBottom: 16 },
   storyHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  storyAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' },
-  storyAvatarText: { fontSize: responsiveFont(14), color: '#FFF', fontWeight: '700' },
-  storyUsername: { fontSize: responsiveFont(16), fontWeight: '700', color: '#FFF' },
-  storySeriesLabel: { fontSize: responsiveFont(10), color: 'rgba(255,255,255,0.6)', letterSpacing: 1 },
-  closeBtn: { fontSize: responsiveFont(24), color: '#FFF', fontWeight: '300', padding: 4 },
-  chatHeaderBtn: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-  chatHeaderBtnText: { fontSize: responsiveFont(13), color: '#FFF', fontWeight: '600' },
+  storyAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.08)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' },
+  storyAvatarText: { fontSize: responsiveFont(14), color: '#1C1C1E', fontWeight: '700' },
+  storyUsername: { fontSize: responsiveFont(16), fontWeight: '700', color: '#1C1C1E' },
+  storySeriesLabel: { fontSize: responsiveFont(10), color: 'rgba(0,0,0,0.5)', letterSpacing: 1 },
+  closeBtn: { fontSize: responsiveFont(24), color: '#1C1C1E', fontWeight: '300', padding: 4 },
+  chatHeaderBtn: { backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 6, borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' },
+  chatHeaderBtnText: { fontSize: responsiveFont(13), color: '#1C1C1E', fontWeight: '600' },
 
   progressBars: { flexDirection: 'row', paddingHorizontal: 16, gap: 4, paddingBottom: 8, paddingTop: Platform.OS === 'ios' ? 56 : 36, position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 },
-  progressBarTrack: { flex: 1, height: 3, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 2, overflow: 'hidden' },
-  progressBarFill: { height: 3, backgroundColor: '#FFF', borderRadius: 2 },
+  progressBarTrack: { flex: 1, height: 3, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 2, overflow: 'hidden' },
+  progressBarFill: { height: 3, backgroundColor: '#1C1C1E', borderRadius: 2 },
 
   storySlide: { flex: 1 },
   slideIconWrap: { alignItems: 'center', marginVertical: 40 },
-  slideIconCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  slideIconText: { fontSize: responsiveFont(36), color: Colors.neonLime, fontWeight: '700' },
+  slideIconCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: 'rgba(0,0,0,0.08)', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.05, shadowRadius: 16, elevation: 4 },
+  slideIconText: { fontSize: responsiveFont(36), color: '#FF5A00', fontWeight: '700' },
   slideContent: { flex: 1, paddingHorizontal: 24, paddingBottom: 175 },
-  slideTitle: { fontSize: responsiveFont(28), fontWeight: '800', color: '#FFF', marginBottom: 16, lineHeight: 34 },
-  slideSubtitle: { fontSize: responsiveFont(16), color: 'rgba(255,255,255,0.8)', lineHeight: 24, marginBottom: 24 },
+  slideTitle: { fontSize: responsiveFont(28), fontWeight: '800', color: '#1C1C1E', marginBottom: 16, lineHeight: 34 },
+  slideSubtitle: { fontSize: responsiveFont(16), color: 'rgba(0,0,0,0.8)', lineHeight: 24, marginBottom: 24 },
   confidenceBadge: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6, alignSelf: 'flex-start', gap: 6, marginBottom: 12 },
   confidenceDot: { width: 8, height: 8, borderRadius: 4 },
   confidenceText: { fontSize: responsiveFont(12), fontWeight: '700', letterSpacing: 0.5 },
-  clauseRef: { fontSize: responsiveFont(12), color: 'rgba(255,255,255,0.5)' },
+  clauseRef: { fontSize: responsiveFont(12), color: 'rgba(0,0,0,0.5)' },
 
   tapLeft:  { position: 'absolute', left: 0,  top: 100, bottom: 200, width: W * 0.35 },
   tapRight: { position: 'absolute', right: 0, top: 100, bottom: 200, width: W * 0.35 },
 
   storyFooter: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 24, paddingBottom: 40 },
-  queryBtn: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 30, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-  queryBtnText: { fontSize: responsiveFont(15), color: '#FFF', fontWeight: '600' },
+  queryBtn: { backgroundColor: '#FFFFFF', borderRadius: 30, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
+  queryBtnText: { fontSize: responsiveFont(15), color: '#1C1C1E', fontWeight: '600' },
 
-  chatHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingBottom: 16, backgroundColor: '#000000', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  chatHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingBottom: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' },
   chatBackBtn: { padding: 8 },
   chatHeaderInfo: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, marginLeft: 8 },
-  chatHeaderTitle: { fontSize: responsiveFont(16), fontWeight: '700', color: '#FFF' },
-  chatMessages: { flex: 1, backgroundColor: '#000000' },
+  chatHeaderTitle: { fontSize: responsiveFont(16), fontWeight: '700', color: '#1C1C1E' },
+  chatMessages: { flex: 1, backgroundColor: '#FDFDF9' },
   chatMessagesContent: { padding: 20, gap: 16, paddingBottom: 24 },
   msgBubble: { maxWidth: '85%', borderRadius: 20, padding: 16 },
   msgBubbleUser: { alignSelf: 'flex-end', backgroundColor: '#FF5A00', borderBottomRightRadius: 4 },
-  msgBubbleAI: { alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.08)', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  msgText: { fontSize: responsiveFont(15), color: 'rgba(255,255,255,0.9)', lineHeight: 22 },
-  msgTextUser: { color: '#FFF' },
-  typingText: { fontSize: responsiveFont(14), color: 'rgba(255,255,255,0.5)' },
-  chatInputBar: { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: '#000000', padding: 12, paddingHorizontal: 20, gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)', paddingBottom: Platform.OS === 'ios' ? 28 : 16 },
-  chatInput: { flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 24, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 14, fontSize: responsiveFont(15), color: '#FFF', maxHeight: 120, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  msgBubbleAI: { alignSelf: 'flex-start', backgroundColor: '#FFFFFF', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 8, elevation: 1 },
+  msgText: { fontSize: responsiveFont(15), color: '#1C1C1E', lineHeight: 22 },
+  msgTextUser: { color: '#FFFFFF' },
+  chatInputBar: { flexDirection: 'row', alignItems: 'flex-end', backgroundColor: '#FFFFFF', padding: 12, paddingHorizontal: 20, gap: 12, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.05)', paddingBottom: Platform.OS === 'ios' ? 28 : 16 },
+  chatInput: { flex: 1, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 24, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 14, fontSize: responsiveFont(15), color: '#1C1C1E', maxHeight: 120, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' },
   sendBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: Colors.neonLime, alignItems: 'center', justifyContent: 'center' },
 
-  presetsScroll: { maxHeight: 52, backgroundColor: '#000000', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
+  presetsScroll: { maxHeight: 52, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.05)' },
   presetsContainer: { paddingHorizontal: 16, paddingVertical: 10, gap: 8, flexDirection: 'row', alignItems: 'center' },
   presetChip: {
-    backgroundColor: 'rgba(255,90,0,0.15)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7,
-    borderWidth: 1, borderColor: 'rgba(255,90,0,0.35)',
+    backgroundColor: 'rgba(255,90,0,0.1)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7,
+    borderWidth: 1, borderColor: 'rgba(255,90,0,0.2)',
   },
-  presetChipText: { fontSize: responsiveFont(12), color: '#FF6A00', fontWeight: '600' },
+  presetChipText: { fontSize: responsiveFont(12), color: '#FF5A00', fontWeight: '700' },
 
   msgConfidenceBadge: { flexDirection: 'row', alignItems: 'center', marginTop: 8, alignSelf: 'flex-start', borderWidth: 1, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, gap: 4 },
   msgConfidenceDot: { width: 6, height: 6, borderRadius: 3 },

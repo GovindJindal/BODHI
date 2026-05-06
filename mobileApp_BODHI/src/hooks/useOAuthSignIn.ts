@@ -4,7 +4,6 @@ import {
   GoogleSignin,
   statusCodes as GoogleStatusCodes,
 } from '@react-native-google-signin/google-signin';
-import { appleAuth } from '@invertase/react-native-apple-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { BASE_URL } from '../api/client';
@@ -69,51 +68,5 @@ export function useOAuthSignIn() {
     }
   }, []);
 
-  // ── APPLE ───────────────────────────────────────────────────────────────────
-  const handleAppleLogin = useCallback(async (): Promise<OAuthResult | null> => {
-    if (!appleAuth.isSupported) {
-      Alert.alert('Not Supported', 'Sign in with Apple requires iOS 13 or later.');
-      return null;
-    }
-
-    setIsLoading('apple');
-    try {
-      const appleAuthRequestResponse = await appleAuth.performRequest({
-        requestedOperation: appleAuth.Operation.LOGIN,
-        requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
-      });
-
-      const credentialState = await appleAuth.getCredentialStateForUser(appleAuthRequestResponse.user);
-      if (credentialState !== appleAuth.State.AUTHORIZED) throw new Error('Apple credential state is not authorized.');
-
-      const { identityToken, fullName } = appleAuthRequestResponse;
-      if (!identityToken) throw new Error('Apple Sign-In did not return an identityToken.');
-
-      const displayName = fullName?.givenName && fullName?.familyName
-        ? `${fullName.givenName} ${fullName.familyName}`.trim()
-        : fullName?.givenName || null;
-
-      const response = await fetch(`${API_URL}/apple`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identity_token: identityToken, full_name: displayName }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || 'Backend verification failed');
-
-      await saveToken(data.access_token);
-      return { accessToken: data.access_token, isNewUser: data.is_new_user };
-
-    } catch (error: any) {
-      if (error?.code === appleAuth.Error.CANCELED || error?.code === '1001') return null;
-
-      Alert.alert('Apple Sign-In Failed', error.message || 'An unexpected error occurred.');
-      return null;
-    } finally {
-      setIsLoading(null);
-    }
-  }, []);
-
-  return { isLoading, handleGoogleLogin, handleAppleLogin };
+  return { isLoading, handleGoogleLogin };
 }

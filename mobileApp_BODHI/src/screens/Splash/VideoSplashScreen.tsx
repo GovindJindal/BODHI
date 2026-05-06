@@ -30,7 +30,7 @@ export default function VideoSplashScreen({ onFinish }: SplashProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#FDFDF9',
     justifyContent: 'center',
     alignItems: 'center',
   },

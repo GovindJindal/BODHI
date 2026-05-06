@@ -29,15 +29,15 @@ import LinearGradient from 'react-native-linear-gradient';
 const { width: W } = Dimensions.get('window');
 
 const C = {
-  bg: '#000000',
-  cardBg: '#0A0A0A',
-  neonLime: '#FFE600',
-  purple: '#FF5A00',
-  red: '#FF2D2D',
-  white: '#FFFFFF',
-  whiteMid: 'rgba(255,255,255,0.7)',
-  whiteDim: 'rgba(255,255,255,0.3)',
-  border: 'rgba(255,255,255,0.08)',
+  bg: '#FDFDF9',
+  cardBg: '#FFFFFF',
+  neonLime: '#3D4DFF',
+  purple: '#C83232',
+  red: '#C83232',
+  white: '#1C1C1E',
+  whiteMid: 'rgba(0,0,0,0.7)',
+  whiteDim: 'rgba(0,0,0,0.3)',
+  border: 'rgba(0,0,0,0.08)',
 };
 
 export function VentureClubScreen({ route, navigation }: any) {
@@ -198,7 +198,7 @@ export function VentureClubScreen({ route, navigation }: any) {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={{ maxWidth: isTablet ? (isLandscape() ? 900 : 700) : '100%', alignSelf: 'center', width: '100%' }}>
           <LinearGradient
-            colors={['#4F46E5', '#0A0A0A']}
+            colors={['#FDFDF9', '#FFFFFF']}
             style={styles.summaryCard}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -214,7 +214,7 @@ export function VentureClubScreen({ route, navigation }: any) {
 
           <View style={styles.actionRow}>
             <TouchableOpacity style={styles.actionBtn} onPress={handleAddFunds} activeOpacity={0.8}>
-              <LinearGradient colors={[C.neonLime, '#A3CF00']} style={styles.actionBtnGrad}>
+              <LinearGradient colors={[C.neonLime, '#A3CF00']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.actionBtnGrad}>
                 <Plus size={20} color={C.bg} strokeWidth={3} />
                 <Text style={styles.actionBtnText}>Add Funds</Text>
               </LinearGradient>
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -343,11 +343,11 @@ const styles = StyleSheet.create({
     borderRadius: 28, 
     marginBottom: 24, 
     borderWidth: 1, 
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(0,0,0,0.1)',
   },
-  summaryLabel: { color: 'rgba(255,255,255,0.8)', fontSize: responsiveFont(13), fontWeight: '700', marginBottom: 6 },
-  summaryValue: { color: C.white, fontSize: responsiveFont(32), fontWeight: '900', letterSpacing: -1 },
-  summaryIconBox: { width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+  summaryLabel: { color: 'rgba(0,0,0,0.8)', fontSize: responsiveFont(13), fontWeight: '700', marginBottom: 6 },
+  summaryValue: { color: C.neonLime, fontSize: responsiveFont(32), fontWeight: '900', letterSpacing: -1 },
+  summaryIconBox: { width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.1)', alignItems: 'center', justifyContent: 'center' },
 
   // ACTIONS
   actionRow: { flexDirection: 'row', gap: 12, marginBottom: 30 },
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
 
   // PARTNERS
   partnerList: { backgroundColor: C.cardBg, borderRadius: 24, padding: 8, borderWidth: 1, borderColor: C.border },
-  partnerRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
+  partnerRow: { flexDirection: 'row', alignItems: 'center', padding: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.04)' },
   partnerAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: C.purple, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   partnerName: { color: C.white, fontSize: responsiveFont(14), fontWeight: '700' },
   partnerShare: { color: C.neonLime, fontSize: responsiveFont(14), fontWeight: '800' },

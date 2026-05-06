@@ -12,7 +12,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TrendingUp, Edit2, Calendar, TrendingDown, Hourglass, Sparkles } from 'lucide-react-native';
 
 import { apiClient } from '../api/client';
-import { Colors, Radius, Spacing } from '../theme/tokens';
+import { Colors, Radius, Spacing, ScreenColors } from '../theme/tokens';
+import { SectionLabel, PrimaryCTAButton } from '../components/shared';
 
 const { width: W } = Dimensions.get('window');
 
@@ -155,7 +156,7 @@ export function MarketScreen() {
     <View style={styles.root}>
       {/* ── Background Gradient ── */}
       <LinearGradient
-        colors={['#000000', '#0A0A0A', '#0A0A0A']}
+        colors={[ScreenColors.brand.appBgWarmWhite, '#FFFFFF', ScreenColors.brand.appBgWarmWhite]}
         style={StyleSheet.absoluteFill}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -174,7 +175,7 @@ export function MarketScreen() {
           <TextInput
             style={styles.searchInput}
             placeholder="Search NSE / BSE…"
-            placeholderTextColor="rgba(255,255,255,0.4)"
+            placeholderTextColor="rgba(0,0,0,0.4)"
             value={searchQuery}
             onChangeText={setSearchQuery}
             autoFocus
@@ -270,7 +271,7 @@ export function MarketScreen() {
 
         {/* ── INPUTS ── */}
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>ASSET OF CHOICE</Text>
+          <SectionLabel title="Asset of Choice" style={styles.inputLabel} />
           <View style={styles.glassRow}>
             <TouchableOpacity style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }} onPress={() => setShowStockPicker(true)}>
               <View style={styles.assetIconBox}>
@@ -288,7 +289,7 @@ export function MarketScreen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>SIMULATION PRINCIPAL</Text>
+          <SectionLabel title="Simulation Principal" style={styles.inputLabel} />
           <View style={styles.glassRow}>
             <Text style={styles.currencyPrefix}>₹</Text>
             <TextInput
@@ -296,7 +297,7 @@ export function MarketScreen() {
               onChangeText={t => setAmountText(t.replace(/[^0-9.]/g, ''))}
               style={styles.textInput}
               keyboardType="numeric"
-              placeholderTextColor="rgba(255,255,255,0.4)"
+              placeholderTextColor="rgba(0,0,0,0.4)"
             />
             <View style={styles.editIconBox}>
               <Edit2 size={16} color="#FF5A00" />
@@ -305,7 +306,7 @@ export function MarketScreen() {
         </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>SIMULATION MODE</Text>
+          <SectionLabel title="Simulation Mode" style={styles.inputLabel} />
           <View style={styles.toggleContainer}>
             {(['Historical', 'Predictive'] as Mode[]).map(m => (
               <TouchableOpacity
@@ -321,7 +322,7 @@ export function MarketScreen() {
 
         {mode === 'Historical' && (
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>CRASH EVENT (OPTIONAL)</Text>
+            <SectionLabel title="Crash Event (Optional)" style={styles.inputLabel} />
             {loadingEvents ? (
               <ActivityIndicator color="#FF5A00" />
             ) : (
@@ -341,7 +342,7 @@ export function MarketScreen() {
 
         {mode === 'Predictive' && (
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>START DATE (YYYY-MM-DD)</Text>
+          <SectionLabel title="Start Date (YYYY-MM-DD)" style={styles.inputLabel} />
             <View style={styles.glassRow}>
               <Calendar size={22} color="#FF5A00" style={{ marginRight: 16 }} />
               <TextInput
@@ -349,7 +350,7 @@ export function MarketScreen() {
                 onChangeText={setCustomStartDate}
                 style={styles.textInput}
                 placeholder="2020-01-01"
-                placeholderTextColor="rgba(255,255,255,0.4)"
+                placeholderTextColor="rgba(0,0,0,0.4)"
               />
               <View style={styles.editIconBox}>
                 <Edit2 size={16} color="#FF5A00" />
@@ -360,21 +361,13 @@ export function MarketScreen() {
 
         {/* ── CALCULATE BUTTON ── */}
         <View style={styles.buttonShadowWrapper}>
-          <TouchableOpacity
-            style={[styles.calcBtn, loading && { opacity: 0.7 }]}
+          <PrimaryCTAButton
+            label="CALCULATE ALPHA"
             onPress={simulate}
-            activeOpacity={0.88}
             disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Sparkles size={18} color="#000" />
-                <Text style={styles.calcBtnText}>CALCULATE ALPHA</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+            rightIcon={loading ? <ActivityIndicator color="#FFFFFF" /> : <Sparkles size={18} color="#FFFFFF" />}
+            style={styles.calcBtn}
+          />
         </View>
 
         {/* ─── Results Section ─────────────────────────────────────── */}
@@ -463,42 +456,42 @@ export function MarketScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000000' },
+  root: { flex: 1, backgroundColor: '#FAFAF8' },
   scroll: { paddingHorizontal: 20, paddingBottom: 100 },
   
   // ── HERO HEADER ──
   headerSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, marginTop: 10 },
   headerTextWrap: { flex: 1 },
-  pageTitle: { fontSize: responsiveFont(36), fontWeight: '800', color: '#FFF', letterSpacing: -1 },
-  pageSubtitle: { fontSize: responsiveFont(13), color: 'rgba(255,255,255,0.6)', marginTop: 4, fontWeight: '500' },
+  pageTitle: { fontSize: responsiveFont(36), fontWeight: '800', color: '#1C1C1E', letterSpacing: -1 },
+  pageSubtitle: { fontSize: responsiveFont(13), color: '#6B6560', marginTop: 4, fontWeight: '500' },
   
   heroGlowBox: { width: 120, height: 120, position: 'relative', justifyContent: 'center', alignItems: 'center' },
   glowRing: { position: 'absolute', borderWidth: 1 },
 
   // ── INPUT GROUPS ──
   inputGroup: { marginBottom: 20 },
-  inputLabel: { fontSize: responsiveFont(11), fontWeight: '700', color: 'rgba(255,255,255,0.6)', letterSpacing: 1.4, marginBottom: 12 },
+  inputLabel: { marginBottom: 12 },
   
-  glassRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0B0A1A', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  glassRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: '#EEEBE6' },
   
-  assetIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,90,0,0.1)', borderWidth: 1, borderColor: 'rgba(255,90,0,0.3)', alignItems: 'center', justifyContent: 'center' },
-  assetName: { fontSize: responsiveFont(15), fontWeight: '700', color: '#FFF', marginBottom: 2 },
-  assetTicker: { fontSize: responsiveFont(12), color: 'rgba(255,255,255,0.5)' },
+  assetIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(26,26,78,0.08)', borderWidth: 1, borderColor: 'rgba(26,26,78,0.15)', alignItems: 'center', justifyContent: 'center' },
+  assetName: { fontSize: responsiveFont(15), fontWeight: '700', color: '#1C1C1E', marginBottom: 2 },
+  assetTicker: { fontSize: responsiveFont(12), color: 'rgba(0,0,0,0.5)' },
   
-  liveTradeBtn: { backgroundColor: 'rgba(212,255,0,0.1)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(212,255,0,0.2)' },
-  liveTradeBtnText: { fontSize: responsiveFont(11), fontWeight: '800', color: Colors.neonLime, letterSpacing: 0.5 },
+  liveTradeBtn: { backgroundColor: '#E8FFF0', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#A8DDB8' },
+  liveTradeBtnText: { fontSize: responsiveFont(11), fontWeight: '800', color: '#1A7A3C', letterSpacing: 0.5 },
 
-  currencyPrefix: { fontSize: responsiveFont(24), fontWeight: '700', color: '#FFF', marginRight: 12 },
-  textInput: { flex: 1, fontSize: responsiveFont(24), fontWeight: '700', color: '#FFF' },
+  currencyPrefix: { fontSize: responsiveFont(24), fontWeight: '700', color: '#1C1C1E', marginRight: 12 },
+  textInput: { flex: 1, fontSize: responsiveFont(24), fontWeight: '700', color: '#1C1C1E' },
   editIconBox: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,90,0,0.1)', alignItems: 'center', justifyContent: 'center' },
 
-  toggleContainer: { flexDirection: 'row', backgroundColor: '#0B0A1A', borderRadius: 24, padding: 6, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  toggleContainer: { flexDirection: 'row', backgroundColor: '#F0EDE8', borderRadius: 24, padding: 6, borderWidth: 1, borderColor: '#DDDDDD' },
   toggleBtn: { flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 20 },
-  toggleActive: { backgroundColor: 'rgba(255,90,0,0.2)', borderWidth: 1, borderColor: '#FF5A00' },
-  toggleText: { fontSize: responsiveFont(14), fontWeight: '600', color: 'rgba(255,255,255,0.5)' },
-  toggleTextActive: { color: '#FFF', fontWeight: '700' },
+  toggleActive: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#DDDDDD' },
+  toggleText: { fontSize: responsiveFont(14), fontWeight: '600', color: '#9B9B9B' },
+  toggleTextActive: { color: '#1C1C1E', fontWeight: '700' },
 
-  changeBtnText: { fontSize: responsiveFont(13), fontWeight: '700', color: '#FF5A00' },
+  changeBtnText: { fontSize: responsiveFont(13), fontWeight: '700', color: '#D85A30' },
 
   // ── CALCULATE BUTTON ──
   buttonShadowWrapper: {
@@ -510,52 +503,52 @@ const styles = StyleSheet.create({
     elevation: 8,
     marginTop: 10,
   },
-  calcBtn: { backgroundColor: Colors.neonLime, borderRadius: 24, paddingVertical: 18, alignItems: 'center', justifyContent: 'center' },
-  calcBtnText: { fontSize: responsiveFont(16), fontWeight: '800', color: '#000', letterSpacing: 1 },
+  calcBtn: { backgroundColor: '#1A1A4E', borderRadius: 16, paddingVertical: 18, alignItems: 'center', justifyContent: 'center', height: 58 },
+  calcBtnText: { fontSize: responsiveFont(16), fontWeight: '800', color: '#FFFFFF', letterSpacing: 1 },
 
   // ── RESULTS ──
   impactCard: { borderRadius: 24, padding: 24, marginBottom: 16 },
-  impactLabel: { fontSize: responsiveFont(10), fontWeight: '800', color: 'rgba(255,255,255,0.7)', letterSpacing: 1.5, marginBottom: 8 },
-  impactTitle: { fontSize: responsiveFont(24), fontWeight: '800', color: '#FFF', lineHeight: 32, marginBottom: 12 },
-  impactDesc: { fontSize: responsiveFont(14), color: 'rgba(255,255,255,0.9)', lineHeight: 22 },
+  impactLabel: { fontSize: responsiveFont(10), fontWeight: '800', color: 'rgba(0,0,0,0.6)', letterSpacing: 1.5, marginBottom: 8 },
+  impactTitle: { fontSize: responsiveFont(24), fontWeight: '800', color: '#1C1C1E', lineHeight: 32, marginBottom: 12 },
+  impactDesc: { fontSize: responsiveFont(14), color: 'rgba(0,0,0,0.8)', lineHeight: 22 },
 
-  resultCard: { backgroundColor: '#0B0A1A', borderRadius: 24, padding: 24, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  resultCard: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' },
   resultTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  resultLabel: { fontSize: responsiveFont(10), fontWeight: '800', color: 'rgba(255,255,255,0.5)', letterSpacing: 1.2 },
-  resultPeriod: { fontSize: responsiveFont(11), fontWeight: '700', color: 'rgba(255,255,255,0.5)' },
+  resultLabel: { fontSize: responsiveFont(10), fontWeight: '800', color: 'rgba(0,0,0,0.5)', letterSpacing: 1.2 },
+  resultPeriod: { fontSize: responsiveFont(11), fontWeight: '700', color: 'rgba(0,0,0,0.5)' },
   resultAmtRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 },
-  resultAmt: { fontSize: responsiveFont(36), fontWeight: '800', color: '#FFF', letterSpacing: -1 },
+  resultAmt: { fontSize: responsiveFont(36), fontWeight: '800', color: '#1C1C1E', letterSpacing: -1 },
   resultBadge: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
   resultBadgeText: { fontSize: responsiveFont(12), fontWeight: '700' },
 
   chartArea: { marginTop: 8 },
   chartLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
-  chartLabelText: { fontSize: responsiveFont(10), fontWeight: '600', color: 'rgba(255,255,255,0.4)' },
+  chartLabelText: { fontSize: responsiveFont(10), fontWeight: '600', color: 'rgba(0,0,0,0.4)' },
 
   statsRow: { flexDirection: 'row', marginBottom: 16 },
-  statCard: { backgroundColor: '#0B0A1A', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', flex: 1 },
-  statLabel: { fontSize: responsiveFont(10), fontWeight: '800', color: 'rgba(255,255,255,0.5)', letterSpacing: 1.2, marginBottom: 8 },
-  statVal: { fontSize: responsiveFont(24), fontWeight: '800', color: '#FFF' },
+  statCard: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)', flex: 1 },
+  statLabel: { fontSize: responsiveFont(10), fontWeight: '800', color: 'rgba(0,0,0,0.5)', letterSpacing: 1.2, marginBottom: 8 },
+  statVal: { fontSize: responsiveFont(24), fontWeight: '800', color: '#1C1C1E' },
   
   statRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  alphaBar: { height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden', width: '50%' },
+  alphaBar: { height: 6, backgroundColor: 'rgba(0,0,0,0.08)', borderRadius: 3, overflow: 'hidden', width: '50%' },
   alphaFill: { height: '100%', backgroundColor: Colors.neonLime, borderRadius: 3 },
 
   // ── MODALS ──
-  modal: { flex: 1, backgroundColor: '#000000' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
-  modalTitle: { fontSize: responsiveFont(20), fontWeight: '800', color: '#FFF' },
+  modal: { flex: 1, backgroundColor: '#FDFDF9' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.08)' },
+  modalTitle: { fontSize: responsiveFont(20), fontWeight: '800', color: '#1C1C1E' },
   modalClose: { fontSize: responsiveFont(15), fontWeight: '700', color: '#FF5A00' },
-  searchInput: { margin: 20, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 16, fontSize: responsiveFont(16), color: '#FFF', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  searchInput: { margin: 20, backgroundColor: 'rgba(0,0,0,0.04)', borderRadius: 16, padding: 16, fontSize: responsiveFont(16), color: '#1C1C1E', borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 16, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.08)' },
   assetIconSmall: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(255,90,0,0.1)', alignItems: 'center', justifyContent: 'center' },
-  searchRowName: { fontSize: responsiveFont(15), fontWeight: '700', color: '#FFF', marginBottom: 2 },
-  searchRowMeta: { fontSize: responsiveFont(12), color: 'rgba(255,255,255,0.5)' },
+  searchRowName: { fontSize: responsiveFont(15), fontWeight: '700', color: '#1C1C1E', marginBottom: 2 },
+  searchRowMeta: { fontSize: responsiveFont(12), color: 'rgba(0,0,0,0.5)' },
   
-  eventRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16, paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  eventRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16, paddingVertical: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.08)' },
   eventRowSelected: { backgroundColor: 'rgba(255,90,0,0.1)', borderRadius: 20, paddingHorizontal: 16, borderWidth: 1, borderColor: 'rgba(255,90,0,0.3)' },
   eventEmoji: { fontSize: responsiveFont(28), marginTop: 2 },
-  eventName: { fontSize: responsiveFont(16), fontWeight: '800', color: '#FFF', marginBottom: 4 },
-  eventDesc: { fontSize: responsiveFont(13), color: 'rgba(255,255,255,0.6)', lineHeight: 20, marginBottom: 6 },
+  eventName: { fontSize: responsiveFont(16), fontWeight: '800', color: '#1C1C1E', marginBottom: 4 },
+  eventDesc: { fontSize: responsiveFont(13), color: 'rgba(0,0,0,0.6)', lineHeight: 20, marginBottom: 6 },
   eventFall: { fontSize: responsiveFont(12), fontWeight: '700' },
 });

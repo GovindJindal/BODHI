@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(0,0,0,0.10)',
   },
   content: {
     flex: 1,

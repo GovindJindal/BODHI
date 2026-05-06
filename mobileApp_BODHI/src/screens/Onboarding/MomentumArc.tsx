@@ -46,27 +46,27 @@ export const MomentumArc: React.FC<MomentumArcProps> = ({ scrollOffset, totalSte
     <View style={styles.wrapper}>
       <Svg width={SVG_SIZE} height={SVG_SIZE} style={styles.svg}>
         {/* Outer Track (Light Gray) */}
-        <Circle cx={CENTER} cy={CENTER} r={RADIUS} fill="none" stroke="#E5E7EB" strokeWidth={STROKE_WIDTH} />
+        <Circle cx={CENTER} cy={CENTER} r={RADIUS} fill="none" stroke="rgba(0,0,0,0.05)" strokeWidth={STROKE_WIDTH} />
         
         {/* Inner Button (Solid Dark) */}
-        <Circle cx={CENTER} cy={CENTER} r={RADIUS - 8} fill="#111827" />
+        <Circle cx={CENTER} cy={CENTER} r={RADIUS - 8} fill="#1C1C1E" />
 
         {/* Arrow Icon */}
         <Path 
           d="M48 50h14M55 43l7 7-7 7" 
-          stroke="#FCD34D" // Yellow arrow matching your mockup
-          strokeWidth="2" 
+          stroke="#FFFFFF" 
+          strokeWidth="3" 
           strokeLinecap="round" 
           strokeLinejoin="round" 
         />
 
-        {/* Progress Arc (Solid Dark) */}
+        {/* Progress Arc (Premium Orange) */}
         <AnimatedCircle
           cx={CENTER}
           cy={CENTER}
           r={RADIUS}
           fill="none"
-          stroke="#111827"
+          stroke="#FF5A00"
           strokeWidth={STROKE_WIDTH}
           strokeDasharray={CIRCUMFERENCE}
           strokeLinecap="round"

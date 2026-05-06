@@ -17,7 +17,8 @@ import {
   ArrowLeft, Search, Users, Phone, Zap, ChevronRight, CheckCircle, X, ExternalLink, Landmark,
 } from 'lucide-react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import { Colors, Radius, Spacing, Gradients } from '../theme/tokens';
+import { Colors, Radius, Spacing, ScreenColors } from '../theme/tokens';
+import { PrimaryCTAButton, SectionLabel } from '../components/shared';
 import { BASE_URL } from '../api/client';
 
 const API = `${BASE_URL}/transfers`;
@@ -37,7 +38,7 @@ function getInitials(name: string): string {
   return name.substring(0, 2).toUpperCase();
 }
 
-const AVATAR_COLORS = ['#9B111E', '#FF2D2D', '#FFB000', '#00BCD4', '#4CAF50', '#E91E63'];
+const AVATAR_COLORS = ['#9B111E', '#C83232', '#FFB000', '#00BCD4', '#4CAF50', '#E91E63'];
 function avatarColor(name: string) {
   let sum = 0;
   for (const c of name) sum += c.charCodeAt(0);
@@ -260,23 +261,6 @@ export function SendMoneyScreen() {
     }
   };
 
-  // ── U-PIN and Bodhi Send triggers ───────────────────────────────────────
-  const initiateBodhiSend = () => {
-    setShowUpinModal(true);
-  };
-
-  const verifyUpinAndSend = async () => {
-    setIsVerifyingUPin(true);
-    setTimeout(() => {
-      setIsVerifyingUPin(false);
-      setShowUpinModal(false);
-      
-      setTimeout(() => {
-        handleSend();
-      }, 500);
-    }, 1200);
-  };
-
   // ── Tabs ─────────────────────────────────────────────────────────────────
   const TABS: { key: Tab; label: string; Icon: any }[] = [
     { key: 'gap', label: 'GAP ID', Icon: Landmark },
@@ -289,7 +273,7 @@ export function SendMoneyScreen() {
     if (contactsPermission === 'denied') {
       return (
         <View style={styles.centered}>
-          <Users size={48} color="rgba(255,255,255,0.2)" />
+          <Users size={48} color="rgba(0,0,0,0.2)" />
           <Text style={styles.permTitle}>Contacts Access Required</Text>
           <Text style={styles.permSub}>Allow BODHI to access your contacts to send money easily.</Text>
           <TouchableOpacity style={styles.permBtn} onPress={loadContacts}>
@@ -299,16 +283,16 @@ export function SendMoneyScreen() {
       );
     }
     if (isLoadingContacts) {
-      return <View style={styles.centered}><ActivityIndicator color="#FF5A00" size="large" /></View>;
+      return <View style={styles.centered}><ActivityIndicator color="#C83232" size="large" /></View>;
     }
     return (
       <>
         <View style={styles.searchBar}>
-          <Search size={16} color="rgba(255,255,255,0.4)" style={{ marginRight: 10 }} />
+          <Search size={16} color="rgba(0,0,0,0.4)" style={{ marginRight: 10 }} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search name or number…"
-            placeholderTextColor="rgba(255,255,255,0.3)"
+            placeholderTextColor="rgba(0,0,0,0.3)"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -320,7 +304,7 @@ export function SendMoneyScreen() {
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
             <View style={styles.centered}>
-              <Text style={{ color: 'rgba(255,255,255,0.4)', marginTop: 32 }}>No contacts found</Text>
+              <Text style={{ color: 'rgba(0,0,0,0.4)', marginTop: 32 }}>No contacts found</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -332,7 +316,7 @@ export function SendMoneyScreen() {
                 <Text style={styles.contactName}>{item.name}</Text>
                 <Text style={styles.contactPhone}>{item.phone}</Text>
               </View>
-              <ChevronRight size={18} color="rgba(255,255,255,0.3)" />
+              <ChevronRight size={18} color="rgba(0,0,0,0.3)" />
             </TouchableOpacity>
           )}
         />
@@ -342,7 +326,7 @@ export function SendMoneyScreen() {
 
   const renderPhoneTab = () => (
     <View style={styles.manualSection}>
-      <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
+      <SectionLabel title="Mobile Number" style={styles.inputLabel} />
       <View style={styles.phoneRow}>
         <View style={styles.countryCode}>
           <Text style={styles.countryCodeText}>🇮🇳 +91</Text>
@@ -352,57 +336,39 @@ export function SendMoneyScreen() {
           value={phoneInput}
           onChangeText={setPhoneInput}
           placeholder="Enter mobile number"
-          placeholderTextColor="rgba(255,255,255,0.3)"
+          placeholderTextColor="rgba(0,0,0,0.3)"
           keyboardType="phone-pad"
           maxLength={10}
         />
       </View>
-      <TouchableOpacity
-        style={[styles.continueBtn, phoneInput.length < 10 && { opacity: 0.4 }]}
+      <PrimaryCTAButton
+        label="Continue"
         disabled={phoneInput.length < 10}
         onPress={() => openPayFor(`+91${phoneInput}`, `+91 ${phoneInput}`)}
-      >
-        <LinearGradient
-          colors={Gradients.authCTA.colors}
-          style={styles.continueBtnGrad}
-          start={Gradients.authCTA.start}
-          end={Gradients.authCTA.end}
-        >
-          <Text style={[styles.continueBtnText, { color: '#000' }]}>Continue</Text>
-          <ChevronRight size={18} color="#000" />
-        </LinearGradient>
-      </TouchableOpacity>
+        rightIcon={<ChevronRight size={18} color="#FFF" />}
+      />
     </View>
   );
 
   const renderUPITab = () => (
     <View style={styles.manualSection}>
-      <Text style={styles.inputLabel}>UPI ID OR EMAIL</Text>
+      <SectionLabel title="UPI ID or Email" style={styles.inputLabel} />
       <TextInput
         style={styles.upiInput}
         value={upiInput}
         onChangeText={setUpiInput}
         placeholder="name@bank or user@example.com"
-        placeholderTextColor="rgba(255,255,255,0.3)"
+        placeholderTextColor="rgba(0,0,0,0.3)"
         autoCapitalize="none"
         autoCorrect={false}
         keyboardType="email-address"
       />
-      <TouchableOpacity
-        style={[styles.continueBtn, !upiInput && { opacity: 0.4 }]}
+      <PrimaryCTAButton
+        label="Continue"
         disabled={!upiInput}
         onPress={() => openPayFor(upiInput.trim().toLowerCase(), upiInput.trim())}
-      >
-        <LinearGradient
-          colors={Gradients.authCTA.colors}
-          style={styles.continueBtnGrad}
-          start={Gradients.authCTA.start}
-          end={Gradients.authCTA.end}
-        >
-          <Text style={[styles.continueBtnText, { color: '#000' }]}>Continue</Text>
-          <ChevronRight size={18} color="#000" />
-        </LinearGradient>
-      </TouchableOpacity>
+        rightIcon={<ChevronRight size={18} color="#FFF" />}
+      />
     </View>
   );
 
@@ -411,54 +377,40 @@ export function SendMoneyScreen() {
     const isValid = fullGapId.endsWith('.gap') && fullGapId.split('.').length >= 3;
     return (
       <View style={styles.manualSection}>
-        <Text style={styles.inputLabel}>BODHI GAP ID</Text>
+        <SectionLabel title="Bodhi GAP ID" style={styles.inputLabel} />
         <TextInput
           style={styles.upiInput}
           value={gapInput}
           onChangeText={setGapInput}
           placeholder="e.g. harshit.g.gap"
-          placeholderTextColor="rgba(255,255,255,0.3)"
+          placeholderTextColor="rgba(0,0,0,0.3)"
           autoCapitalize="none"
           autoCorrect={false}
         />
-        <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12, marginTop: -12, marginBottom: 16 }}>
+        <Text style={{ color: 'rgba(0,0,0,0.3)', fontSize: 12, marginTop: -12, marginBottom: 16 }}>
           Format: username.domain_letter.gap (e.g. piyush.g.gap for Gmail)
         </Text>
         {isValid && (
-          <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginBottom: 16 }}>
+          <Text style={{ color: 'rgba(0,0,0,0.4)', fontSize: 13, marginBottom: 16 }}>
             Sending to: <Text style={{ color: Colors.neonLime, fontWeight: '700' }}>{fullGapId}</Text>
           </Text>
         )}
-        <TouchableOpacity
-          style={[styles.continueBtn, !isValid && { opacity: 0.4 }]}
+        <PrimaryCTAButton
+          label="Continue"
           disabled={!isValid}
           onPress={() => openPayFor(fullGapId, fullGapId)}
-        >
-          <LinearGradient
-            colors={Gradients.authCTA.colors}
-            style={styles.continueBtnGrad}
-            start={Gradients.authCTA.start}
-            end={Gradients.authCTA.end}
-          >
-            <Text style={[styles.continueBtnText, { color: '#000' }]}>Continue</Text>
-            <ChevronRight size={18} color="#000" />
-          </LinearGradient>
-        </TouchableOpacity>
+          rightIcon={<ChevronRight size={18} color="#FFF" />}
+        />
       </View>
     );
   };
 
   return (
-    <LinearGradient
-      colors={Gradients.darkVibrant.colors}
-      start={Gradients.darkVibrant.start}
-      end={Gradients.darkVibrant.end}
-      style={styles.root}
-    >
+    <View style={styles.root}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ArrowLeft size={22} color="#FFF" />
+          <ArrowLeft size={22} color="#1C1C1E" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Send Money</Text>
         <View style={{ width: 40 }} />
@@ -472,7 +424,7 @@ export function SendMoneyScreen() {
             style={[styles.tab, activeTab === key && styles.tabActive]}
             onPress={() => { setActiveTab(key); setSearchQuery(''); }}
           >
-            <Icon size={15} color={activeTab === key ? Colors.neonLime : 'rgba(255,255,255,0.4)'} />
+            <Icon size={15} color={activeTab === key ? ScreenColors.brand.navy : '#9B9B9B'} />
             <Text style={[styles.tabLabel, activeTab === key && styles.tabLabelActive]}>{label}</Text>
           </TouchableOpacity>
         ))}
@@ -506,7 +458,7 @@ export function SendMoneyScreen() {
                   <Text style={styles.doneBtnText}>Done</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => { setShowPayModal(false); setPaySuccess(false); }} style={{ marginTop: 12 }}>
-                  <Text style={{ color: '#FF5A00', fontSize: responsiveFont(14) }}>Send to someone else</Text>
+                  <Text style={{ color: '#C83232', fontSize: responsiveFont(14) }}>Send to someone else</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -519,7 +471,7 @@ export function SendMoneyScreen() {
                 <View style={[styles.modalHeader, { paddingTop: Platform.OS === 'ios' ? 10 : 0 }]}>
                   <Text style={styles.modalTitle}>Send Money</Text>
                   <TouchableOpacity onPress={() => setShowPayModal(false)}>
-                    <X size={22} color="#FFF" />
+                    <X size={22} color="#1C1C1E" />
                   </TouchableOpacity>
                 </View>
 
@@ -537,7 +489,7 @@ export function SendMoneyScreen() {
                     onChangeText={setAmount}
                     keyboardType="decimal-pad"
                     placeholder="0"
-                    placeholderTextColor="rgba(255,255,255,0.2)"
+                    placeholderTextColor="rgba(0,0,0,0.2)"
                   />
                 </View>
 
@@ -555,7 +507,7 @@ export function SendMoneyScreen() {
                   value={note}
                   onChangeText={setNote}
                   placeholder="Add a note (optional)"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor="rgba(0,0,0,0.3)"
                 />
 
                 <View style={{ gap: 12 }}>
@@ -565,18 +517,18 @@ export function SendMoneyScreen() {
                     style={{ opacity: isProcessing || !amount ? 0.6 : 1 }}
                   >
                     <LinearGradient
-                      colors={['#8B0000', '#FF5A00']}
+                      colors={['#1C1C1E', '#C83232']}
                       style={styles.payBtn}
                       start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                     >
                       {isProcessing ? (
-                        <ActivityIndicator color="#FFF" />
+                        <ActivityIndicator color="#FFFFFF" />
                       ) : (
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={[styles.payBtnText, { color: '#FFF' }]}>
+                          <Text style={[styles.payBtnText, { color: '#FFFFFF' }]}>
                             PAY VIA GPAY / UPI
                           </Text>
-                          <ExternalLink size={18} color="#FFF" />
+                          <ExternalLink size={18} color="#FFFFFF" />
                         </View>
                       )}
                     </LinearGradient>
@@ -588,14 +540,14 @@ export function SendMoneyScreen() {
                     style={{ opacity: isProcessing || !amount ? 0.6 : 1 }}
                   >
                     <LinearGradient
-                      colors={['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.05)']}
-                      style={[styles.payBtn, { borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' }]}
+                      colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.05)']}
+                      style={[styles.payBtn, { borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' }]}
                       start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
                     >
                       {isProcessing ? (
-                        <ActivityIndicator color="#FFF" />
+                        <ActivityIndicator color="#1C1C1E" />
                       ) : (
-                        <Text style={[styles.payBtnText, { color: '#FFF' }]}>
+                        <Text style={[styles.payBtnText, { color: '#1C1C1E' }]}>
                           PAY VIA BODHI WALLET
                         </Text>
                       )}
@@ -622,7 +574,7 @@ export function SendMoneyScreen() {
               maxLength={4}
               secureTextEntry
               placeholder="••••"
-              placeholderTextColor="rgba(255,255,255,0.2)"
+              placeholderTextColor="rgba(0,0,0,0.2)"
               autoFocus
               importantForAutofill="no"
               autoComplete="off"
@@ -643,12 +595,12 @@ export function SendMoneyScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  root: { flex: 1, backgroundColor: ScreenColors.brand.appBgWarmWhite },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
 
   header: {
@@ -659,122 +611,122 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(0,0,0,0.08)', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
   },
-  headerTitle: { color: '#FFF', fontSize: responsiveFont(18), fontWeight: '800', letterSpacing: 0.5 },
+  headerTitle: { color: '#1C1C1E', fontSize: responsiveFont(18), fontWeight: '800', letterSpacing: 0.5 },
 
-  tabBar: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  tabBar: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' },
   tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14 },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: Colors.neonLime },
-  tabLabel: { color: 'rgba(255,255,255,0.4)', fontSize: responsiveFont(13), fontWeight: '700' },
-  tabLabelActive: { color: Colors.neonLime },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: ScreenColors.brand.navy },
+  tabLabel: { color: '#9B9B9B', fontSize: responsiveFont(13), fontWeight: '700' },
+  tabLabelActive: { color: ScreenColors.brand.navy },
 
   searchBar: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 16,
     marginHorizontal: 16, marginVertical: 12,
     paddingHorizontal: 14, paddingVertical: 12,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
   },
-  searchInput: { flex: 1, color: '#FFF', fontSize: responsiveFont(15) },
+  searchInput: { flex: 1, color: '#1C1C1E', fontSize: responsiveFont(15) },
 
   contactRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 16, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)',
+    borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.04)',
   },
   avatar: { width: 44, height: 44, borderRadius: Radius.md, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
-  avatarText: { color: '#FFF', fontSize: responsiveFont(16), fontWeight: '700' },
+  avatarText: { color: '#1C1C1E', fontSize: responsiveFont(16), fontWeight: '700' },
   contactInfo: { flex: 1 },
-  contactName: { color: '#FFF', fontSize: responsiveFont(15), fontWeight: '600', marginBottom: 2 },
-  contactPhone: { color: 'rgba(255,255,255,0.4)', fontSize: responsiveFont(13) },
+  contactName: { color: '#1C1C1E', fontSize: responsiveFont(15), fontWeight: '600', marginBottom: 2 },
+  contactPhone: { color: 'rgba(0,0,0,0.4)', fontSize: responsiveFont(13) },
 
-  permTitle: { color: '#FFF', fontSize: responsiveFont(20), fontWeight: '700', marginTop: 16, marginBottom: 8 },
-  permSub: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(14), textAlign: 'center', lineHeight: 22, marginBottom: 24 },
+  permTitle: { color: '#1C1C1E', fontSize: responsiveFont(20), fontWeight: '700', marginTop: 16, marginBottom: 8 },
+  permSub: { color: 'rgba(0,0,0,0.05)', fontSize: responsiveFont(14), textAlign: 'center', lineHeight: 22, marginBottom: 24 },
   permBtn: { backgroundColor: Colors.neonLime, paddingHorizontal: 28, paddingVertical: 14, borderRadius: Radius.lg },
-  permBtnText: { color: '#000', fontSize: responsiveFont(15), fontWeight: '800' },
+  permBtnText: { color: '#FFF', fontSize: responsiveFont(15), fontWeight: '800' },
 
   manualSection: { padding: 20 },
-  inputLabel: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(11), fontWeight: '800', letterSpacing: 1.5, marginBottom: 10 },
+  inputLabel: { color: 'rgba(0,0,0,0.4)', fontSize: responsiveFont(11), fontWeight: '800', letterSpacing: 1.5, marginBottom: 10 },
   phoneRow: {
-    flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16,
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)', overflow: 'hidden', marginBottom: 20,
+    flexDirection: 'row', backgroundColor: '#FFFFFF', borderRadius: 16,
+    borderWidth: 1.5, borderColor: '#DDDDDD', overflow: 'hidden', marginBottom: 20,
     height: 60, alignItems: 'center',
   },
   countryCode: {
     paddingHorizontal: 14,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRightWidth: 1, borderRightColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRightWidth: 1, borderRightColor: 'rgba(0,0,0,0.1)',
     justifyContent: 'center', height: '100%',
   },
-  countryCodeText: { color: '#FFF', fontSize: responsiveFont(15), fontWeight: '700' },
-  phoneInput: { flex: 1, paddingHorizontal: 14, color: '#FFF', fontSize: responsiveFont(16), fontWeight: '600' },
+  countryCodeText: { color: '#1C1C1E', fontSize: responsiveFont(15), fontWeight: '700' },
+  phoneInput: { flex: 1, paddingHorizontal: 14, color: '#1C1C1E', fontSize: responsiveFont(16), fontWeight: '600' },
   upiInput: {
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16,
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)',
-    padding: 16, color: '#FFF', fontSize: responsiveFont(16), fontWeight: '600', marginBottom: 20,
+    backgroundColor: '#FFFFFF', borderRadius: 16,
+    borderWidth: 1.5, borderColor: '#DDDDDD',
+    padding: 16, color: '#1C1C1E', fontSize: responsiveFont(16), fontWeight: '600', marginBottom: 20,
     height: 60,
   },
   continueBtn: { borderRadius: Radius.xl, overflow: 'hidden' },
   continueBtnGrad: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, gap: 8 },
-  continueBtnText: { color: '#000', fontSize: responsiveFont(16), fontWeight: '800' },
+  continueBtnText: { color: '#FFF', fontSize: responsiveFont(16), fontWeight: '800' },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.7)' },
   modalSheet: {
-    backgroundColor: '#12142d', borderTopLeftRadius: 32, borderTopRightRadius: 32,
+    backgroundColor: '#FFFFFF', borderTopLeftRadius: 32, borderTopRightRadius: 32,
     padding: 24, paddingBottom: 44,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
   },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
-  modalTitle: { color: '#FFF', fontSize: responsiveFont(22), fontWeight: '800' },
+  modalTitle: { color: '#1C1C1E', fontSize: responsiveFont(22), fontWeight: '800' },
 
   recipientTag: {
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, padding: 16, marginBottom: 24,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 16, padding: 16, marginBottom: 24,
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
   },
-  recipientLabel: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(11), fontWeight: '800', letterSpacing: 1.5, marginBottom: 6 },
+  recipientLabel: { color: 'rgba(0,0,0,0.4)', fontSize: responsiveFont(11), fontWeight: '800', letterSpacing: 1.5, marginBottom: 6 },
   recipientValue: { color: Colors.neonLime, fontSize: responsiveFont(18), fontWeight: '800' },
 
-  amtLabel: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(11), fontWeight: '800', letterSpacing: 2, marginBottom: 8, textAlign: 'center' },
+  amtLabel: { color: 'rgba(0,0,0,0.4)', fontSize: responsiveFont(11), fontWeight: '800', letterSpacing: 2, marginBottom: 8, textAlign: 'center' },
   amtRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
-  rupee: { color: '#FFF', fontSize: responsiveFont(40), fontWeight: '300', marginRight: 8 },
-  amtInput: { color: '#FFF', fontSize: responsiveFont(64), fontWeight: '900', minWidth: 100, textAlign: 'center' },
+  rupee: { color: '#1C1C1E', fontSize: responsiveFont(40), fontWeight: '300', marginRight: 8 },
+  amtInput: { color: '#1C1C1E', fontSize: responsiveFont(64), fontWeight: '900', minWidth: 100, textAlign: 'center' },
 
   quickAmounts: { flexDirection: 'row', justifyContent: 'center', gap: 12, marginBottom: 24 },
   quickPill: {
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 20,
     paddingHorizontal: 16, paddingVertical: 10,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)',
   },
   quickPillText: { color: Colors.neonLime, fontSize: responsiveFont(14), fontWeight: '700' },
 
   noteInput: {
-    backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 16,
-    padding: 16, color: '#FFF', fontSize: responsiveFont(15), marginBottom: 24,
-    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 16,
+    padding: 16, color: '#1C1C1E', fontSize: responsiveFont(15), marginBottom: 24,
+    borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.1)',
   },
   payBtn: { borderRadius: Radius.xl, paddingVertical: 18, alignItems: 'center' },
   payBtnText: { fontSize: responsiveFont(16), fontWeight: '900', letterSpacing: 0.5 },
 
   successContainer: { alignItems: 'center', paddingVertical: 16 },
-  successTitle: { color: '#FFF', fontSize: responsiveFont(28), fontWeight: '900', marginTop: 16, marginBottom: 8 },
-  successSub: { color: 'rgba(255,255,255,0.7)', fontSize: responsiveFont(16), textAlign: 'center', lineHeight: 24, marginBottom: 32 },
+  successTitle: { color: '#1C1C1E', fontSize: responsiveFont(28), fontWeight: '900', marginTop: 16, marginBottom: 8 },
+  successSub: { color: 'rgba(0,0,0,0.7)', fontSize: responsiveFont(16), textAlign: 'center', lineHeight: 24, marginBottom: 32 },
   doneBtn: { backgroundColor: Colors.success, paddingHorizontal: 48, paddingVertical: 18, borderRadius: Radius.xl },
-  doneBtnText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
+  doneBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
 
   // U-PIN Modal
-  upinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', padding: 24 },
-  upinSheet: { backgroundColor: '#12142d', borderRadius: 28, padding: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  upinTitle: { color: '#FFF', fontSize: 20, fontWeight: '800', marginBottom: 8 },
-  upinSub: { color: 'rgba(255,255,255,0.5)', fontSize: 14, lineHeight: 20, marginBottom: 24 },
+  upinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 24 },
+  upinSheet: { backgroundColor: '#FFFFFF', borderRadius: 28, padding: 24, borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' },
+  upinTitle: { color: '#1C1C1E', fontSize: 20, fontWeight: '800', marginBottom: 8 },
+  upinSub: { color: 'rgba(0,0,0,0.6)', fontSize: 14, lineHeight: 20, marginBottom: 24 },
   upinInput: {
-    backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 16, borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.15)', height: 60, color: '#FFF',
+    backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 16, borderWidth: 1.5,
+    borderColor: 'rgba(0,0,0,0.15)', height: 60, color: '#1C1C1E',
     fontSize: 28, fontWeight: '800', textAlign: 'center', letterSpacing: 12, marginBottom: 8,
   },
   upinCancel: { flex: 1, height: 50, alignItems: 'center', justifyContent: 'center' },
-  upinCancelText: { color: 'rgba(255,255,255,0.5)', fontSize: 16, fontWeight: '600' },
-  upinConfirm: { flex: 2, height: 50, backgroundColor: '#C8FF00', borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  upinConfirmText: { color: '#000', fontSize: 15, fontWeight: '800' },
+  upinCancelText: { color: 'rgba(0,0,0,0.4)', fontSize: 16, fontWeight: '600' },
+  upinConfirm: { flex: 2, height: 50, backgroundColor: Colors.neonLime, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  upinConfirmText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
 });

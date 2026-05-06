@@ -37,8 +37,8 @@ export function BodhiHeader({ dark = false, onInsurancePress, showBack, onBack, 
   const displayName = username || 'BODHI User';
 
   // --- THE FIX: Dynamic text color based on the `dark` prop ---
-  const headerTextColor = dark ? '#FFFFFF' : '#0A0A0A';
-  const shadowColor = dark ? 'rgba(0,0,0,0.5)' : 'transparent';
+  const headerTextColor = dark ? '#1C1C1E' : '#1C1C1E';
+  const shadowColor = dark ? 'rgba(0,0,0,0.05)' : 'transparent';
 
   const handleLogout = () => {
     setProfileOpen(false);
@@ -51,9 +51,9 @@ export function BodhiHeader({ dark = false, onInsurancePress, showBack, onBack, 
         {Platform.OS === 'ios' ? (
           <BlurView style={StyleSheet.absoluteFill} blurType={dark ? 'dark' : 'light'} blurAmount={20} />
         ) : (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: dark ? 'rgba(0,0,0,0.92)' : 'rgba(255,255,255,0.9)' }]} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: dark ? 'rgba(0,0,0,0.92)' : 'rgba(0,0,0,0.9)' }]} />
         )}
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: dark ? 'rgba(5,5,5,0.75)' : 'rgba(255,255,255,0.2)' }]} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: dark ? 'rgba(5,5,5,0.75)' : 'rgba(0,0,0,0.2)' }]} />
 
         <View style={styles.inner}>
           <View style={styles.sideColumn}>
@@ -80,7 +80,7 @@ export function BodhiHeader({ dark = false, onInsurancePress, showBack, onBack, 
 
           <View style={[styles.sideColumn, { alignItems: 'flex-end' }]}>
             <TouchableOpacity style={styles.iconBtn} onPress={onInsurancePress}>
-               <Shield size={26} color={'#FF5A00'} strokeWidth={2} />
+               <Shield size={26} color={'#C83232'} strokeWidth={2} />
             </TouchableOpacity>
           </View>
         </View>
@@ -89,7 +89,7 @@ export function BodhiHeader({ dark = false, onInsurancePress, showBack, onBack, 
       <Modal visible={profileOpen} transparent animationType="slide" onRequestClose={() => setProfileOpen(false)}>
         <View style={styles.modalOverlay}>
           {Platform.OS === 'ios' ? (
-            <BlurView style={StyleSheet.absoluteFill} blurType="dark" blurAmount={10} />
+            <BlurView style={StyleSheet.absoluteFill} blurType="light" blurAmount={10} />
           ) : (
             <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.8)' }]} />
           )}
@@ -99,7 +99,7 @@ export function BodhiHeader({ dark = false, onInsurancePress, showBack, onBack, 
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Account</Text>
               <TouchableOpacity onPress={() => setProfileOpen(false)} style={styles.closeBtn}>
-                <X size={24} color="#FFFFFF" />
+                <X size={24} color="#1C1C1E" />
               </TouchableOpacity>
             </View>
 
@@ -150,30 +150,30 @@ const styles = StyleSheet.create({
   centerLogo: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', zIndex: 10 },
   logoText: { fontSize: responsiveFont(28), fontWeight: '900', letterSpacing: -0.5, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2 },
   
-  avatarRing: { width: 42, height: 42, borderRadius: 21, borderWidth: 2, borderColor: '#FF5A00', padding: 2 },
+  avatarRing: { width: 42, height: 42, borderRadius: 21, borderWidth: 2, borderColor: '#C83232', padding: 2 },
   avatar: { width: '100%', height: '100%', borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  avatarInitials: { fontSize: responsiveFont(15), fontWeight: '700', color: '#FFE600' },
-  onlineDot: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#34c759', borderWidth: 2, borderColor: '#050505' },
+  avatarInitials: { fontSize: responsiveFont(15), fontWeight: '700', color: '#3D4DFF' },
+  onlineDot: { position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, borderRadius: 6, backgroundColor: '#34c759', borderWidth: 2, borderColor: '#FDFDF9' },
   iconBtn: { padding: 8 },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#0A0A0A', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: Spacing.xl, paddingTop: Spacing.xl, borderTopWidth: 1, borderTopColor: 'rgba(255,90,0,0.15)' },
+  modalContent: { backgroundColor: '#1C1C1E', borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingHorizontal: Spacing.xl, paddingTop: Spacing.xl, borderTopWidth: 1, borderTopColor: 'rgba(200,50,50,0.15)' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.xl },
-  modalTitle: { fontSize: responsiveFont(20), fontWeight: '800', color: '#FFFFFF' },
-  closeBtn: { padding: 6, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 20 },
+  modalTitle: { fontSize: responsiveFont(20), fontWeight: '800', color: '#1C1C1E' },
+  closeBtn: { padding: 6, backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: 20 },
   
   userInfoCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0F0F0F', padding: Spacing.lg, borderRadius: 20, marginBottom: Spacing.xl },
-  largeAvatar: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.md, borderWidth: 2, borderColor: '#FF5A00' },
-  largeAvatarText: { fontSize: responsiveFont(20), fontWeight: '800', color: '#FFFFFF' },
+  largeAvatar: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.md, borderWidth: 2, borderColor: '#C83232' },
+  largeAvatarText: { fontSize: responsiveFont(20), fontWeight: '800', color: '#1C1C1E' },
   userInfoText: { flex: 1 },
-  userName: { fontSize: responsiveFont(18), fontWeight: '700', color: '#FFFFFF' },
+  userName: { fontSize: responsiveFont(18), fontWeight: '700', color: '#1C1C1E' },
   userUpi: { fontSize: responsiveFont(14), color: '#A0A0B0', marginTop: 2 },
 
   menuGroup: { backgroundColor: '#0F0F0F', borderRadius: 20, overflow: 'hidden', marginBottom: Spacing.xl },
-  menuOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  menuOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: Spacing.lg, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' },
   menuOptionLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  menuOptionText: { fontSize: responsiveFont(16), fontWeight: '600', color: '#FFFFFF' },
+  menuOptionText: { fontSize: responsiveFont(16), fontWeight: '600', color: '#1C1C1E' },
 
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm, backgroundColor: 'rgba(255, 45, 45, 0.1)', paddingVertical: Spacing.lg, borderRadius: 20, marginBottom: Spacing.lg },
-  logoutText: { fontSize: responsiveFont(16), fontWeight: '700', color: '#FF2D2D' },
+  logoutText: { fontSize: responsiveFont(16), fontWeight: '700', color: '#C83232' },
 });

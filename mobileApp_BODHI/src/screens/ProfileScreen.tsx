@@ -32,7 +32,8 @@ import {
 } from 'lucide-react-native';
 import QRCode from 'react-native-qrcode-svg';
 
-import { Colors, Fonts, Radius, Spacing, Gradients } from '../theme/tokens';
+import { Colors, Fonts, Radius, Spacing, ScreenColors } from '../theme/tokens';
+import { ProfileAvatar, SectionLabel } from '../components/shared';
 import { UsersAPI, BASE_URL } from '../api/client';
 
 export function ProfileScreen() {
@@ -234,21 +235,13 @@ export function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
       
-      {/* ─── Background Gradient ─── */}
-      <LinearGradient
-        colors={Gradients.darkVibrant.colors}
-        start={Gradients.darkVibrant.start}
-        end={Gradients.darkVibrant.end}
-        style={StyleSheet.absoluteFill}
-      />
-
       <SafeAreaView style={{ flex: 1 }}>
         {/* ─── Header ─── */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-            <ChevronLeft size={28} color="#FFF" />
+            <ChevronLeft size={28} color="#1C1C1E" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>MY PROFILE</Text>
           <View style={{ width: 44 }} />
@@ -260,15 +253,14 @@ export function ProfileScreen() {
           <View style={styles.avatarSection}>
             <View style={styles.avatarWrapper}>
               <View style={styles.avatarGlow}>
-                <View style={styles.avatarContainer}>
-                  {avatarUrl ? (
-                    <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-                  ) : (
-                    <Text style={styles.avatarText}>
-                      {fullName ? fullName.trim().charAt(0).toUpperCase() : 'B'}
-                    </Text>
-                  )}
-                </View>
+                {avatarUrl ? (
+                  <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+                ) : (
+                  <ProfileAvatar
+                    initial={fullName ? fullName.trim().charAt(0).toUpperCase() : 'B'}
+                    size={84}
+                  />
+                )}
               </View>
               <TouchableOpacity 
                 style={styles.editAvatarBtn}
@@ -284,9 +276,9 @@ export function ProfileScreen() {
           {/* ─── Profile Details Card ─── */}
           <View style={styles.glassCard}>
             {Platform.OS === 'ios' ? (
-              <BlurView blurType="dark" blurAmount={20} style={StyleSheet.absoluteFill} />
+              <BlurView blurType="light" blurAmount={20} style={StyleSheet.absoluteFill} />
             ) : (
-              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.05)' }]} />
             )}
             <View style={styles.fieldRow}>
               <View style={styles.fieldIcon}>
@@ -300,7 +292,7 @@ export function ProfileScreen() {
                   onChangeText={setFullName}
                   editable={editingField === 'name'}
                   placeholder="Enter Full Name"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor="rgba(0,0,0,0.3)"
                 />
               </View>
               {editingField === 'name' ? (
@@ -309,7 +301,7 @@ export function ProfileScreen() {
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity onPress={() => handleEditPress('name')}>
-                  <Pencil size={18} color="rgba(255,255,255,0.4)" />
+                  <Pencil size={18} color="rgba(0,0,0,0.4)" />
                 </TouchableOpacity>
               )}
             </View>
@@ -318,13 +310,13 @@ export function ProfileScreen() {
 
             <View style={styles.fieldRow}>
               <View style={styles.fieldIcon}>
-                <Mail size={20} color="rgba(255,255,255,0.4)" />
+                <Mail size={20} color="rgba(0,0,0,0.4)" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.fieldLabel}>EMAIL ADDRESS</Text>
                 <Text style={styles.readOnlyText}>{email}</Text>
               </View>
-              <ShieldCheck size={18} color="rgba(255,255,255,0.3)" />
+              <ShieldCheck size={18} color="rgba(0,0,0,0.3)" />
             </View>
 
             <View style={styles.divider} />
@@ -341,7 +333,7 @@ export function ProfileScreen() {
                   onChangeText={setPhone}
                   editable={editingField === 'phone'}
                   placeholder="e.g., +91 9876543210"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor="rgba(0,0,0,0.3)"
                   keyboardType="phone-pad"
                 />
               </View>
@@ -351,7 +343,7 @@ export function ProfileScreen() {
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity onPress={() => handleEditPress('phone')}>
-                  <Pencil size={18} color="rgba(255,255,255,0.4)" />
+                  <Pencil size={18} color="rgba(0,0,0,0.4)" />
                 </TouchableOpacity>
               )}
             </View>
@@ -370,7 +362,7 @@ export function ProfileScreen() {
                   onChangeText={setAge}
                   editable={editingField === 'age'}
                   placeholder="e.g., 25"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor="rgba(0,0,0,0.3)"
                   keyboardType="number-pad"
                 />
               </View>
@@ -380,7 +372,7 @@ export function ProfileScreen() {
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity onPress={() => handleEditPress('age')}>
-                  <Pencil size={18} color="rgba(255,255,255,0.4)" />
+                  <Pencil size={18} color="rgba(0,0,0,0.4)" />
                 </TouchableOpacity>
               )}
             </View>
@@ -399,7 +391,7 @@ export function ProfileScreen() {
                   onChangeText={setGender}
                   editable={editingField === 'gender'}
                   placeholder="e.g., Female"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor="rgba(0,0,0,0.3)"
                 />
               </View>
               {editingField === 'gender' ? (
@@ -408,19 +400,19 @@ export function ProfileScreen() {
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity onPress={() => handleEditPress('gender')}>
-                  <Pencil size={18} color="rgba(255,255,255,0.4)" />
+                  <Pencil size={18} color="rgba(0,0,0,0.4)" />
                 </TouchableOpacity>
               )}
             </View>
           </View>
 
           {/* ─── Financial Identity ─── */}
-          <Text style={styles.sectionLabel}>FINANCIAL IDENTITY</Text>
+          <SectionLabel title="Financial Identity" style={styles.sectionLabel} />
           <View style={styles.glassCard}>
             {Platform.OS === 'ios' ? (
-              <BlurView blurType="dark" blurAmount={20} style={StyleSheet.absoluteFill} />
+              <BlurView blurType="light" blurAmount={20} style={StyleSheet.absoluteFill} />
             ) : (
-              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.05)' }]} />
             )}
             <TouchableOpacity 
               style={styles.linkRow} 
@@ -433,17 +425,17 @@ export function ProfileScreen() {
                 <Text style={styles.linkTitle}>BODHI GAP ID</Text>
                 <Text style={styles.linkSub}>Your unique scan & pay identity</Text>
               </View>
-              <ChevronRight size={18} color="rgba(255,255,255,0.3)" />
+              <ChevronRight size={18} color="rgba(0,0,0,0.3)" />
             </TouchableOpacity>
           </View>
 
           {/* ─── Account & Banking ─── */}
-          <Text style={styles.sectionLabel}>ACCOUNT & BANKING</Text>
+          <SectionLabel title="Account & Banking" style={styles.sectionLabel} />
           <View style={styles.glassCard}>
             {Platform.OS === 'ios' ? (
-              <BlurView blurType="dark" blurAmount={20} style={StyleSheet.absoluteFill} />
+              <BlurView blurType="light" blurAmount={20} style={StyleSheet.absoluteFill} />
             ) : (
-              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.05)' }]} />
             )}
             <TouchableOpacity 
               style={styles.linkRow} 
@@ -456,7 +448,7 @@ export function ProfileScreen() {
                 <Text style={styles.linkTitle}>Linked Bank Accounts</Text>
                 <Text style={styles.linkSub}>Manage your primary funding sources</Text>
               </View>
-              <ChevronRight size={18} color="rgba(255,255,255,0.3)" />
+              <ChevronRight size={18} color="rgba(0,0,0,0.3)" />
             </TouchableOpacity>
 
             <View style={styles.divider} />
@@ -472,40 +464,40 @@ export function ProfileScreen() {
                 <Text style={styles.linkTitle}>Venture Club Status</Text>
                 <Text style={styles.linkSub}>Review your club membership details</Text>
               </View>
-              <ChevronRight size={18} color="rgba(255,255,255,0.3)" />
+              <ChevronRight size={18} color="rgba(0,0,0,0.3)" />
             </TouchableOpacity>
           </View>
 
           {/* ─── Security & Privacy ─── */}
-          <Text style={styles.sectionLabel}>SECURITY & PRIVACY</Text>
+          <SectionLabel title="Security & Privacy" style={styles.sectionLabel} />
           <View style={styles.glassCard}>
             {Platform.OS === 'ios' ? (
-              <BlurView blurType="dark" blurAmount={20} style={StyleSheet.absoluteFill} />
+              <BlurView blurType="light" blurAmount={20} style={StyleSheet.absoluteFill} />
             ) : (
-              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.05)' }]} />
             )}
             <TouchableOpacity 
               style={styles.linkRow}
               onPress={() => navigation.navigate('SecuritySettings')}
             >
               <View style={[styles.fieldIcon, { backgroundColor: 'rgba(168, 85, 247, 0.1)' }]}>
-                <Fingerprint size={20} color="#FF5A00" />
+                <Fingerprint size={20} color="#C83232" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.linkTitle}>Biometrics & Security</Text>
                 <Text style={styles.linkSub}>Secure your assets with FaceID / PIN</Text>
               </View>
-              <ChevronRight size={18} color="rgba(255,255,255,0.3)" />
+              <ChevronRight size={18} color="rgba(0,0,0,0.3)" />
             </TouchableOpacity>
           </View>
 
           {/* ─── Preferences ─── */}
-          <Text style={styles.sectionLabel}>APP PREFERENCES</Text>
+          <SectionLabel title="App Preferences" style={styles.sectionLabel} />
           <View style={styles.glassCard}>
             {Platform.OS === 'ios' ? (
-              <BlurView blurType="dark" blurAmount={20} style={StyleSheet.absoluteFill} />
+              <BlurView blurType="light" blurAmount={20} style={StyleSheet.absoluteFill} />
             ) : (
-              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.05)' }]} />
             )}
             <TouchableOpacity 
               style={styles.linkRow}
@@ -518,7 +510,7 @@ export function ProfileScreen() {
                 <Text style={styles.linkTitle}>Travel Preferences</Text>
                 <Text style={styles.linkSub}>Configure your luxury travel concierge</Text>
               </View>
-              <ChevronRight size={18} color="rgba(255,255,255,0.3)" />
+              <ChevronRight size={18} color="rgba(0,0,0,0.3)" />
             </TouchableOpacity>
 
             <View style={styles.divider} />
@@ -534,7 +526,7 @@ export function ProfileScreen() {
                 <Text style={styles.linkTitle}>Notifications</Text>
                 <Text style={styles.linkSub}>Manage alerts and price updates</Text>
               </View>
-              <ChevronRight size={18} color="rgba(255,255,255,0.3)" />
+              <ChevronRight size={18} color="rgba(0,0,0,0.3)" />
             </TouchableOpacity>
           </View>
 
@@ -546,17 +538,17 @@ export function ProfileScreen() {
               onPress={handleSavePress}
             >
               <LinearGradient
-                colors={editingField ? ['#FFE600', '#FFE600'] : ['#333', '#222']}
+                colors={editingField ? ['#3D4DFF', '#3D4DFF'] : ['#333', '#222']}
                 style={styles.gradientBtn}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
               >
-                <Text style={[styles.btnText, { color: editingField ? '#000' : '#666' }]}>SAVE PROFILE</Text>
+                <Text style={[styles.btnText, { color: editingField ? '#FFFFFF' : '#666' }]}>SAVE PROFILE</Text>
               </LinearGradient>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-              <LogOut size={20} color="rgba(255,255,255,0.6)" />
+              <LogOut size={20} color="rgba(0,0,0,0.6)" />
               <Text style={styles.logoutBtnText}>Logout Session</Text>
             </TouchableOpacity>
 
@@ -576,15 +568,15 @@ export function ProfileScreen() {
         <View style={styles.qrModalOverlay}>
           <View style={styles.qrModalContent}>
             {Platform.OS === 'ios' ? (
-              <BlurView blurType="dark" blurAmount={30} style={StyleSheet.absoluteFill} />
+              <BlurView blurType="light" blurAmount={30} style={StyleSheet.absoluteFill} />
             ) : (
-              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.85)' }]} />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
             )}
             <TouchableOpacity 
               style={styles.qrCloseBtn} 
               onPress={() => setIsQrModalVisible(false)}
             >
-              <CloseIcon size={24} color="#FFF" />
+              <CloseIcon size={24} color="#1C1C1E" />
             </TouchableOpacity>
 
             <View style={styles.qrHeader}>
@@ -597,7 +589,7 @@ export function ProfileScreen() {
                 value={`bodhi://pay?gap=${gapId}`}
                 size={220}
                 color="#000"
-                backgroundColor="#FFF"
+                backgroundColor="#FFFFFF"
               />
             </View>
 
@@ -635,9 +627,9 @@ export function ProfileScreen() {
         >
           <View style={styles.modalContent}>
             {Platform.OS === 'ios' ? (
-              <BlurView blurType="dark" blurAmount={30} style={StyleSheet.absoluteFill} />
+              <BlurView blurType="light" blurAmount={30} style={StyleSheet.absoluteFill} />
             ) : (
-              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.85)' }]} />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.4)' }]} />
             )}
             <View style={styles.modalHeader}>
               <ShieldCheck size={24} color={Colors.neonLime} />
@@ -658,7 +650,7 @@ export function ProfileScreen() {
                 <TextInput
                   style={[styles.modalInput, { letterSpacing: 8, fontWeight: '800' }]}
                   placeholder="M-PIN"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
+                  placeholderTextColor="rgba(0,0,0,0.4)"
                   secureTextEntry
                   value={password}
                   onChangeText={setPassword}
@@ -698,7 +690,7 @@ export function ProfileScreen() {
 // ─── Styles ───
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000000' },
+  container: { flex: 1, backgroundColor: ScreenColors.brand.appBgCool },
   center: { justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
@@ -712,14 +704,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(0,0,0,0.08)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(0,0,0,0.1)',
   },
   headerTitle: {
-    color: '#FFF',
+    color: '#1C1C1E',
     fontSize: responsiveFont(16),
     fontWeight: '800',
     letterSpacing: 2,
@@ -744,23 +736,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  avatarContainer: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  avatarText: {
-    fontSize: responsiveFont(44),
-    fontWeight: '900',
-    color: '#FFF',
-    includeFontPadding: false,
-    textAlignVertical: 'center',
-    textAlign: 'center',
-  },
   avatarImage: {
     width: 84,
     height: 84,
@@ -782,7 +757,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: '#000000',
+    borderColor: '#FFFFFF',
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -790,13 +765,13 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   userNameText: {
-    color: '#FFF',
+    color: '#111111',
     fontSize: responsiveFont(24),
     fontWeight: '700',
     marginTop: 16,
   },
   userEmailText: {
-    color: 'rgba(255,255,255,0.4)',
+    color: '#6B6560',
     fontSize: responsiveFont(14),
     marginTop: 4,
   },
@@ -805,7 +780,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: '#EBEBEB',
     overflow: 'hidden',
   },
   fieldRow: {
@@ -817,21 +792,21 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
   },
   fieldLabel: {
-    color: 'rgba(255,255,255,0.3)',
+    color: '#9B9B9B',
     fontSize: responsiveFont(10),
     fontWeight: '800',
     letterSpacing: 1,
     marginBottom: 4,
   },
   fieldInput: {
-    color: '#FFF',
-    fontSize: responsiveFont(16),
+    color: '#111111',
+    fontSize: responsiveFont(15),
     fontWeight: '600',
     padding: 0,
     margin: 0,
@@ -841,13 +816,13 @@ const styles = StyleSheet.create({
     }),
   },
   readOnlyText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: responsiveFont(16),
+    color: '#111111',
+    fontSize: responsiveFont(15),
     fontWeight: '600',
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: '#F0F0F0',
     marginHorizontal: 8,
   },
   actionContainer: {
@@ -855,7 +830,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   sectionLabel: {
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(0,0,0,0.4)',
     fontSize: responsiveFont(11),
     fontWeight: '800',
     letterSpacing: 1.5,
@@ -869,13 +844,13 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   linkTitle: {
-    color: '#FFF',
+    color: '#111111',
     fontSize: responsiveFont(15),
     fontWeight: '700',
     marginBottom: 2,
   },
   linkSub: {
-    color: 'rgba(255,255,255,0.4)',
+    color: '#6B6560',
     fontSize: responsiveFont(12),
     fontWeight: '500',
   },
@@ -903,11 +878,11 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(0,0,0,0.15)',
     gap: 8,
   },
   logoutBtnText: {
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(0,0,0,0.6)',
     fontSize: responsiveFont(15),
     fontWeight: '600',
   },
@@ -936,7 +911,7 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     padding: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(0,0,0,0.1)',
     overflow: 'hidden',
   },
   modalHeader: {
@@ -944,29 +919,29 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   modalTitle: {
-    color: '#FFF',
+    color: '#1C1C1E',
     fontSize: responsiveFont(20),
     fontWeight: '700',
     marginTop: 12,
   },
   modalSub: {
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(0,0,0,0.6)',
     fontSize: responsiveFont(14),
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 20,
   },
   modalInputWrapper: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(0,0,0,0.1)',
     marginBottom: 24,
   },
   modalInput: {
     height: 56,
     paddingHorizontal: 20,
-    color: '#FFF',
+    color: '#1C1C1E',
     fontSize: responsiveFont(16),
     textAlign: 'center',
   },
@@ -981,7 +956,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalCancelText: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#9B9B9B',
     fontSize: responsiveFont(16),
     fontWeight: '600',
   },
@@ -994,7 +969,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalConfirmText: {
-    color: '#000',
+    color: '#FFFFFF',
     fontSize: responsiveFont(16),
     fontWeight: '700',
   },
@@ -1002,13 +977,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF4B4B',
   },
   modalDeleteText: {
-    color: '#FFF',
+    color: '#FFFFFF',
   },
   
   // New QR Modal Styles
   qrModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
+    backgroundColor: 'rgba(253,253,249,0.85)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
@@ -1019,7 +994,7 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: 'rgba(0,0,0,0.15)',
     overflow: 'hidden',
   },
   qrCloseBtn: {
@@ -1029,7 +1004,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(0,0,0,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1046,13 +1021,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   qrModalSub: {
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(0,0,0,0.5)',
     fontSize: responsiveFont(16),
     fontWeight: '500',
   },
   qrMainCard: {
     padding: 24,
-    backgroundColor: '#FFF',
+    backgroundColor: '#FFFFFF',
     borderRadius: 32,
     shadowColor: Colors.neonLime,
     shadowOffset: { width: 0, height: 0 },
@@ -1066,16 +1041,16 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
   qrIdBadge: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(0,0,0,0.08)',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(0,0,0,0.1)',
     marginBottom: 32,
   },
   qrIdValue: {
-    color: '#FFF',
+    color: '#1C1C1E',
     fontSize: responsiveFont(18),
     fontWeight: '700',
     letterSpacing: 0.5,

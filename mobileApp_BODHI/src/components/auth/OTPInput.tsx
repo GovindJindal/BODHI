@@ -12,10 +12,10 @@ interface OTPInputProps {
 const OTPBox = ({ index, isFocused, hasValue, children }: any) => {
   const animatedStyle = useAnimatedStyle(() => ({
     borderColor: withTiming(
-      isFocused ? Colors.neonLime : hasValue ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'
+      isFocused ? Colors.neonLime : hasValue ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.1)'
     ),
     backgroundColor: withTiming(
-      isFocused ? 'rgba(209, 252, 0, 0.05)' : 'rgba(255,255,255,0.03)'
+      isFocused ? 'rgba(209, 252, 0, 0.05)' : 'rgba(0,0,0,0.03)'
     ),
     transform: [{ scale: withTiming(isFocused ? 1.05 : 1) }],
   }));
@@ -67,7 +67,7 @@ export const OTPInput: React.FC<OTPInputProps> = ({ value, onChange, length = 6 
             onBlur={() => setFocusedIndex(-1)}
             selectionColor={Colors.neonLime}
             placeholder="•"
-            placeholderTextColor="rgba(255,255,255,0.1)"
+            placeholderTextColor="rgba(0,0,0,0.1)"
           />
         </OTPBox>
       ))}
@@ -86,10 +86,10 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 60,
     marginHorizontal: 4,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: 'rgba(0,0,0,0.03)',
     borderRadius: Radius.md,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(0,0,0,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -98,11 +98,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(209, 252, 0, 0.05)',
   },
   inputBoxFilled: {
-    borderColor: 'rgba(255,255,255,0.3)',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
   },
   input: {
-    color: '#FFF',
+    color: '#1C1C1E',
     fontSize: 22,
     fontWeight: '800',
     textAlign: 'center',

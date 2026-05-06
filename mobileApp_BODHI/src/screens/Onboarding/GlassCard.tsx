@@ -71,9 +71,21 @@ export const GlassCard: React.FC<GlassCardProps> = ({ step, index, scrollOffset 
 const styles = StyleSheet.create({
   page: { width: SCREEN_WIDTH, height: SCREEN_HEIGHT, alignItems: 'center', justifyContent: 'center', paddingBottom: 160, paddingHorizontal: 32 },
   imageWrapper: { alignItems: 'center', marginBottom: 32 },
-  circleBackdrop: { width: 280, height: 280, borderRadius: 140, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' }, // Light gray circle
+  circleBackdrop: {
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 4,
+  },
   image: { width: 240, height: 240 },
   textBlock: { alignItems: 'center' },
-  title: { color: '#111827', fontSize: 32, fontWeight: '700', letterSpacing: -0.5, lineHeight: 40, textAlign: 'center', marginBottom: 16 },
-  subtitle: { color: '#4B5563', fontSize: 16, lineHeight: 24, fontWeight: '500', textAlign: 'center' },
+  title: { color: '#1C1C1E', fontSize: 32, fontWeight: '800', letterSpacing: -0.8, lineHeight: 40, textAlign: 'center', marginBottom: 16 },
+  subtitle: { color: 'rgba(0,0,0,0.6)', fontSize: 16, lineHeight: 24, fontWeight: '500', textAlign: 'center' },
 });

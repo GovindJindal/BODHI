@@ -263,7 +263,7 @@ export const TravelBookingScreen = () => {
   const renderHeader = (title: string, sub?: string, onBack?: () => void) => (
     <View style={styles.header}>
       <TouchableOpacity style={styles.backBtn} onPress={onBack || (() => navigation.goBack())}>
-        <ArrowLeft size={20} color="#FFF" />
+        <ArrowLeft size={20} color="#1C1C1E" />
       </TouchableOpacity>
       <View>
         <Text style={styles.headerTitle}>{title}</Text>
@@ -290,7 +290,7 @@ export const TravelBookingScreen = () => {
                 <TextInput
                   style={styles.fieldInput}
                   placeholder="Origin City"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor="rgba(0,0,0,0.3)"
                   value={fromQuery}
                   onChangeText={t => { setFromQuery(t); handleSearchAirports(t, 'from'); }}
                   onFocus={() => setFromFocused(true)}
@@ -312,13 +312,13 @@ export const TravelBookingScreen = () => {
 
             {/* To */}
             <View style={styles.fieldRow}>
-              <MapPin size={18} color="rgba(255,255,255,0.4)" />
+              <MapPin size={18} color="rgba(0,0,0,0.4)" />
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={styles.fieldLabel}>TO</Text>
                 <TextInput
                   style={styles.fieldInput}
                   placeholder="Destination City"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
+                  placeholderTextColor="rgba(0,0,0,0.3)"
                   value={toQuery}
                   onChangeText={t => { setToQuery(t); handleSearchAirports(t, 'to'); }}
                   onFocus={() => setToFocused(true)}
@@ -341,20 +341,20 @@ export const TravelBookingScreen = () => {
             {/* Date & Pax */}
             <View style={{ flexDirection: 'row' }}>
               <View style={[styles.fieldRow, { flex: 1 }]}>
-                <Calendar size={18} color="rgba(255,255,255,0.4)" />
+                <Calendar size={18} color="rgba(0,0,0,0.4)" />
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={styles.fieldLabel}>DATE</Text>
                   <TextInput
                     style={styles.fieldInput}
                     placeholder="2025-06-15"
-                    placeholderTextColor="rgba(255,255,255,0.3)"
+                    placeholderTextColor="rgba(0,0,0,0.3)"
                     value={travelDate}
                     onChangeText={setTravelDate}
                   />
                 </View>
               </View>
               <View style={[styles.fieldRow, { width: 100, marginLeft: 12 }]}>
-                <Users size={18} color="rgba(255,255,255,0.4)" />
+                <Users size={18} color="rgba(0,0,0,0.4)" />
                 <View style={{ flex: 1, marginLeft: 8 }}>
                   <Text style={styles.fieldLabel}>PAX</Text>
                   <View style={styles.paxWrap}>
@@ -389,11 +389,11 @@ export const TravelBookingScreen = () => {
           contentContainerStyle={{ padding: 20, flexGrow: 1 }}
           ListEmptyComponent={() => (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 100 }}>
-              <Plane size={48} color="rgba(255,255,255,0.2)" style={{ marginBottom: 20 }} />
-              <Text style={{ color: '#FFF', fontSize: responsiveFont(18), fontWeight: '700', textAlign: 'center' }}>
+              <Plane size={48} color="rgba(0,0,0,0.2)" style={{ marginBottom: 20 }} />
+              <Text style={{ color: '#1C1C1E', fontSize: responsiveFont(18), fontWeight: '700', textAlign: 'center' }}>
                 Cannot fetch flights
               </Text>
-              <Text style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginTop: 10, paddingHorizontal: 20 }}>
+              <Text style={{ color: 'rgba(0,0,0,0.45)', textAlign: 'center', marginTop: 10, paddingHorizontal: 20 }}>
                 {errorMessage || "Try changing your dates or selecting a different route."}
               </Text>
             </View>
@@ -429,18 +429,18 @@ export const TravelBookingScreen = () => {
           <View style={{ maxWidth: isTablet ? (isLandscape() ? 800 : 600) : '100%', alignSelf: 'center', width: '100%' }}>
           <View style={styles.formCard}>
             <Text style={styles.cardTitle}>Traveller Information</Text>
-            <TextInput style={styles.formInput} placeholder="Full Name" placeholderTextColor="rgba(255,255,255,0.3)" value={passengerName} onChangeText={setPassengerName} />
+            <TextInput style={styles.formInput} placeholder="Full Name" placeholderTextColor="rgba(0,0,0,0.3)" value={passengerName} onChangeText={setPassengerName} />
             <TextInput 
               style={styles.formInput} 
               placeholder="Email" 
-              placeholderTextColor="rgba(255,255,255,0.3)" 
+              placeholderTextColor="rgba(0,0,0,0.3)" 
               value={passengerEmail} 
               onChangeText={setPassengerEmail} 
               keyboardType="email-address" 
               autoCapitalize="none"
               autoCorrect={false}
             />
-            <TextInput style={styles.formInput} placeholder="Phone" placeholderTextColor="rgba(255,255,255,0.3)" value={passengerPhone} onChangeText={setPassengerPhone} keyboardType="phone-pad" />
+            <TextInput style={styles.formInput} placeholder="Phone" placeholderTextColor="rgba(0,0,0,0.3)" value={passengerPhone} onChangeText={setPassengerPhone} keyboardType="phone-pad" />
             
             <TouchableOpacity style={styles.searchBtn} activeOpacity={0.8} onPress={() => setScreen('confirm')}>
               <LinearGradient colors={[Colors.neonLime, '#A3FF00']} style={styles.btnGrad}>
@@ -461,8 +461,8 @@ export const TravelBookingScreen = () => {
         <Text style={styles.confirmTitle}>Ready to Book!</Text>
         <Text style={styles.confirmSub}>{selectedFlight?.airline} · {selectedFlight?.price}</Text>
         <TouchableOpacity style={styles.searchBtn} onPress={handleRedirect}>
-          <LinearGradient colors={['#FF5A00', '#a400a4']} style={styles.btnGrad}>
-            <Text style={[styles.btnText, { color: '#FFF' }]}>Complete on Airline Site</Text>
+          <LinearGradient colors={['#C83232', '#a400a4']} style={styles.btnGrad}>
+            <Text style={[styles.btnText, { color: '#1C1C1E' }]}>Complete on Airline Site</Text>
           </LinearGradient>
         </TouchableOpacity>
         <TouchableOpacity onPress={resetAll} style={{ marginTop: 20 }}><Text style={{ color: Colors.neonLime }}>← Search Again</Text></TouchableOpacity>
@@ -472,44 +472,44 @@ export const TravelBookingScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000000' },
+  root: { flex: 1, backgroundColor: '#FDFDF9' },
   header: { paddingTop: 60, paddingHorizontal: 20, paddingBottom: 20, flexDirection: 'row', alignItems: 'center', gap: 15 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyCenter: 'center', paddingTop: 10, paddingLeft: 10 },
-  headerTitle: { color: '#FFF', fontSize: responsiveFont(18), fontWeight: '800' },
-  headerSub: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(12) },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyCenter: 'center', paddingTop: 10, paddingLeft: 10 },
+  headerTitle: { color: '#1C1C1E', fontSize: responsiveFont(18), fontWeight: '800' },
+  headerSub: { color: 'rgba(0,0,0,0.45)', fontSize: responsiveFont(12) },
   scrollView: { flex: 1, paddingHorizontal: 20 },
-  searchCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
-  cardTitle: { color: '#FFF', fontSize: responsiveFont(18), fontWeight: '800', marginBottom: 20 },
+  searchCard: { backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 24, padding: 20, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' },
+  cardTitle: { color: '#1C1C1E', fontSize: responsiveFont(18), fontWeight: '800', marginBottom: 20 },
   fieldRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-  fieldLabel: { color: 'rgba(255,255,255,0.3)', fontSize: responsiveFont(10), fontWeight: '700', letterSpacing: 1, marginBottom: 4 },
-  fieldInput: { color: '#FFF', fontSize: responsiveFont(16), fontWeight: '600' },
-  divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.05)', marginLeft: 30 },
-  suggestions: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, marginTop: 4, marginLeft: 30 },
+  fieldLabel: { color: 'rgba(0,0,0,0.3)', fontSize: responsiveFont(10), fontWeight: '700', letterSpacing: 1, marginBottom: 4 },
+  fieldInput: { color: '#1C1C1E', fontSize: responsiveFont(16), fontWeight: '600' },
+  divider: { height: 1, backgroundColor: 'rgba(0,0,0,0.05)', marginLeft: 30 },
+  suggestions: { backgroundColor: 'rgba(0,0,0,0.06)', borderRadius: 12, marginTop: 4, marginLeft: 30 },
   sugItem: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 10 },
-  sugText: { color: '#FFF', fontSize: responsiveFont(14) },
+  sugText: { color: '#1C1C1E', fontSize: responsiveFont(14) },
   paxWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   paxBtn: { color: Colors.neonLime, fontSize: responsiveFont(20), fontWeight: '800' },
-  paxNum: { color: '#FFF', fontSize: responsiveFont(16), fontWeight: '700' },
+  paxNum: { color: '#1C1C1E', fontSize: responsiveFont(16), fontWeight: '700' },
   searchBtn: { marginTop: 24, borderRadius: 16, overflow: 'hidden' },
   btnGrad: { height: 56, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 10 },
-  btnText: { color: '#000', fontSize: responsiveFont(16), fontWeight: '800' },
-  flightCard: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 20, padding: 20, marginBottom: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+  btnText: { color: '#FFF', fontSize: responsiveFont(16), fontWeight: '800' },
+  flightCard: { backgroundColor: 'rgba(0,0,0,0.04)', borderRadius: 20, padding: 20, marginBottom: 15, borderWidth: 1, borderColor: 'rgba(0,0,0,0.06)' },
   fcTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
-  airlineName: { color: '#FFF', fontSize: responsiveFont(14), fontWeight: '700' },
+  airlineName: { color: '#1C1C1E', fontSize: responsiveFont(14), fontWeight: '700' },
   flightPrice: { color: Colors.neonLime, fontSize: responsiveFont(18), fontWeight: '800' },
   fcRoute: { flexDirection: 'row', alignItems: 'center' },
-  fcTime: { color: '#FFF', fontSize: responsiveFont(18), fontWeight: '800' },
-  fcCode: { color: 'rgba(255,255,255,0.4)', fontSize: responsiveFont(12), marginTop: 2 },
-  fcDur: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(11) },
+  fcTime: { color: '#1C1C1E', fontSize: responsiveFont(18), fontWeight: '800' },
+  fcCode: { color: 'rgba(0,0,0,0.4)', fontSize: responsiveFont(12), marginTop: 2 },
+  fcDur: { color: 'rgba(0,0,0,0.45)', fontSize: responsiveFont(11) },
   fcLine: { flexDirection: 'row', alignItems: 'center', gap: 5, marginVertical: 5 },
   fcDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.neonLime },
-  fcDash: { width: 40, height: 1, backgroundColor: 'rgba(255,255,255,0.2)' },
-  fcStops: { color: 'rgba(255,255,255,0.3)', fontSize: responsiveFont(10) },
-  formCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 24, padding: 20 },
-  formInput: { backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: 15, color: '#FFF', marginBottom: 15 },
+  fcDash: { width: 40, height: 1, backgroundColor: 'rgba(0,0,0,0.2)' },
+  fcStops: { color: 'rgba(0,0,0,0.3)', fontSize: responsiveFont(10) },
+  formCard: { backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 24, padding: 20 },
+  formInput: { backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 12, padding: 15, color: '#1C1C1E', marginBottom: 15 },
   confirmWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },
-  confirmTitle: { color: '#FFF', fontSize: responsiveFont(24), fontWeight: '800', marginTop: 20 },
-  confirmSub: { color: 'rgba(255,255,255,0.5)', fontSize: responsiveFont(14), textAlign: 'center', marginTop: 10 },
+  confirmTitle: { color: '#1C1C1E', fontSize: responsiveFont(24), fontWeight: '800', marginTop: 20 },
+  confirmSub: { color: 'rgba(0,0,0,0.45)', fontSize: responsiveFont(14), textAlign: 'center', marginTop: 10 },
 });
 
 export default TravelBookingScreen;

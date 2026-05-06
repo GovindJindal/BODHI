@@ -25,7 +25,7 @@ import {
   ChevronRight,
   CheckCircle2,
 } from 'lucide-react-native';
-import { Colors, Radius, Spacing, FontSize, Gradients } from '../theme/tokens';
+import { Colors, Radius, Spacing, FontSize, Gradients, ScreenColors } from '../theme/tokens';
 import { SocialAuthButtons } from '../components/SocialAuthButtons';
 import { BASE_URL, AuthAPI } from '../api/client';
 
@@ -409,16 +409,16 @@ export function AuthScreen({ navigation }: any) {
 
   const getButtonGradient = (disabled?: boolean, variant?: string) => {
     if (disabled) return ['#333', '#222'];
-    if (variant === 'signup') return ['#FF5A00', '#FFE600']; // Premium Warm Fire
+    if (variant === 'signup') return ['#C83232', '#3D4DFF']; // Premium Warm Fire
     return Gradients.authCTA.colors;
   };
 
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={Gradients.darkVibrant.colors}
-        start={Gradients.darkVibrant.start}
-        end={Gradients.darkVibrant.end}
+        colors={[ScreenColors.auth.background, ScreenColors.auth.background]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
 
@@ -452,7 +452,7 @@ export function AuthScreen({ navigation }: any) {
                 <AuthInput
                   label="Email"
                   placeholder="e.g., name@example.com"
-                  icon={<Mail size={20} color="#FF5A00" />}
+                  icon={<Mail size={20} color="#C83232" />}
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -463,7 +463,7 @@ export function AuthScreen({ navigation }: any) {
                 <AuthInput
                   label="Login PIN (M-PIN)"
                   placeholder="••••"
-                  icon={<Lock size={20} color="#FF5A00" />}
+                  icon={<Lock size={20} color="#C83232" />}
                   value={password}
                   onChangeText={setPassword}
                   keyboardType="number-pad"
@@ -475,10 +475,10 @@ export function AuthScreen({ navigation }: any) {
 
                 <View style={styles.linksRow}>
                   <TouchableOpacity onPress={() => switchMode('signup')}>
-                    <Text style={[styles.linkText, { color: '#FF2D2D' }]}>Sign Up</Text>
+                    <Text style={[styles.linkText, { color: '#C83232' }]}>Sign Up</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => switchMode('forgot')}>
-                    <Text style={[styles.linkText, { color: '#FF2D2D' }]}>Forgot password?</Text>
+                    <Text style={[styles.linkText, { color: '#C83232' }]}>Forgot password?</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -497,7 +497,7 @@ export function AuthScreen({ navigation }: any) {
                   <View style={styles.socialRow}>
                     <SocialAuthButtons onSuccess={handleOAuthSuccess} />
                     <TouchableOpacity style={styles.socialBtn}>
-                      <Smartphone size={24} color="#FFF" />
+                      <Smartphone size={24} color="#1C1C1E" />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -525,7 +525,7 @@ export function AuthScreen({ navigation }: any) {
                     <AuthInput
                       label="Full Name"
                       placeholder="Jane Doe"
-                      icon={<User size={20} color="rgba(255,255,255,0.4)" />}
+                      icon={<User size={20} color="rgba(0,0,0,0.4)" />}
                       value={name}
                       onChangeText={setName}
                     />
@@ -542,7 +542,7 @@ export function AuthScreen({ navigation }: any) {
                       </View>
                       <View style={{ flex: 1.5, zIndex: 20, marginBottom: 24 }}>
                         <Text style={{
-                          color: 'rgba(255,255,255,0.5)',
+                          color: 'rgba(0,0,0,0.45)',
                           fontSize: 11,
                           fontWeight: '800',
                           marginBottom: 8,
@@ -553,7 +553,7 @@ export function AuthScreen({ navigation }: any) {
                           style={[styles.dropdownHeader, isGenderOpen && { borderColor: Colors.neonLime, backgroundColor: 'rgba(200, 255, 0, 0.05)' }]}
                           onPress={() => setIsGenderOpen(!isGenderOpen)}
                         >
-                          <Text style={{ color: gender ? '#FFF' : 'rgba(255,255,255,0.3)', fontWeight: '600', fontSize: 16 }}>
+                          <Text style={{ color: gender ? '#1C1C1E' : 'rgba(0,0,0,0.3)', fontWeight: '600', fontSize: 16 }}>
                             {gender || "Select"}
                           </Text>
                           <ChevronDown size={18} color={Colors.neonLime} />
@@ -582,7 +582,7 @@ export function AuthScreen({ navigation }: any) {
                     <AuthInput
                       label="Phone Number"
                       placeholder="+91 9876543210"
-                      icon={<Smartphone size={20} color="#FF5A00" />}
+                      icon={<Smartphone size={20} color="#C83232" />}
                       value={phone}
                       onChangeText={setPhone}
                       keyboardType="phone-pad"
@@ -610,11 +610,11 @@ export function AuthScreen({ navigation }: any) {
                   <>
                     <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
                     <View style={styles.inputWrapper}>
-                      <Mail size={18} color="#FF5A00" style={styles.inputIcon} />
+                      <Mail size={18} color="#C83232" style={styles.inputIcon} />
                       <TextInput
-                        style={[styles.input, isEmailVerified && { color: 'rgba(255,255,255,0.4)' }]}
+                        style={[styles.input, isEmailVerified && { color: 'rgba(0,0,0,0.4)' }]}
                         placeholder="name@example.com"
-                        placeholderTextColor="rgba(255,255,255,0.4)"
+                        placeholderTextColor="rgba(0,0,0,0.4)"
                         value={email}
                         onChangeText={setEmail}
                         keyboardType="email-address"
@@ -626,7 +626,7 @@ export function AuthScreen({ navigation }: any) {
                         disabled={resendTimer > 0 || isLoading}
                         onPress={() => handleSendOtp('email')}
                       >
-                        <Text style={{ color: '#FF2D2D', fontWeight: '700', fontSize: responsiveFont(13) }}>
+                        <Text style={{ color: '#C83232', fontWeight: '700', fontSize: responsiveFont(13) }}>
                           {resendTimer > 0 ? `Resend in ${resendTimer}s` : (isEmailSent ? "Resend Code" : "Send Code")}
                         </Text>
                       </TouchableOpacity>
@@ -639,7 +639,7 @@ export function AuthScreen({ navigation }: any) {
                           <TextInput
                             style={[styles.input, { letterSpacing: 8, textAlign: 'center', fontWeight: '800' }]}
                             placeholder="••••••"
-                            placeholderTextColor="rgba(255,255,255,0.2)"
+                            placeholderTextColor="rgba(0,0,0,0.2)"
                             keyboardType="number-pad"
                             maxLength={6}
                             value={otp}
@@ -656,7 +656,7 @@ export function AuthScreen({ navigation }: any) {
                       disabled={!isEmailVerified || isLoading}
                     >
                       <LinearGradient
-                        colors={isEmailVerified ? ['#FFE600', '#FFE600'] : ['#333', '#222']}
+                        colors={isEmailVerified ? ['#3D4DFF', '#3D4DFF'] : ['#333', '#222']}
                         style={styles.primaryBtn}
                       >
                         {isLoading ? <ActivityIndicator color="#000" /> : (
@@ -675,7 +675,7 @@ export function AuthScreen({ navigation }: any) {
                     <AuthInput
                       label="Login Pin (M-PIN)"
                       placeholder="••••"
-                      icon={<Lock size={20} color="#FF5A00" />}
+                      icon={<Lock size={20} color="#C83232" />}
                       value={mPin}
                       onChangeText={setMPin}
                       keyboardType="number-pad"
@@ -689,7 +689,7 @@ export function AuthScreen({ navigation }: any) {
                     <AuthInput
                       label="Confirm M-PIN"
                       placeholder="••••"
-                      icon={<Lock size={20} color="#FF5A00" />}
+                      icon={<Lock size={20} color="#C83232" />}
                       value={confirmMPin}
                       onChangeText={setConfirmMPin}
                       keyboardType="number-pad"
@@ -703,7 +703,7 @@ export function AuthScreen({ navigation }: any) {
                     <AuthInput
                       label="Transaction Pin (U-PIN)"
                       placeholder="••••"
-                      icon={<ShieldCheck size={20} color="#FF5A00" />}
+                      icon={<ShieldCheck size={20} color="#C83232" />}
                       value={uPin}
                       onChangeText={setUPin}
                       keyboardType="number-pad"
@@ -717,7 +717,7 @@ export function AuthScreen({ navigation }: any) {
                     <AuthInput
                       label="Confirm U-PIN"
                       placeholder="••••"
-                      icon={<ShieldCheck size={20} color="#FF5A00" />}
+                      icon={<ShieldCheck size={20} color="#C83232" />}
                       value={confirmUPin}
                       onChangeText={setConfirmUPin}
                       keyboardType="number-pad"
@@ -768,7 +768,7 @@ export function AuthScreen({ navigation }: any) {
                   <AuthInput
                     label="Email"
                     placeholder="e.g., name@example.com"
-                    icon={<Mail size={20} color="#FF5A00" />}
+                    icon={<Mail size={20} color="#C83232" />}
                     value={email}
                     onChangeText={setEmail}
                     autoCapitalize="none"
@@ -782,7 +782,7 @@ export function AuthScreen({ navigation }: any) {
                     <AuthInput
                       label="New Login PIN (M-PIN)"
                       placeholder="••••"
-                      icon={<Lock size={20} color="#FF5A00" />}
+                      icon={<Lock size={20} color="#C83232" />}
                       value={newPassword}
                       onChangeText={setNewPassword}
                       keyboardType="number-pad"
@@ -794,7 +794,7 @@ export function AuthScreen({ navigation }: any) {
                     <AuthInput
                       label="Confirm New M-PIN"
                       placeholder="••••"
-                      icon={<Lock size={20} color="#FF5A00" />}
+                      icon={<Lock size={20} color="#C83232" />}
                       value={confirmMPin}
                       onChangeText={setConfirmMPin}
                       keyboardType="number-pad"
@@ -829,7 +829,7 @@ export function AuthScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: ScreenColors.auth.background },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -838,30 +838,30 @@ const styles = StyleSheet.create({
     paddingBottom: 40
   },
   header: { alignItems: 'center', marginBottom: 40 },
-  logoImage: { width: 160, height: 50, marginBottom: 12, tintColor: '#FFF' },
-  tagline: { fontSize: responsiveFont(16), color: '#FFF', letterSpacing: 0.5 },
-  taglineHighlight: { color: Colors.neonLime, fontWeight: '800' },
+  logoImage: { width: 160, height: 50, marginBottom: 12, tintColor: '#1C1C1E' },
+  tagline: { fontSize: responsiveFont(16), color: '#1C1C1E', letterSpacing: 0.5 },
+  taglineHighlight: { color: '#8c9c32ff', fontWeight: '800' },
 
   // ── TOGGLE ──
-  toggleContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: Radius.full, padding: 4, marginBottom: Spacing.xl },
+  toggleContainer: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: Radius.full, padding: 4, marginBottom: Spacing.xl },
   toggleBtn: { flex: 1, borderRadius: Radius.full, alignItems: 'center', justifyContent: 'center', height: 44 },
-  activeToggleBg: { width: '100%', height: '100%', borderRadius: Radius.full, alignItems: 'center', justifyContent: 'center', shadowColor: '#FF5A00', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 8 },
-  toggleText: { fontSize: responsiveFont(14), fontWeight: '600', color: 'rgba(255,255,255,0.6)' },
-  toggleTextActive: { color: '#FFF', fontWeight: '800', fontSize: responsiveFont(14) },
+  activeToggleBg: { width: '100%', height: '100%', borderRadius: Radius.full, alignItems: 'center', justifyContent: 'center', shadowColor: '#C83232', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 8 },
+  toggleText: { fontSize: responsiveFont(14), fontWeight: '600', color: 'rgba(0,0,0,0.6)' },
+  toggleTextActive: { color: '#1C1C1E', fontWeight: '800', fontSize: responsiveFont(14) },
 
   // ── FORM & TEXT ──
   form: { marginBottom: Spacing.sm },
   flowTitle: {
     fontSize: responsiveFont(22),
     fontWeight: '800',
-    color: '#FFF',
+    color: '#1C1C1E',
     marginBottom: 6,
     textAlign: 'center',
     letterSpacing: -0.5
   },
   flowSub: {
     fontSize: responsiveFont(12.5),
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(0,0,0,0.6)',
     marginBottom: 20,
     textAlign: 'center',
     lineHeight: 18
@@ -870,7 +870,7 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: responsiveFont(10.5),
     fontWeight: '800',
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(0,0,0,0.45)',
     letterSpacing: 1.2,
     marginBottom: 8,
     marginTop: 14
@@ -889,18 +889,18 @@ const styles = StyleSheet.create({
 
   socialSection: { marginTop: 40 },
   dividerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.1)' },
-  dividerText: { marginHorizontal: 16, fontSize: responsiveFont(12), color: 'rgba(255,255,255,0.4)', fontWeight: '600', textTransform: 'uppercase' },
+  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(0,0,0,0.1)' },
+  dividerText: { marginHorizontal: 16, fontSize: responsiveFont(12), color: 'rgba(0,0,0,0.4)', fontWeight: '600', textTransform: 'uppercase' },
   socialRow: { flexDirection: 'row', justifyContent: 'center', gap: 20 },
   socialBtn: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: 'rgba(0,0,0,0.04)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)'
+    borderColor: 'rgba(0,0,0,0.08)'
   },
 
   securityFooter: {
@@ -910,7 +910,7 @@ const styles = StyleSheet.create({
     marginTop: 32
   },
   securityText: {
-    color: 'rgba(255,255,255,0.4)',
+    color: 'rgba(0,0,0,0.4)',
     fontSize: responsiveFont(12),
     marginLeft: 8,
     fontWeight: '500'
@@ -920,14 +920,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: 'rgba(0,0,0,0.03)',
     borderRadius: Radius.md,
     height: 56,
     paddingHorizontal: Spacing.lg,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.08)'
+    borderColor: 'rgba(0,0,0,0.08)'
   },
-  dropdownHeaderText: { color: '#FFF', fontSize: responsiveFont(16), fontWeight: '700' },
+  dropdownHeaderText: { color: '#1C1C1E', fontSize: responsiveFont(16), fontWeight: '700' },
   dropdownList: {
     position: 'absolute',
     top: 60,
@@ -951,7 +951,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 18,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)'
+    borderBottomColor: 'rgba(0,0,0,0.1)'
   },
 
   wizardFooter: {
@@ -961,7 +961,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4
   },
   navLink: {
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(0,0,0,0.6)',
     fontWeight: '700',
     fontSize: responsiveFont(14)
   },
@@ -969,10 +969,10 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     borderRadius: Radius.md,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(0,0,0,0.1)',
     paddingHorizontal: 14,
     height: 56,
     marginBottom: 4,
@@ -982,7 +982,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: '#FFF',
+    color: '#1C1C1E',
     fontSize: 16,
     fontWeight: '600',
     padding: 0,
@@ -1003,12 +1003,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   primaryBtnText: {
-    color: '#000',
+    color: '#FFF',
     fontSize: 16,
     fontWeight: '800',
   },
   dropdownItemText: {
-    color: '#FFF',
+    color: '#1C1C1E',
     fontSize: 16,
     fontWeight: '600',
   },

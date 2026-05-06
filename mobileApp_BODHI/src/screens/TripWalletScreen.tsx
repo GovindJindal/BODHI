@@ -29,15 +29,15 @@ import LinearGradient from 'react-native-linear-gradient';
 const { width: W } = Dimensions.get('window');
 
 const C = {
-  bg: '#000000',
-  cardBg: '#0A0A0A',
-  neonLime: '#FFE600',
-  purple: '#FF5A00',
-  red: '#FF2D2D',
-  white: '#FFFFFF',
-  whiteMid: 'rgba(255,255,255,0.7)',
-  whiteDim: 'rgba(255,255,255,0.3)',
-  border: 'rgba(255,255,255,0.08)',
+  bg: '#FDFDF9',
+  cardBg: '#FFFFFF',
+  neonLime: '#3D4DFF',
+  purple: '#C83232',
+  red: '#C83232',
+  white: '#1C1C1E',
+  whiteMid: 'rgba(0,0,0,0.7)',
+  whiteDim: 'rgba(0,0,0,0.3)',
+  border: 'rgba(0,0,0,0.08)',
 };
 
 export function TripWalletScreen({ route, navigation }: any) {
@@ -195,7 +195,7 @@ export function TripWalletScreen({ route, navigation }: any) {
         >
           <View style={{ maxWidth: isTablet ? (isLandscape() ? 900 : 700) : '100%', alignSelf: 'center', width: '100%' }}>
           <LinearGradient
-            colors={['#1E293B', '#0A0A0A']}
+            colors={['#FDFDF9', '#FFFFFF']}
             style={styles.summaryCard}
           >
             <View>
@@ -209,7 +209,7 @@ export function TripWalletScreen({ route, navigation }: any) {
 
           <View style={styles.actionRow}>
             <TouchableOpacity style={styles.actionBtn} onPress={handleAddExpense} activeOpacity={0.8}>
-              <LinearGradient colors={[C.neonLime, '#A3CF00']} style={styles.actionBtnGrad}>
+              <LinearGradient colors={[C.neonLime, '#A3CF00']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.actionBtnGrad}>
                 <Plus size={20} color={C.bg} strokeWidth={3} />
                 <Text style={styles.actionBtnText}>Add Expense</Text>
               </LinearGradient>
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(0,0,0,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -337,10 +337,10 @@ const styles = StyleSheet.create({
     borderRadius: 28, 
     marginBottom: 24, 
     borderWidth: 1, 
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(0,0,0,0.1)',
   },
   summaryLabel: { color: C.whiteDim, fontSize: responsiveFont(13), fontWeight: '700', marginBottom: 6 },
-  summaryValue: { color: C.white, fontSize: responsiveFont(32), fontWeight: '900', letterSpacing: -1 },
+  summaryValue: { color: C.neonLime, fontSize: responsiveFont(32), fontWeight: '900', letterSpacing: -1 },
   summaryIconBox: { width: 56, height: 56, borderRadius: 16, backgroundColor: 'rgba(200,255,0,0.1)', alignItems: 'center', justifyContent: 'center' },
 
   // ACTIONS
@@ -383,16 +383,16 @@ const styles = StyleSheet.create({
     borderWidth: 1, 
     borderColor: C.border 
   },
-  expenseIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,90,0,0.1)', alignItems: 'center', justifyContent: 'center', marginRight: 15 },
+  expenseIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(200,50,50,0.1)', alignItems: 'center', justifyContent: 'center', marginRight: 15 },
   expDesc: { color: C.white, fontSize: responsiveFont(15), fontWeight: '700', marginBottom: 2 },
   expPaidBy: { color: C.whiteDim, fontSize: responsiveFont(11), fontWeight: '600' },
   expAmount: { color: C.white, fontSize: responsiveFont(16), fontWeight: '800' },
 
   // MEMBERS
   memberList: { backgroundColor: C.cardBg, borderRadius: 24, padding: 8, borderWidth: 1, borderColor: C.border },
-  memberRow: { flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.04)' },
+  memberRow: { flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.04)' },
   memberAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.purple, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  avatarText: { color: C.white, fontSize: responsiveFont(14), fontWeight: '800' },
+  avatarText: { color: C.bg, fontSize: responsiveFont(14), fontWeight: '800' },
   memberName: { color: C.white, fontSize: responsiveFont(14), fontWeight: '700', marginBottom: 2 },
   memberSub: { color: C.whiteDim, fontSize: responsiveFont(11), fontWeight: '600' },
   balanceValue: { fontSize: responsiveFont(15), fontWeight: '800', marginBottom: 2 },

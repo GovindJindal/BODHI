@@ -26,10 +26,10 @@ export const AuthInput: React.FC<AuthInputProps> = ({
 
   const animatedContainerStyle = useAnimatedStyle(() => ({
     borderColor: withTiming(
-      error ? Colors.errorRed : isFocused ? '#FF5A00' : 'rgba(255,255,255,0.08)'
+      error ? Colors.errorRed : isFocused ? '#1C1C1E' : 'rgba(0,0,0,0.08)'
     ),
     backgroundColor: withTiming(
-      isFocused ? 'rgba(168, 85, 247, 0.05)' : 'rgba(255,255,255,0.03)'
+      isFocused ? '#FFFFFF' : 'rgba(0,0,0,0.03)'
     ),
     opacity: withTiming(props.editable === false ? 0.6 : 1),
   }));
@@ -54,7 +54,7 @@ export const AuthInput: React.FC<AuthInputProps> = ({
         {icon && <View style={styles.iconWrapper}>{icon}</View>}
         <TextInput
           style={[styles.input, style]}
-          placeholderTextColor="rgba(255,255,255,0.3)"
+          placeholderTextColor="rgba(0,0,0,0.3)"
           onFocus={handleFocus}
           onBlur={handleBlur}
           secureTextEntry={secureTextEntry && !showPassword}
@@ -66,9 +66,9 @@ export const AuthInput: React.FC<AuthInputProps> = ({
             style={styles.eyeIcon}
           >
             {showPassword ? (
-              <EyeOff size={18} color={isFocused ? '#FF5A00' : "rgba(255,255,255,0.4)"} />
+              <EyeOff size={18} color={isFocused ? '#1C1C1E' : "rgba(0,0,0,0.4)"} />
             ) : (
-              <Eye size={18} color={isFocused ? '#FF5A00' : "rgba(255,255,255,0.4)"} />
+              <Eye size={18} color={isFocused ? '#1C1C1E' : "rgba(0,0,0,0.4)"} />
             )}
           </TouchableOpacity>
         )}
@@ -83,26 +83,26 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   label: {
-    color: 'rgba(255,255,255,0.5)',
+    color: 'rgba(0,0,0,0.4)',
     fontSize: 11,
     fontWeight: '800',
     marginBottom: Spacing.sm,
-    letterSpacing: 1,
+    letterSpacing: 1.5,
     marginLeft: 4,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: Radius.md,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.08)',
+    borderColor: 'rgba(0,0,0,0.08)',
     height: 56,
     paddingHorizontal: Spacing.lg,
   },
   inputWrapperFocused: {
-    borderColor: Colors.neonLime,
-    backgroundColor: 'rgba(209, 252, 0, 0.04)',
+    borderColor: '#1C1C1E',
+    backgroundColor: '#FFFFFF',
   },
   inputWrapperError: {
     borderColor: Colors.errorRed,
@@ -112,9 +112,9 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    color: '#FFF',
-    fontSize: FontSize.md,
-    fontWeight: '600',
+    color: '#1C1C1E',
+    fontSize: 16,
+    fontWeight: '700',
     height: '100%',
   },
   eyeIcon: {

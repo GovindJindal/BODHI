@@ -43,7 +43,7 @@ export default function CandlestickChart({ data, height = 250 }: Props) {
               width: window.innerWidth,
               height: window.innerHeight,
               layout: { 
-                backgroundColor: '#0A0A0A', 
+                backgroundColor: '#1C1C1E', 
                 textColor: 'rgba(255, 255, 255, 0.5)',
                 fontSize: ${fontSize},
               },
@@ -58,11 +58,11 @@ export default function CandlestickChart({ data, height = 250 }: Props) {
 
             // 🟢 Support for v3 syntax
             const candleSeries = chart.addCandlestickSeries({
-              upColor: '#FFE600', 
-              downColor: '#FF2D2D',
+              upColor: '#3D4DFF', 
+              downColor: '#C83232',
               borderVisible: false, 
-              wickUpColor: '#FFE600', 
-              wickDownColor: '#FF2D2D',
+              wickUpColor: '#3D4DFF', 
+              wickDownColor: '#C83232',
             });
 
             const chartData = ${JSON.stringify(data)};
@@ -104,10 +104,10 @@ export default function CandlestickChart({ data, height = 250 }: Props) {
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    backgroundColor: '#0A0A0A',
+    backgroundColor: '#1C1C1E',
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: 'rgba(0,0,0,0.06)',
   },
 });
