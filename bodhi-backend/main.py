@@ -1,6 +1,6 @@
 import os
 from routers.oauth import router as oauth_router
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.staticfiles import StaticFiles
@@ -24,7 +24,7 @@ from routers import auth, trade, search, prices, simulate, social, ai, notificat
 from routers.social import router as social_router
 from routers.collaboration import router as collaboration_router
 from routers import payments, insurance, wallets, expenses, users, subscriptions
-from routers import transfers, admin
+from routers import transfers, admin, admin_prod
 
 import models.wallets
 import models.expenses
@@ -43,12 +43,18 @@ async def init_db():
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
             
-            # Safe schema upgrade for 'role' string pattern
+            # Safe schema upgrade for 'role' string pattern and admin features
             from sqlalchemy import text
             try:
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'user'"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verify_pass VARCHAR(255)"))
-            except Exception:
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_hashed_password VARCHAR(255)"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp VARCHAR(20)"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expiry TIMESTAMP WITH TIME ZONE"))
+                
+                # Check for AuditLog table explicitly if needed, but Base.metadata.create_all does it.
+            except Exception as e:
+                logger.error(f"❌ Migration error: {e}")
                 pass
                 
         logger.info("✅ DB tables synced successfully.")
@@ -99,6 +105,67 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 
+# Professional Admin Panel URLs (Clean routes without .html)
+from fastapi.responses import HTMLResponse
+
+def get_admin_html(filename):
+    file_path = os.path.join(BASE_DIR, "static", "admin", filename)
+    # Support relative paths within static/
+    if filename.startswith("../"):
+        file_path = os.path.normpath(os.path.join(BASE_DIR, "static", "admin", filename))
+    
+    try:
+        with open(file_path, "r") as f:
+            return HTMLResponse(content=f.read())
+    except FileNotFoundError:
+        return HTMLResponse(content="Not Found", status_code=404)
+
+@app.get("/staff/login", include_in_schema=False)
+async def get_login(): return get_admin_html("login.html")
+
+@app.get("/staff/index", include_in_schema=False)
+@app.get("/staff", include_in_schema=False)
+async def get_index(): return get_admin_html("index.html")
+
+@app.get("/staff/create", include_in_schema=False)
+async def get_create(): return get_admin_html("create.html")
+
+@app.get("/staff/users", include_in_schema=False)
+async def get_users(): return get_admin_html("users.html")
+
+# Pro-tier Next.js Admin Portal
+@app.get("/admin-pro", include_in_schema=False)
+@app.get("/admin-pro/index", include_in_schema=False)
+async def get_pro_index():
+    return get_admin_html("../pro-admin/index.html")
+
+@app.get("/admin-pro/login", include_in_schema=False)
+async def get_pro_login():
+    return get_admin_html("../pro-admin/login.html")
+
+@app.get("/admin-pro/users", include_in_schema=False)
+async def get_pro_users():
+    return get_admin_html("../pro-admin/users.html")
+
+@app.get("/admin-pro/ledger", include_in_schema=False)
+async def get_pro_ledger():
+    return get_admin_html("../pro-admin/ledger.html")
+
+@app.get("/admin-pro/audit", include_in_schema=False)
+async def get_pro_audit():
+    return get_admin_html("../pro-admin/audit.html")
+
+@app.get("/admin-pro/notifications", include_in_schema=False)
+async def get_pro_notifications():
+    return get_admin_html("../pro-admin/notifications.html")
+
+# Mount /_next and other assets for the pro-admin dashboard
+app.mount("/_next", StaticFiles(directory=os.path.join(BASE_DIR, "static", "pro-admin", "_next")), name="pro_next")
+app.mount("/admin-pro/static", StaticFiles(directory=os.path.join(BASE_DIR, "static", "pro-admin")), name="pro_static")
+
+# Mount /staff for assets (CSS/JS are passed through since they don't match the explicit routes above)
+app.mount("/staff", StaticFiles(directory=os.path.join(BASE_DIR, "static", "admin")), name="staff_assets")
+
 # 3. Middleware
 app.add_middleware(
     CORSMiddleware,
@@ -124,19 +191,15 @@ async def custom_swagger_ui_html():
 
 # Health check – always responds immediately
 @app.get("/", tags=["Health"])
-async def health_check():
-    return {"status": "alive", "message": "BODHI API is running"}
+async def health_check(request: Request):
+    user_agent = request.headers.get("user-agent", "")
+    # Allow ELB and API tools to see the raw JSON status
+    if "ELB-HealthChecker" in user_agent or "curl" in user_agent.lower() or "postman" in user_agent.lower():
+        return {"status": "alive", "message": "BODHI API is running"}
+    # Redirect browsers to the professional admin panel URL
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/staff/login")
 
-@app.get("/admin-panel", response_class=HTMLResponse, include_in_schema=False)
-async def admin_panel():
-    import os
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(base_dir, "static", "admin", "index.html")
-    try:
-        with open(file_path, "r") as f:
-            return HTMLResponse(content=f.read())
-    except FileNotFoundError:
-        return HTMLResponse(content="<h1>Error: Admin Panel file not found</h1><p>Expected path: " + file_path + "</p>", status_code=404)
 
 # 4. Attach all routers
 app.include_router(auth.router,         prefix="/auth",          tags=["Authentication"])
@@ -158,3 +221,4 @@ app.include_router(travel.router,       prefix="/travel",        tags=["Travel"]
 app.include_router(transfers.router)
 app.include_router(collaboration_router, prefix="/collaboration", tags=["Collaboration"])
 app.include_router(admin.router)
+app.include_router(admin_prod.router)

@@ -68,3 +68,4 @@ venv.bak/
 .env.*
 
 node_modules
+bodhi-backend/bodhi.db
