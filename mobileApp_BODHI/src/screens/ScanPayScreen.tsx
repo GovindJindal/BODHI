@@ -317,8 +317,8 @@ export function ScanPayScreen() {
       />
 
       {/* Dark overlay */}
-      <LinearGradient 
-        colors={['rgba(10,11,30,0.4)', 'rgba(44,4,80,0.7)']} 
+      <LinearGradient
+        colors={['rgba(10,11,30,0.4)', 'rgba(10,11,30,0.7)']}
         style={styles.overlay}
       >
         {/* Header */}

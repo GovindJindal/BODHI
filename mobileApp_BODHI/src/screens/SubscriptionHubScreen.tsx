@@ -545,7 +545,7 @@ const styles = StyleSheet.create({
   ctaText: { color: ScreenColors.subscription.textPrimary, fontWeight: '800', fontSize: responsiveFont(13) },
 
   // ── PLAN SELECTION ──
-  planHeader: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10 },
+  planHeader: { flexDirection: 'row', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 10 },
   backBtn: {
     width: 40, height: 40, borderRadius: 14,
     backgroundColor: ScreenColors.brand.surface, justifyContent: 'center', alignItems: 'center', marginBottom: 20,
