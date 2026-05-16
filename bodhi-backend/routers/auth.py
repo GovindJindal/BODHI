@@ -14,7 +14,8 @@ from services.auth_service import (
     create_access_token, 
     timedelta, 
     ACCESS_TOKEN_EXPIRE_MINUTES,
-    send_otp_email,
+    send_signup_otp_email,
+    send_reset_otp_email,
     send_otp_sms,
     get_current_user
 )
@@ -185,7 +186,7 @@ async def request_password_reset(request: PasswordResetRequest, db: AsyncSession
         await db.commit()
         
         # 🚀 FIRE THE REAL EMAIL
-        send_otp_email(user.email, otp)
+        send_reset_otp_email(user.email, otp, user.full_name)
     
     return {"message": "If that account exists, a reset code has been sent."}
 
@@ -235,7 +236,7 @@ async def send_register_otp(request: OtpRequest):
     
     if request.email:
         # 🚀 SEND EMAIL
-        success = send_otp_email(request.email, otp)
+        success = send_signup_otp_email(request.email, otp)
     else:
         # 🚀 SEND SMS
         success = send_otp_sms(request.phone, otp)

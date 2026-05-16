@@ -12,7 +12,7 @@ from database import get_db
 from models.core import User, Ledger, Payment
 from models.notification import Notification, NotificationType
 from services.auth_service import (
-    create_access_token, oauth2_scheme, SECRET_KEY, ALGORITHM, pwd_context, get_password_hash, verify_password, send_otp_email
+    create_access_token, oauth2_scheme, SECRET_KEY, ALGORITHM, pwd_context, get_password_hash, verify_password, send_reset_otp_email
 )
 from pydantic import BaseModel, EmailStr
 import random
@@ -95,7 +95,7 @@ async def request_admin_password_reset(request: AdminPasswordResetRequest, db: A
             user.reset_otp = otp
             user.reset_otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=15)
             await db.commit()
-            send_otp_email(user.email, otp)
+            send_reset_otp_email(user.email, otp, user.full_name)
         
         return {"message": "If an admin account exists with that email, a reset code has been sent."}
     except Exception as e:
