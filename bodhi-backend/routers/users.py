@@ -12,6 +12,25 @@ from services.auth_service import get_current_user, verify_password, get_passwor
 
 router = APIRouter()
 
+
+def build_gap_id(email: str) -> str:
+    parts = (email or "").lower().split("@")
+    username = parts[0] if parts and parts[0] else "user"
+    domain_initial = parts[1][0] if len(parts) > 1 and parts[1] else "x"
+    return f"{username}.{domain_initial}.gap"
+
+
+def sanitize_avatar_url(avatar_url: Optional[str]) -> Optional[str]:
+    if not avatar_url or not isinstance(avatar_url, str):
+        return None
+    cleaned = avatar_url.strip()
+    if not cleaned:
+        return None
+    if cleaned.startswith("http://") or cleaned.startswith("https://") or cleaned.startswith("/"):
+        return cleaned
+    return None
+
+
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
@@ -41,20 +60,18 @@ class UserProfile(BaseModel):
 async def get_my_profile(current_user: User = Depends(get_current_user)):
     # GAP ID = username.{first letter of domain}.gap
     # e.g. harshit@gmail.com → harshit.g.gap, harshit@chitkara.edu.in → harshit.c.gap
-    parts = current_user.email.lower().split('@')
-    username = parts[0]
-    domain_initial = parts[1][0] if len(parts) > 1 and parts[1] else 'x'
-    gap_id = f"{username}.{domain_initial}.gap"
+    gap_id = build_gap_id(current_user.email)
+    display_name = (current_user.full_name or "").strip() or "User"
 
     user_profile = UserProfile(
         id=current_user.id,
         email=current_user.email,
-        full_name=current_user.full_name,
+        full_name=display_name,
         phone=current_user.phone,
         age=current_user.age,
         gender=current_user.gender,
         has_password=current_user.hashed_password is not None,
-        avatar_url=current_user.avatar_url,
+        avatar_url=sanitize_avatar_url(current_user.avatar_url),
         gap_id=gap_id,
         balance=current_user.balance
     )
