@@ -36,7 +36,7 @@ import { Colors, Radius, Spacing, ScreenColors } from '../theme/tokens';
 import RNFS from 'react-native-fs';
 import { WebView } from 'react-native-webview';
 
-import { UsersAPI, NotificationAPI } from '../api/client';
+import { UsersAPI, NotificationAPI, BASE_URL } from '../api/client';
 import { SARVAM_API_KEY } from '@env';
 
 // Fallback for missing API keys
@@ -75,26 +75,43 @@ export function AIVoiceScreen() {
 
   const [profile, setProfile] = useState<any>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [avatarFailed, setAvatarFailed] = useState(false);
+
+  const resolveAvatarUrl = (path: string | null | undefined) => {
+    if (!path || typeof path !== 'string') return null;
+    const trimmed = path.trim();
+    if (!trimmed) return null;
+    if (trimmed.startsWith('http')) return trimmed;
+    return `${BASE_URL}${trimmed.startsWith('/') ? '' : '/'}${trimmed}`;
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Fetch real-time profile
         const profileData = await UsersAPI.fetchProfile();
-        setProfile(profileData);
-        if (profileData.full_name) {
-          setUserName(profileData.full_name.split(' ')[0]);
+        if (profileData && typeof profileData === 'object') {
+          setProfile({
+            ...profileData,
+            avatar_url: resolveAvatarUrl(profileData.avatar_url),
+          });
+          setAvatarFailed(false);
+          const name = profileData.full_name;
+          if (typeof name === 'string' && name.trim()) {
+            setUserName(name.trim().split(/\s+/)[0]);
+          }
         }
 
-        // Fetch notifications to get unread count
         const notifications = await NotificationAPI.fetchNotifications();
-        const unread = notifications.filter((n: any) => !n.is_read).length;
+        const unread = Array.isArray(notifications)
+          ? notifications.filter((n: any) => n && !n.is_read).length
+          : 0;
         setUnreadCount(unread);
       } catch (error) {
         console.error("Failed to fetch user data in AI screen:", error);
-        // Fallback to AsyncStorage if API fails
         const storedName = await AsyncStorage.getItem('user_full_name');
-        if (storedName) setUserName(storedName.split(' ')[0]);
+        if (typeof storedName === 'string' && storedName.trim()) {
+          setUserName(storedName.trim().split(/\s+/)[0]);
+        }
       }
     };
     fetchUserData();
@@ -449,8 +466,12 @@ export function AIVoiceScreen() {
             style={styles.avatarContainer}
             onPress={openProfile}
           >
-            {profile?.avatar_url ? (
-              <Image source={{ uri: profile.avatar_url }} style={styles.avatarImage} />
+            {profile?.avatar_url && !avatarFailed ? (
+              <Image
+                source={{ uri: profile.avatar_url }}
+                style={styles.avatarImage}
+                onError={() => setAvatarFailed(true)}
+              />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarText}>
