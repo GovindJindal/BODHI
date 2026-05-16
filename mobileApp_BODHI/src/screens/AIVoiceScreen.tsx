@@ -37,7 +37,10 @@ import RNFS from 'react-native-fs';
 import { WebView } from 'react-native-webview';
 
 import { UsersAPI, NotificationAPI } from '../api/client';
-import { SARVAM_API_KEY, GEMINI_API_KEY, API_BASE_URL } from '@env';
+import { SARVAM_API_KEY } from '@env';
+
+// Fallback for missing API keys
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 
 const NUM_BARS = 5;
 const BAR_MIN_HEIGHT = 8;
@@ -422,23 +425,24 @@ export function AIVoiceScreen() {
       style={styles.root}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <LinearGradient
-        colors={[ScreenColors.brand.appBgWarmWhite, '#FFFFFF', ScreenColors.brand.appBgWarmWhite]}
-        style={StyleSheet.absoluteFill}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      />
+      <View style={{ flex: 1 }}>
+        <LinearGradient
+          colors={[ScreenColors.brand.appBgWarmWhite, '#FFFFFF', ScreenColors.brand.appBgWarmWhite]}
+          style={StyleSheet.absoluteFill}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: insets.top + 10 },
-        ]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={{ maxWidth: isTablet ? (isLandscape() ? 900 : 700) : '100%', alignSelf: 'center', width: '100%' }}>
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top + 10, flexGrow: 1 },
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+        <View style={{ maxWidth: isTablet ? (isLandscape() ? 900 : 700) : '100%', alignSelf: 'center', width: '100%', flex: 1 }}>
         {/* ─── Header ─── */}
         <View style={styles.header}>
           <TouchableOpacity 
@@ -620,6 +624,7 @@ export function AIVoiceScreen() {
         </View>
         </View>
       </ScrollView>
+      </View>
 
       {/* ─── Bottom Chat Input ─── */}
       <View
@@ -667,7 +672,7 @@ export function AIVoiceScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: ScreenColors.brand.appBgWarmWhite },
-  scrollContent: { paddingBottom: 40 },
+  scrollContent: { paddingBottom: 40, minHeight: '100%' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
