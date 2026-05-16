@@ -550,13 +550,16 @@ export function AuthScreen({ navigation }: any) {
                           marginLeft: 4,
                         }}>GENDER</Text>
                         <TouchableOpacity
-                          style={[styles.dropdownHeader, isGenderOpen && { borderColor: Colors.neonLime, backgroundColor: 'rgba(200, 255, 0, 0.05)' }]}
+                          style={[
+                            styles.dropdownHeader,
+                            isGenderOpen && styles.dropdownHeaderOpen,
+                          ]}
                           onPress={() => setIsGenderOpen(!isGenderOpen)}
                         >
-                          <Text style={{ color: gender ? '#1C1C1E' : 'rgba(0,0,0,0.3)', fontWeight: '600', fontSize: 16 }}>
+                          <Text style={[styles.dropdownHeaderText, !gender && styles.dropdownPlaceholderText]}>
                             {gender || "Select"}
                           </Text>
-                          <ChevronDown size={18} color={Colors.neonLime} />
+                          <ChevronDown size={18} color={Colors.textPrimary} />
                         </TouchableOpacity>
 
                         {isGenderOpen && (
@@ -564,7 +567,10 @@ export function AuthScreen({ navigation }: any) {
                             {['Male', 'Female', 'Other'].map((g) => (
                               <TouchableOpacity
                                 key={g}
-                                style={styles.dropdownItem}
+                                style={[
+                                  styles.dropdownItem,
+                                  gender === g && styles.dropdownItemSelected,
+                                ]}
                                 onPress={() => {
                                   setGender(g);
                                   setIsGenderOpen(false);
@@ -920,29 +926,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(0,0,0,0.03)',
+    backgroundColor: Colors.glassLight,
     borderRadius: Radius.md,
     height: 56,
     paddingHorizontal: Spacing.lg,
     borderWidth: 1.5,
-    borderColor: 'rgba(0,0,0,0.08)'
+    borderColor: Colors.glassBorder,
   },
-  dropdownHeaderText: { color: '#1C1C1E', fontSize: responsiveFont(16), fontWeight: '700' },
+  dropdownHeaderOpen: {
+    borderColor: Colors.textPrimary,
+    backgroundColor: Colors.surfaceHigh,
+  },
+  dropdownHeaderText: {
+    color: Colors.textPrimary,
+    fontSize: responsiveFont(16),
+    fontWeight: '700',
+  },
+  dropdownPlaceholderText: {
+    color: 'rgba(0,0,0,0.3)',
+    fontWeight: '600',
+  },
   dropdownList: {
     position: 'absolute',
     top: 60,
     left: 0,
     right: 0,
-    backgroundColor: '#2A0845',
+    backgroundColor: Colors.surfaceHigh,
     borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.neonLime,
+    borderWidth: 1.5,
+    borderColor: Colors.glassBorder,
     overflow: 'hidden',
-    shadowColor: Colors.neonLime,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
     zIndex: 1000,
   },
   dropdownItem: {
@@ -951,7 +969,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 18,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)'
+    borderBottomColor: Colors.divider,
+  },
+  dropdownItemSelected: {
+    backgroundColor: Colors.neonLimeSubtle,
   },
 
   wizardFooter: {
@@ -1008,7 +1029,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   dropdownItemText: {
-    color: '#1C1C1E',
+    color: Colors.textPrimary,
     fontSize: 16,
     fontWeight: '600',
   },
