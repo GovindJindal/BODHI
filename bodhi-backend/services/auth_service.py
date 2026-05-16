@@ -161,29 +161,18 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
         raise credentials_exception
     return user
 
-def send_otp_email(email_address: str, otp: str):
+def _format_otp_for_display(otp: str) -> str:
+    return " ".join(otp.strip())
+
+
+def _deliver_html_email(email_address: str, subject: str, html_body: str) -> bool:
     try:
-        # Create message
         msg = MIMEMultipart()
         msg['From'] = f"BODHI <{SENDER_EMAIL}>"
         msg['To'] = email_address
-        msg['Subject'] = f"{otp} is your BODHI reset code"
+        msg['Subject'] = subject
+        msg.attach(MIMEText(html_body, 'html'))
 
-        body = f"""
-        <html>
-            <body style="font-family: sans-serif; background-color: #000; color: #fff; padding: 20px;">
-                <h2 style="color: #CCFF00;">BODHI</h2>
-                <p>Use the code below to verify your account. Valid for 10 minutes.</p>
-                <div style="background: #222; padding: 20px; border-radius: 10px; text-align: center;">
-                    <span style="font-size: 32px; font-weight: bold; letter-spacing: 10px; color: #CCFF00;">{otp}</span>
-                </div>
-                <p style="font-size: 12px; color: #666; margin-top: 20px;">Your money. Alive.</p>
-            </body>
-        </html>
-        """
-        msg.attach(MIMEText(body, 'html'))
-
-        # Connect and Send
         print(f"📧 Attempting to send mail to {email_address} via {SENDER_EMAIL}...")
         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
         server.starttls()
@@ -197,6 +186,101 @@ def send_otp_email(email_address: str, otp: str):
         print(f"❌ Mail Error for {email_address}: {e}")
         traceback.print_exc()
         return False
+
+
+def send_signup_otp_email(email_address: str, otp: str):
+    greeting_name = email_address.split('@')[0].replace('.', ' ').title() if '@' in email_address else 'there'
+    otp_display = _format_otp_for_display(otp)
+
+    body = f"""
+    <html>
+        <body style="margin:0;padding:0;background-color:#F5F3EE;font-family:Arial,Helvetica,sans-serif;color:#1C1C1E;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#F5F3EE;padding:32px 16px;">
+                <tr>
+                    <td align="center">
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background-color:#FFFFFF;border:1px solid rgba(0,0,0,0.08);border-radius:16px;padding:32px 28px;">
+                            <tr>
+                                <td style="font-size:24px;font-weight:800;letter-spacing:1px;color:#1A1A4E;padding-bottom:24px;">BODHI</td>
+                            </tr>
+                            <tr>
+                                <td style="font-size:16px;line-height:1.6;padding-bottom:12px;">Hi {greeting_name},</td>
+                            </tr>
+                            <tr>
+                                <td style="font-size:16px;line-height:1.6;padding-bottom:20px;">Use the code below to verify your account.</td>
+                            </tr>
+                            <tr>
+                                <td align="center" style="padding-bottom:24px;">
+                                    <div style="display:inline-block;background-color:#F5F3EE;border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:18px 24px;">
+                                        <span style="font-size:32px;font-weight:700;letter-spacing:8px;color:#1A1A4E;font-family:'Courier New',Courier,monospace;">{otp_display}</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="font-size:14px;line-height:1.6;color:rgba(0,0,0,0.65);padding-bottom:24px;">This code expires in 10 minutes. If you did not request this, please ignore this email.</td>
+                            </tr>
+                            <tr>
+                                <td style="font-size:14px;line-height:1.6;padding-bottom:4px;">— The BODHI Team</td>
+                            </tr>
+                            <tr>
+                                <td style="font-size:13px;color:rgba(0,0,0,0.45);">Your money. Alive.</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+    </html>
+    """
+    return _deliver_html_email(email_address, "[OTP] Verify your BODHI account", body)
+
+
+def send_reset_otp_email(email_address: str, otp: str, user_name: Optional[str] = None):
+    greeting_name = (user_name or '').strip()
+    if not greeting_name:
+        greeting_name = email_address.split('@')[0].replace('.', ' ').title() if '@' in email_address else 'there'
+    otp_display = _format_otp_for_display(otp)
+
+    body = f"""
+    <html>
+        <body style="margin:0;padding:0;background-color:#F5F3EE;font-family:Arial,Helvetica,sans-serif;color:#1C1C1E;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#F5F3EE;padding:32px 16px;">
+                <tr>
+                    <td align="center">
+                        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:520px;background-color:#FFFFFF;border:1px solid rgba(0,0,0,0.08);border-radius:16px;padding:32px 28px;">
+                            <tr>
+                                <td style="font-size:24px;font-weight:800;letter-spacing:1px;color:#1A1A4E;padding-bottom:24px;">BODHI</td>
+                            </tr>
+                            <tr>
+                                <td style="font-size:16px;line-height:1.6;padding-bottom:12px;">Hi {greeting_name},</td>
+                            </tr>
+                            <tr>
+                                <td style="font-size:16px;line-height:1.6;padding-bottom:20px;">Use the code below to reset your password.</td>
+                            </tr>
+                            <tr>
+                                <td align="center" style="padding-bottom:24px;">
+                                    <div style="display:inline-block;background-color:#F5F3EE;border:1px solid rgba(0,0,0,0.08);border-radius:12px;padding:18px 24px;">
+                                        <span style="font-size:32px;font-weight:700;letter-spacing:8px;color:#1A1A4E;font-family:'Courier New',Courier,monospace;">{otp_display}</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="font-size:14px;line-height:1.6;color:rgba(0,0,0,0.65);padding-bottom:24px;">This code expires in 10 minutes. If you did not request this, please ignore this email.</td>
+                            </tr>
+                            <tr>
+                                <td style="font-size:14px;line-height:1.6;padding-bottom:4px;">— The BODHI Team</td>
+                            </tr>
+                            <tr>
+                                <td style="font-size:13px;color:rgba(0,0,0,0.45);">Your money. Alive.</td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+    </html>
+    """
+    return _deliver_html_email(email_address, "[OTP] Reset your BODHI password", body)
+
 
 def send_role_update_email(email_address: str, new_role: str):
     try:

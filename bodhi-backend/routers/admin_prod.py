@@ -17,7 +17,7 @@ from models.social import InvestmentGroup, TripWallet
 from models.portfolio import PortfolioItem, Transaction as TradingTransaction
 from services.auth_service import (
     create_access_token, oauth2_scheme, SECRET_KEY, ALGORITHM, 
-    pwd_context, get_password_hash, verify_password, send_otp_email
+    pwd_context, get_password_hash, verify_password, send_reset_otp_email
 )
 
 router = APIRouter(prefix="/admin-v2", tags=["BODHI Production Admin"])
