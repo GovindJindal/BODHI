@@ -233,7 +233,7 @@ npm run ios # or npm run android
 ---
 
 ## 📄 License
-Built with 🧠 and way too much caffeine for the **FINVASIA Innovation Hackathon 2026**.
+Built with 🧠 and way too much caffeine ☕️ for the **FINVASIA Innovation Hackathon 2026**.
 
 <p align="center">
   <em>BODHI — Your money. Alive.</em>
