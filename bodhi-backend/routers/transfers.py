@@ -139,11 +139,14 @@ async def _find_user_by_identifier(db: AsyncSession, identifier: str) -> Optiona
     # 2. Phone number — normalize and compare last 10 digits
     normalized_input = _normalize_phone(raw)
     if len(normalized_input) >= 8:
-        result = await db.execute(select(User).where(User.phone.isnot(None)))
-        all_users = result.scalars().all()
-        for u in all_users:
-            if u.phone and _normalize_phone(u.phone) == normalized_input:
-                return u
+        # Instead of pulling all users, use a LIKE query for the normalized digits.
+        # This prevents an O(N) memory leak on large datasets.
+        result = await db.execute(
+            select(User).where(User.phone.like(f"%{normalized_input}"))
+        )
+        user = result.scalars().first()
+        if user:
+            return user
 
     # 3. UPI ID (user@bank — no dot after @, so not a real email)
     if "@" in raw and "." not in raw.split("@")[-1]:
@@ -151,11 +154,12 @@ async def _find_user_by_identifier(db: AsyncSession, identifier: str) -> Optiona
         # Could be a phone like "9876543210@paytm"
         norm = _normalize_phone(upi_prefix)
         if len(norm) >= 8:
-            result = await db.execute(select(User).where(User.phone.isnot(None)))
-            all_users = result.scalars().all()
-            for u in all_users:
-                if u.phone and _normalize_phone(u.phone) == norm:
-                    return u
+            result = await db.execute(
+                select(User).where(User.phone.like(f"%{norm}"))
+            )
+            user = result.scalars().first()
+            if user:
+                return user
         # Could be an email username like "johndoe@okaxis"
         result = await db.execute(
             select(User).where(User.email.like(f"{upi_prefix}@%"))

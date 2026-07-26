@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import desc
@@ -18,7 +18,24 @@ import yfinance as yf
 import asyncio
 import math
 
+from services.scheduler import process_morning_amos
+import os
+
 router = APIRouter()
+
+# ─── Internal EventBridge Triggers ───────────────────────────────────────────
+@router.post("/internal/trigger_amos", include_in_schema=False)
+async def trigger_amos(req: Request):
+    # Verify the secret token sent by AWS EventBridge
+    from core.config import settings
+    secret = req.headers.get("x-bodhi-cron-secret")
+    if not secret or secret != settings.cron_secret:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    await process_morning_amos()
+    return {"status": "success", "message": "AMO Processing triggered"}
+
+# ─── Endpoints ───────────────────────────────────────────────────────────────
 
 class BuyRequest(BaseModel):
     symbol: str = Field(..., example="RELIANCE.NS")

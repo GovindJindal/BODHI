@@ -79,10 +79,19 @@ async def run_async_migrations() -> None:
     if db_url:
         configuration["sqlalchemy.url"] = db_url
 
+    connect_args = {}
+    if db_url and "sslmode=require" in db_url:
+        import ssl
+        ssl_context = ssl.create_default_context()
+        connect_args["ssl"] = ssl_context
+        db_url = db_url.replace("?sslmode=require", "").replace("&sslmode=require", "")
+        configuration["sqlalchemy.url"] = db_url
+
     connectable = async_engine_from_config(
         configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args=connect_args
     )
 
     async with connectable.connect() as connection:

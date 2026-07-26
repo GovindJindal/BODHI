@@ -1,0 +1,14 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "bodhi-backend"
+resolve_s3 = true
+s3_prefix = "bodhi-backend"
+region = "ap-southeast-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Stage=\"prod\""
+image_repositories = ["BodhiFunction=006559867848.dkr.ecr.ap-southeast-1.amazonaws.com/bodhibackendd0ee0607/bodhifunctione27ebf05repo"]
+
+[default.global.parameters]
+region = "ap-southeast-1"

@@ -20,20 +20,39 @@ try:
         print(f"📡 Connecting to: {masked_url}")
         
         connect_args = {}
-        # RDS SSL handling
-        if "rds.amazonaws.com" in DATABASE_URL:
+        # Generic Managed PostgreSQL SSL handling (RDS, Neon, Supabase, Render)
+        if "sslmode=require" in DATABASE_URL or ("localhost" not in DATABASE_URL and "127.0.0.1" not in DATABASE_URL):
             import ssl
+            # Use the default context which securely verifies certificates
             ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
             connect_args["ssl"] = ssl_context
             
-        engine = create_async_engine(
-            DATABASE_URL, 
-            echo=False,  # Turn off echo to avoid bloating logs
-            pool_pre_ping=True,
-            connect_args=connect_args
-        )
+            # Remove sslmode=require from the URL so SQLAlchemy doesn't complain
+            DATABASE_URL = DATABASE_URL.replace("?sslmode=require", "").replace("&sslmode=require", "")
+            
+        # Lambda specific connection pooling
+        is_lambda = os.environ.get("AWS_EXECUTION_ENV") is not None
+        
+        if is_lambda:
+            engine = create_async_engine(
+                DATABASE_URL, 
+                echo=False,
+                pool_pre_ping=True,
+                pool_size=1,
+                max_overflow=0,
+                pool_recycle=300,
+                connect_args=connect_args
+            )
+        else:
+            engine = create_async_engine(
+                DATABASE_URL, 
+                echo=False,
+                pool_pre_ping=True,
+                pool_size=settings.db_pool_size,
+                max_overflow=settings.db_max_overflow,
+                pool_recycle=settings.db_pool_recycle,
+                connect_args=connect_args
+            )
         AsyncSessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     else:
         print("⚠️ WARNING: DATABASE_URL is missing!")

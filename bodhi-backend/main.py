@@ -42,9 +42,15 @@ import models.manual_transaction  # AI voice-logged cash transactions
 # We run table creation as a fire-and-forget background task so the app
 # is immediately available to serve health checks. This prevents 502 errors
 # during Elastic Beanstalk cold starts when RDS is slow to accept connections.
+db_initialized = False
+
 async def init_db():
+    global db_initialized
+    if db_initialized:
+        return
+        
     try:
-        logger.info("⏳ Running DB table sync in background…")
+        logger.info("⏳ Running DB table sync…")
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
             
@@ -63,30 +69,38 @@ async def init_db():
                 pass
                 
         logger.info("✅ DB tables synced successfully.")
+        db_initialized = True
     except Exception as e:
-        logger.error(f"❌ DB init failed (app will still serve): {e}")
+        logger.error(f"❌ DB init failed: {e}")
 
 
-# 1. Lifespan – non-blocking startup
+# 1. Lifespan – Lambda-compatible startup
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Fire DB sync as background task so startup doesn't block on RDS
-    asyncio.create_task(init_db())
+    is_lambda = os.environ.get("AWS_EXECUTION_ENV") is not None
 
-    # Start the APScheduler
-    try:
-        scheduler.start()
-        logger.info("🤖 Trading Scheduler Started")
-    except Exception as e:
-        logger.warning(f"⚠️ Scheduler failed to start: {e}")
+    if is_lambda:
+        # In Lambda, run synchronously to ensure it finishes before serving requests
+        await init_db()
+    else:
+        # On local/EC2, run in background
+        asyncio.create_task(init_db())
+        
+        # Only start APScheduler on long-running instances
+        try:
+            scheduler.start()
+            logger.info("🤖 Trading Scheduler Started")
+        except Exception as e:
+            logger.warning(f"⚠️ Scheduler failed to start: {e}")
 
     yield  # App is now running and serving requests
 
     # Shutdown
-    try:
-        scheduler.shutdown(wait=False)
-    except Exception:
-        pass
+    if not is_lambda:
+        try:
+            scheduler.shutdown(wait=False)
+        except Exception:
+            pass
 
 
 # 2. CRITICAL: Create the app!
@@ -171,7 +185,36 @@ app.mount("/admin-pro/static", StaticFiles(directory=os.path.join(BASE_DIR, "sta
 # Mount /staff for assets (CSS/JS are passed through since they don't match the explicit routes above)
 app.mount("/staff", StaticFiles(directory=os.path.join(BASE_DIR, "static", "admin")), name="staff_assets")
 
-# 3. Middleware
+import time
+import json
+from fastapi import Request
+
+@app.middleware("http")
+async def json_logging_middleware(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    latency_ms = round((time.time() - start_time) * 1000, 2)
+    
+    # Exclude health endpoints from clogging CloudWatch
+    if request.url.path not in ["/health/live", "/health/ready", "/"]:
+        log_data = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "method": request.method,
+            "path": request.url.path,
+            "status_code": response.status_code,
+            "latency_ms": latency_ms,
+            "ip": request.client.host if request.client else "unknown"
+        }
+        if response.status_code >= 500:
+            logger.error(json.dumps(log_data))
+        elif response.status_code >= 400:
+            logger.warning(json.dumps(log_data))
+        else:
+            logger.info(json.dumps(log_data))
+            
+    return response
+
+# 3. Standard Middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins_list,
@@ -199,17 +242,35 @@ async def custom_swagger_ui_html():
         swagger_ui_parameters={"persistAuthorization": True},
     )
 
-# Health check – always responds immediately
+# Health check endpoints for ALB/API Gateway
 @app.get("/", tags=["Health"])
 @limiter.exempt
 async def health_check(request: Request):
     user_agent = request.headers.get("user-agent", "")
-    # Allow ELB and API tools to see the raw JSON status
-    if "ELB-HealthChecker" in user_agent or "curl" in user_agent.lower() or "postman" in user_agent.lower():
+    if "ELB-HealthChecker" in user_agent or "curl" in user_agent.lower() or "postman" in user_agent.lower() or "AmazonAPIGateway" in user_agent:
         return {"status": "alive", "message": "BODHI API is running"}
-    # Redirect browsers to the professional admin panel URL
     from fastapi.responses import RedirectResponse
     return RedirectResponse(url="/staff/login")
+
+@app.get("/health/live", tags=["Health"], include_in_schema=False)
+@limiter.exempt
+async def health_live():
+    return {"status": "ok"}
+
+@app.get("/health/ready", tags=["Health"], include_in_schema=False)
+@limiter.exempt
+async def health_ready():
+    # Robust check: Try querying the DB using the active engine
+    if engine:
+        try:
+            from sqlalchemy import text
+            async with engine.connect() as conn:
+                await conn.execute(text("SELECT 1"))
+            return {"status": "ready", "db": "connected"}
+        except Exception as e:
+            logger.error(f"Health check DB failure: {e}")
+            return {"status": "unavailable", "db": "error"}, 503
+    return {"status": "unavailable"}, 503
 
 
 # 4. Attach all routers

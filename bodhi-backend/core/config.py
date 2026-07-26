@@ -7,7 +7,13 @@ class StartupConfigurationError(Exception):
     pass
 
 class Settings(BaseSettings):
+    # Database & Redis Settings
     database_url: str = Field(..., alias="DATABASE_URL")
+    db_pool_size: int = Field(20, alias="DB_POOL_SIZE")
+    db_max_overflow: int = Field(50, alias="DB_MAX_OVERFLOW")
+    db_pool_recycle: int = Field(1800, alias="DB_POOL_RECYCLE")
+    redis_url: Optional[str] = Field(None, alias="REDIS_URL")
+    
     secret_key: str = Field(..., alias="SECRET_KEY")
     jwt_algorithm: str = Field("HS256", alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(10080, alias="ACCESS_TOKEN_EXPIRE_MINUTES") # 7 days
@@ -62,6 +68,9 @@ class Settings(BaseSettings):
     rag_top_k: int = Field(5, alias="RAG_TOP_K")
     rag_conf_high: float = Field(0.75, alias="RAG_CONF_HIGH")
     rag_conf_med: float = Field(0.45, alias="RAG_CONF_MED")
+
+    # Internal Cron Settings (Required for Lambda deployment)
+    cron_secret: str = Field(..., alias="CRON_SECRET")
 
     model_config = SettingsConfigDict(
         env_file=".env",

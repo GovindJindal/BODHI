@@ -1,0 +1,37 @@
+# Build Stage
+FROM public.ecr.aws/lambda/python:3.11 AS builder
+
+# Install only the packages required for compiling Python dependencies.
+# Do NOT run yum update on Lambda base images.
+RUN yum install -y \
+    gcc \
+    gcc-c++ \
+    make \
+    libffi-devel \
+    postgresql-devel \
+ && yum clean all
+
+# Copy requirements
+COPY requirements.txt .
+
+# Ensure Mangum is available
+RUN grep -qi "^mangum" requirements.txt || echo "mangum>=0.17.0" >> requirements.txt
+
+# Install dependencies into the Lambda task directory
+RUN mkdir -p /var/task/build && \
+    pip install --no-cache-dir -r requirements.txt -t /var/task/build
+
+# Runtime Stage
+FROM public.ecr.aws/lambda/python:3.11
+
+# Copy dependencies
+COPY --from=builder /var/task/build ${LAMBDA_TASK_ROOT}
+
+# Copy application
+COPY . ${LAMBDA_TASK_ROOT}
+
+# Optional: precompile Python bytecode
+RUN python -m compileall ${LAMBDA_TASK_ROOT}
+
+# Lambda handler
+CMD ["lambda_handler.handler"]

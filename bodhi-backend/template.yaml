@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: BODHI Serverless Backend Deployment (Portfolio Edition)
+
+Parameters:
+  Stage:
+    Type: String
+    Default: prod
+    Description: Deployment stage environment
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 1024
+    Environment:
+      Variables:
+        AWS_EXECUTION_ENV: "AWS_Lambda_Python" # Tells our code it's in Lambda
+        CRON_SECRET: "{{resolve:secretsmanager:bodhi/prod/cron:SecretString:CRON_SECRET}}"
+        # Note: In a real environment you would map all your required secrets here.
+
+Resources:
+  BodhiApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref Stage
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - "*"
+        AllowMethods:
+          - "*"
+          
+  BodhiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Architectures:
+        - arm64
+      Events:
+        ApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BodhiApi
+            Path: /{proxy+}
+            Method: ANY
+        RootApiEvent:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BodhiApi
+            Path: /
+            Method: ANY
+        ScheduledAmoTrigger:
+          Type: Schedule
+          Properties:
+            Schedule: cron(15 9 ? * MON-FRI *)
+            Name: BodhiMorningAmoTrigger
+            Description: Triggers the Morning AMO processing at 9:15 AM
+            Input: !Sub
+              - '{"resource": "/trade/internal/trigger_amos", "path": "/trade/internal/trigger_amos", "httpMethod": "POST", "headers": {"x-bodhi-cron-secret": "${CronSecret}"}, "requestContext": {}}'
+              - CronSecret: "{{resolve:secretsmanager:bodhi/prod/cron:SecretString:CRON_SECRET}}"
+      Policies:
+        # Least Privilege IAM Policies
+        - AWSLambdaBasicExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: "*"
+      
+    Metadata:
+      Dockerfile: Dockerfile.lambda
+      DockerContext: .
+      DockerTag: python3.11-v1
+
+Outputs:
+  ApiEndpoint:
+    Description: "API Gateway endpoint URL for Prod environment"
+    Value: !Sub "https://${BodhiApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/"
