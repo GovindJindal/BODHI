@@ -166,23 +166,41 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-    # Generate JWT Token
+    # Generate JWT Token and Session
+    from models.core import Session
+    from services.auth_service import generate_opaque_token, hash_refresh_token
+    
+    raw_refresh_token = generate_opaque_token()
+    session = Session(
+        user_id=user.id,
+        refresh_token_hash=hash_refresh_token(raw_refresh_token),
+        device_info=request.headers.get("User-Agent", "")[:255] if request.headers.get("User-Agent") else None,
+        ip_address=request.client.host if request.client else None,
+        expires_at=datetime.now(timezone.utc) + timedelta(days=30)
+    )
+    db.add(session)
+    await db.flush()
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email, "user_id": user.id, "role": user.role}, 
-        expires_delta=access_token_expires
+        expires_delta=access_token_expires,
+        session_id=session.id
     )
+    await db.commit()
     
     return {
         "access_token": access_token,
         "token_type": "bearer",
         "full_name": user.full_name,
+        "refresh_token": raw_refresh_token,
+        "session_id": session.id
     }
 
 @router.post("/forgot-password")
 @limiter.limit("3/minute")
 async def request_password_reset(request: PasswordResetRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == payload.email))
+    result = await db.execute(select(User).where(User.email == request.email))
     user = result.scalar_one_or_none()
     
     if user:
@@ -205,7 +223,7 @@ class PasswordResetConfirm(BaseModel):
 @limiter.limit("3/minute")
 async def confirm_password_reset(request: PasswordResetConfirm, db: AsyncSession = Depends(get_db)):
     # 1. Find the user
-    result = await db.execute(select(User).where(User.email == payload.email))
+    result = await db.execute(select(User).where(User.email == request.email))
     user = result.scalar_one_or_none()
     
     if not user:
@@ -219,13 +237,24 @@ async def confirm_password_reset(request: PasswordResetConfirm, db: AsyncSession
     if user.reset_otp_expiry and datetime.now(timezone.utc) > user.reset_otp_expiry:
         raise HTTPException(status_code=400, detail="Reset code has expired")
         
-    # 4. Update password and clear OTP fields
+    # 4. Update password, clear OTP fields, and invalidate existing sessions
+    from sqlalchemy import update
+    from models.core import Session
+    
     user.hashed_password = get_password_hash(request.new_password)
     user.reset_otp = None
     user.reset_otp_expiry = None
+    user.password_changed_at = datetime.now(timezone.utc)
+    
+    # Revoke all active sessions immediately
+    await db.execute(
+        update(Session)
+        .where((Session.user_id == user.id) & (Session.revoked_at.is_(None)))
+        .values(revoked_at=datetime.now(timezone.utc))
+    )
     
     await db.commit()
-    return {"message": "Password updated successfully"}
+    return {"message": "Password updated successfully. All previous sessions have been signed out."}
 
 @router.post("/send-register-otp")
 @limiter.limit("3/minute")
@@ -289,3 +318,121 @@ async def verify_upin(request: Request, payload: UpinVerify, user: User = Depend
         raise HTTPException(status_code=400, detail="Invalid U-PIN")
         
     return {"success": True, "message": "U-PIN verified"}
+
+# ---------------------------------------------------------------------------
+# Session Management & Refresh Tokens
+# ---------------------------------------------------------------------------
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+    session_id: str
+
+@router.post("/refresh")
+@limiter.limit("5/minute")
+async def refresh_token(request: Request, body: RefreshRequest, db: AsyncSession = Depends(get_db)):
+    from models.core import Session
+    from services.auth_service import hash_refresh_token, verify_refresh_token, generate_opaque_token, create_access_token
+    
+    # Lock the session row to prevent concurrent refresh races
+    result = await db.execute(select(Session).where(Session.id == body.session_id).with_for_update())
+    session = result.scalar_one_or_none()
+    
+    if not session or session.revoked_at or session.expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=401, detail="Invalid, expired, or revoked session")
+        
+    # Verify the provided refresh token against the stored hash
+    if not verify_refresh_token(body.refresh_token, session.refresh_token_hash):
+        # TOKEN THEFT DETECTED: A valid session exists but the token was wrong/old.
+        print(f"🚨 Token theft/replay detected for session {session.id}. Revoking immediately.")
+        session.revoked_at = datetime.now(timezone.utc)
+        await db.commit()
+        raise HTTPException(status_code=401, detail="Invalid refresh token. Session revoked for security.")
+        
+    # Rotate token
+    new_raw_refresh = generate_opaque_token()
+    session.refresh_token_hash = hash_refresh_token(new_raw_refresh)
+    session.last_used_at = datetime.now(timezone.utc)
+    
+    # We need the user to generate access token
+    result_u = await db.execute(select(User).where(User.id == session.user_id))
+    user = result_u.scalar_one()
+    
+    access_token = create_access_token(
+        data={"sub": user.email, "user_id": user.id, "role": user.role}, 
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        session_id=session.id
+    )
+    
+    await db.commit()
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "refresh_token": new_raw_refresh,
+        "session_id": session.id
+    }
+
+class LogoutRequest(BaseModel):
+    session_id: str
+
+@router.post("/logout")
+async def logout(request: Request, body: LogoutRequest, db: AsyncSession = Depends(get_db)):
+    from models.core import Session
+    result = await db.execute(select(Session).where(Session.id == body.session_id))
+    session = result.scalar_one_or_none()
+    if session and not session.revoked_at:
+        session.revoked_at = datetime.now(timezone.utc)
+        await db.commit()
+    return {"message": "Logged out successfully"}
+
+@router.get("/sessions")
+async def get_active_sessions(request: Request, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    from models.core import Session
+    # List active sessions for user
+    result = await db.execute(
+        select(Session).where(
+            (Session.user_id == current_user.id) & 
+            (Session.revoked_at.is_(None)) & 
+            (Session.expires_at > datetime.now(timezone.utc))
+        ).order_by(Session.last_used_at.desc())
+    )
+    sessions = result.scalars().all()
+    
+    # Extract current session id if available
+    auth_header = request.headers.get("Authorization")
+    current_sid = None
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        try:
+            from services.auth_service import verify_token_payload
+            payload = verify_token_payload(token)
+            current_sid = payload.get("sid")
+        except Exception:
+            pass
+            
+    return {
+        "sessions": [
+            {
+                "session_id": s.id,
+                "device_info": s.device_info,
+                "ip_address": s.ip_address,
+                "last_used_at": s.last_used_at.isoformat(),
+                "created_at": s.created_at.isoformat(),
+                "is_current": s.id == current_sid
+            }
+            for s in sessions
+        ]
+    }
+
+@router.delete("/sessions/{session_id}")
+async def revoke_session(session_id: str, request: Request, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    from models.core import Session
+    result = await db.execute(select(Session).where((Session.id == session_id) & (Session.user_id == current_user.id)))
+    session = result.scalar_one_or_none()
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+        
+    session.revoked_at = datetime.now(timezone.utc)
+    await db.commit()
+    return {"message": "Session revoked successfully"}

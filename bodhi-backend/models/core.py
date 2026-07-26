@@ -145,6 +145,12 @@ class User(Base):
     reset_otp = Column(String(6), nullable=True, default=None)
     reset_otp_expiry = Column(DateTime(timezone=True), nullable=True, default=None)
 
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    sessions: Mapped[list["Session"]] = relationship(
+        "Session", back_populates="user", lazy="noload", cascade="all, delete-orphan"
+    )
+
     def __repr__(self) -> str:  # pragma: no cover
         return f"<User id={self.id} email={self.email} role={self.role}>"
 
@@ -366,6 +372,49 @@ class AuditLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, index=True)
 
     admin: Mapped["User"] = relationship("User")
+
+
+# ---------------------------------------------------------------------------
+# Session (Refresh Tokens and Device Management)
+# ---------------------------------------------------------------------------
+class Session(Base):
+    """
+    Tracks active user sessions, refresh tokens (hashed), and device metadata.
+    """
+    __tablename__ = "sessions"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=_new_uuid
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    
+    # Store only the hash of the refresh token!
+    refresh_token_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    
+    device_info: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utcnow
+    )
+    last_used_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_utcnow
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    # Relationship
+    user: Mapped["User"] = relationship("User", back_populates="sessions")
+
+    def __repr__(self) -> str:
+        return f"<Session id={self.id} user={self.user_id}>"
+
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<AuditLog id={self.id} admin={self.admin_id} action={self.action}>"

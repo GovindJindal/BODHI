@@ -118,9 +118,23 @@ def get_password_hash(password: str):
     print(f"🔒 Hashing password fingerprint (length: {len(final_input)} bytes)")
     return pwd_context.hash(final_input.decode('utf-8'))
 
+import secrets
+
+def generate_opaque_token() -> str:
+    """Generate a cryptographically secure 64-character hex string for refresh tokens."""
+    return secrets.token_hex(32)
+
+def hash_refresh_token(token: str) -> str:
+    """Hash a refresh token using SHA-256 for secure DB storage."""
+    return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+def verify_refresh_token(token: str, hashed_token: str) -> bool:
+    """Verify a raw refresh token against its hash."""
+    return hash_refresh_token(token) == hashed_token
+
 logger = logging.getLogger(__name__)
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None, session_id: Optional[str] = None):
     to_encode = data.copy()
     now = datetime.utcnow()
     expire = now + (expires_delta if expires_delta else timedelta(minutes=15))
@@ -129,6 +143,8 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
         "iat": now,
         "jti": str(uuid.uuid4())
     })
+    if session_id:
+        to_encode["sid"] = session_id
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def verify_token_payload(token: str) -> dict:
@@ -181,7 +197,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is suspended or inactive."
         )
-        
+
+    if user.password_changed_at:
+        iat = payload.get("iat")
+        if iat:
+            from datetime import timezone
+            iat_dt = datetime.fromtimestamp(iat, tz=timezone.utc)
+            if iat_dt < user.password_changed_at:
+                logger.warning(f"Access Denied: Token issued before password change for user ({username})")
+                raise credentials_exception
+
     return user
 
 def _format_otp_for_display(otp: str) -> str:
