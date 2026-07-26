@@ -75,12 +75,14 @@ class OAuthTokenResponse(BaseModel):
 # Settings expected in your config (add these to your .env / Settings class)
 # ─────────────────────────────────────────────────────────────────────────────
 # ─────────────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 # Settings – read from environment (set these in .env / EB config)
 # ─────────────────────────────────────────────────────────────────────────────
-GOOGLE_CLIENT_ID_IOS      = os.getenv("GOOGLE_CLIENT_ID_IOS", "")
-GOOGLE_CLIENT_ID_ANDROID  = os.getenv("GOOGLE_CLIENT_ID_ANDROID", "")
-GOOGLE_CLIENT_ID_WEB      = os.getenv("GOOGLE_CLIENT_ID", "")   # primary web/backend client
-APPLE_APP_BUNDLE_ID       = os.getenv("APPLE_APP_BUNDLE_ID", "com.bodhi.app")
+from core.config import settings
+GOOGLE_CLIENT_ID_IOS      = settings.google_client_id_ios or ""
+GOOGLE_CLIENT_ID_ANDROID  = settings.google_client_id_android or ""
+GOOGLE_CLIENT_ID_WEB      = settings.google_client_id or ""   # primary web/backend client
+APPLE_APP_BUNDLE_ID       = settings.apple_app_bundle_id
 
 
 # ─────────────────────────────────────────────────────────────────────────────

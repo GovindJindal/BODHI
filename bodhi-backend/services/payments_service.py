@@ -16,9 +16,12 @@ from schemas.payments import PaymentIntentCreate, PaymentIntentResponse, Webhook
 
 logger = logging.getLogger(__name__)
 
-_RAZORPAY_KEY_ID: str = os.environ.get("RAZORPAY_KEY_ID", "rzp_test_CHANGEME")
-_RAZORPAY_KEY_SECRET: str = os.environ.get("RAZORPAY_KEY_SECRET", "CHANGEME")
-_RAZORPAY_WEBHOOK_SECRET: str = os.environ.get("RAZORPAY_WEBHOOK_SECRET", "CHANGEME")
+from core.config import settings
+
+_RAZORPAY_KEY_ID: str = settings.razorpay_key_id
+_RAZORPAY_KEY_SECRET: str = settings.razorpay_key_secret
+_RAZORPAY_WEBHOOK_SECRET: str = settings.razorpay_webhook_secret
+
 _rz_client = razorpay.Client(auth=(_RAZORPAY_KEY_ID, _RAZORPAY_KEY_SECRET))
 
 class PaymentServiceError(Exception): pass

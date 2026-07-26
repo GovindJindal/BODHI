@@ -22,21 +22,23 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+from core.config import settings
+
 # ---------------------------------------------------------------------------
 # Config (env-overridable)
 # ---------------------------------------------------------------------------
-CHUNK_SIZE: int = int(os.getenv("RAG_CHUNK_SIZE", "600"))
-CHUNK_OVERLAP: int = int(os.getenv("RAG_CHUNK_OVERLAP", "80"))
-TOP_K: int = int(os.getenv("RAG_TOP_K", "5"))
-CONFIDENCE_HIGH: float = float(os.getenv("RAG_CONF_HIGH", "0.75"))
-CONFIDENCE_MED: float = float(os.getenv("RAG_CONF_MED", "0.45"))
+CHUNK_SIZE: int = settings.rag_chunk_size
+CHUNK_OVERLAP: int = settings.rag_chunk_overlap
+TOP_K: int = settings.rag_top_k
+CONFIDENCE_HIGH: float = settings.rag_conf_high
+CONFIDENCE_MED: float = settings.rag_conf_med
 
 FALLBACK_MESSAGE = (
     "I was unable to find a specific answer to your question within the "
     "provided insurance document. Please consult your insurer or a licensed advisor."
 )
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_API_KEY = settings.gemini_api_key
 
 
 # ---------------------------------------------------------------------------

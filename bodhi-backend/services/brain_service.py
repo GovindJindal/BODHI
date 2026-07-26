@@ -46,7 +46,8 @@ async def process_user_intent(message: str) -> Dict[str, Any]:
     Analyzes user message. If trigger words are found, uses a specialized extraction prompt.
     Otherwise, uses the general financial co-pilot prompt.
     """
-    gemini_key = os.getenv("GEMINI_API_KEY")
+    from core.config import settings
+    gemini_key = settings.gemini_api_key
     if not gemini_key:
         from fastapi import HTTPException
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY environment variable is not set. Cannot process AI intent.")

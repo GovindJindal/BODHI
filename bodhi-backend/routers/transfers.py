@@ -24,8 +24,10 @@ from services.auth_service import get_current_user
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/transfers", tags=["transfers"])
 
-_RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "rzp_test_SbLSnLy3Sp8rpl")
-_RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "TD8339yklmflateJIV8tuP15")
+from core.config import settings
+
+_RAZORPAY_KEY_ID = settings.razorpay_key_id
+_RAZORPAY_KEY_SECRET = settings.razorpay_key_secret
 _rz_client = razorpay.Client(auth=(_RAZORPAY_KEY_ID, _RAZORPAY_KEY_SECRET))
 
 
