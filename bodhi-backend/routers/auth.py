@@ -1,3 +1,5 @@
+from fastapi import Request
+from core.rate_limit import limiter
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -66,7 +68,8 @@ register_otps = {}
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
+@limiter.limit("3/minute")
+async def register(request: Request, user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     print(f"📝 Attempting to register user: {user_data.email}")
     try:
         # Check if email or phone already exists
@@ -140,7 +143,8 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         )
 
 @router.post("/check-phone")
-async def check_phone(data: PhoneCheck, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def check_phone(request: Request, data: PhoneCheck, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.phone == data.phone))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Phone number already registered")
@@ -148,7 +152,8 @@ async def check_phone(data: PhoneCheck, db: AsyncSession = Depends(get_db)):
 
 # Note: OAuth2PasswordRequestForm expects form data (username & password), not JSON!
 @router.post("/token")
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     # Find user
     result = await db.execute(select(User).where(User.email == form_data.username))
     user = result.scalar_one_or_none()
@@ -175,8 +180,9 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
     }
 
 @router.post("/forgot-password")
+@limiter.limit("3/minute")
 async def request_password_reset(request: PasswordResetRequest, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == request.email))
+    result = await db.execute(select(User).where(User.email == payload.email))
     user = result.scalar_one_or_none()
     
     if user:
@@ -196,9 +202,10 @@ class PasswordResetConfirm(BaseModel):
     new_password: str
 
 @router.post("/reset-password")
+@limiter.limit("3/minute")
 async def confirm_password_reset(request: PasswordResetConfirm, db: AsyncSession = Depends(get_db)):
     # 1. Find the user
-    result = await db.execute(select(User).where(User.email == request.email))
+    result = await db.execute(select(User).where(User.email == payload.email))
     user = result.scalar_one_or_none()
     
     if not user:
@@ -221,8 +228,9 @@ async def confirm_password_reset(request: PasswordResetConfirm, db: AsyncSession
     return {"message": "Password updated successfully"}
 
 @router.post("/send-register-otp")
-async def send_register_otp(request: OtpRequest):
-    identifier = normalize_identifier(request.email, request.phone)
+@limiter.limit("3/minute")
+async def send_register_otp(request: Request, payload: OtpRequest):
+    identifier = normalize_identifier(payload.email, request.phone)
     if not identifier:
         raise HTTPException(status_code=400, detail="Email or Phone is required")
         
@@ -234,9 +242,9 @@ async def send_register_otp(request: OtpRequest):
     
     print(f"\n🚀 [OTP DEBUG] Code for {identifier}: {otp}\n")
     
-    if request.email:
+    if payload.email:
         # 🚀 SEND EMAIL
-        success = send_signup_otp_email(request.email, otp)
+        success = send_signup_otp_email(payload.email, otp)
     else:
         # 🚀 SEND SMS
         success = send_otp_sms(request.phone, otp)
@@ -250,8 +258,9 @@ async def send_register_otp(request: OtpRequest):
     return {"message": "OTP sent successfully"}
 
 @router.post("/verify-register-otp")
-async def verify_register_otp(request: OtpVerify):
-    identifier = normalize_identifier(request.email, request.phone)
+@limiter.limit("5/minute")
+async def verify_register_otp(request: Request, payload: OtpVerify):
+    identifier = normalize_identifier(payload.email, request.phone)
     if not identifier:
         raise HTTPException(status_code=400, detail="Email or Phone is required")
         
@@ -271,7 +280,8 @@ async def verify_register_otp(request: OtpVerify):
     del register_otps[identifier]
     return {"message": "OTP verified successfully"}
 @router.post("/verify-upin")
-async def verify_upin(request: UpinVerify, user: User = Depends(get_current_user)):
+@limiter.limit("5/minute")
+async def verify_upin(request: Request, payload: UpinVerify, user: User = Depends(get_current_user)):
     if not user.u_pin:
         return {"success": True, "message": "No U-PIN set for this user."}
         

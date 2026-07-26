@@ -9,7 +9,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi.security import OAuth2PasswordBearer
 import asyncio
+from core.middleware import SecurityHeadersMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from core.rate_limit import limiter, rate_limit_custom_handler
 import logging
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -169,11 +174,16 @@ app.mount("/staff", StaticFiles(directory=os.path.join(BASE_DIR, "static", "admi
 # 3. Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.allowed_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "X-Requested-With"],
 )
+
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(SlowAPIMiddleware)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_custom_handler)
 
 # --- SECURITY DEFINITION ---
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
@@ -191,6 +201,7 @@ async def custom_swagger_ui_html():
 
 # Health check – always responds immediately
 @app.get("/", tags=["Health"])
+@limiter.exempt
 async def health_check(request: Request):
     user_agent = request.headers.get("user-agent", "")
     # Allow ELB and API tools to see the raw JSON status

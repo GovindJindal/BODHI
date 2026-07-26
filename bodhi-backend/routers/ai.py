@@ -1,3 +1,5 @@
+from fastapi import Request
+from core.rate_limit import limiter
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
 from pydantic import BaseModel

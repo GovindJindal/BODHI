@@ -1,4 +1,6 @@
 import logging
+from fastapi import Request
+from core.rate_limit import limiter
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,7 +17,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/payments", tags=["payments"])
 
 @router.post("/intent", response_model=PaymentIntentResponse, status_code=status.HTTP_201_CREATED)
-async def create_intent(
+@limiter.limit("10/minute")
+async def create_intent(request: Request, 
     body: PaymentIntentCreate,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user) # Enforcing login!
@@ -31,6 +34,7 @@ async def create_intent(
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Payment gateway error; please retry") from exc
 
 @router.post("/webhook", response_model=WebhookAck, status_code=status.HTTP_200_OK)
+@limiter.exempt
 async def razorpay_webhook(
     request: Request,
     x_razorpay_signature: str = Header(..., alias="X-Razorpay-Signature"),

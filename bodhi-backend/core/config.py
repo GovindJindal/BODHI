@@ -12,6 +12,27 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field("HS256", alias="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(10080, alias="ACCESS_TOKEN_EXPIRE_MINUTES") # 7 days
     
+    # CORS Configuration
+    allowed_origins: str = Field(
+        "",
+        alias="ALLOWED_ORIGINS"
+    )
+
+    # Security Headers Configuration
+    permissions_policy: str = Field(
+        "geolocation=(), microphone=(), camera=()", 
+        alias="PERMISSIONS_POLICY"
+    )
+
+    # Rate Limiting Configuration
+    rate_limit_enabled: bool = Field(True, alias="RATE_LIMIT_ENABLED")
+    rate_limit_strategy: str = Field("memory", alias="RATE_LIMIT_STRATEGY")
+    redis_url: Optional[str] = Field(None, alias="REDIS_URL")
+
+    @property
+    def allowed_origins_list(self) -> list[str]:
+        return [origin.strip() for origin in self.allowed_origins.split(",") if origin.strip()]
+    
     # Optional settings that don't block startup but are centralized
     smtp_user: Optional[str] = Field(None, alias="SMTP_USER")
     smtp_password: Optional[str] = Field(None, alias="SMTP_PASSWORD")
