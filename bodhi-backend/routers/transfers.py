@@ -240,23 +240,35 @@ async def send_money(
     txn_id = str(uuid.uuid4())
     amount_paise = int(body.amount * 100)
 
-    result = await db.execute(select(User).where(User.id == current_user.id).with_for_update())
-    sender = result.scalar_one()
+    # Deterministic lock ordering to prevent deadlocks
+    recip = None
+    if recipient and recipient.id < current_user.id:
+        result2 = await db.execute(select(User).where(User.id == recipient.id).with_for_update())
+        recip = result2.scalar_one()
+        result = await db.execute(select(User).where(User.id == current_user.id).with_for_update())
+        sender = result.scalar_one()
+    elif recipient and recipient.id > current_user.id:
+        result = await db.execute(select(User).where(User.id == current_user.id).with_for_update())
+        sender = result.scalar_one()
+        result2 = await db.execute(select(User).where(User.id == recipient.id).with_for_update())
+        recip = result2.scalar_one()
+    else:
+        result = await db.execute(select(User).where(User.id == current_user.id).with_for_update())
+        sender = result.scalar_one()
+
     if sender.balance < body.amount:
         raise HTTPException(status_code=400, detail="Insufficient balance.")
 
-    sender.balance -= body.amount
+    sender.balance = round(sender.balance - body.amount, 2)
 
-    if recipient:
-        result2 = await db.execute(select(User).where(User.id == recipient.id).with_for_update())
-        recip = result2.scalar_one()
-        recip.balance += body.amount
+    if recip:
+        recip.balance = round(recip.balance + body.amount, 2)
 
         _write_ledger(db, user_id=sender.id, entry_type=LedgerEntryType.DEBIT,
                       amount_paise=amount_paise, ref_id=txn_id,
                       description=f"Sent ₹{body.amount:.2f} to {recip.full_name}{f' — {body.note}' if body.note else ''}")
         _write_ledger(db, user_id=recip.id, entry_type=LedgerEntryType.CREDIT,
-                      amount_paise=amount_paise, ref_id=txn_id,
+                      amount_paise=amount_paise, ref_id=f"{txn_id}_rcv",
                       description=f"Received ₹{body.amount:.2f} from {sender.full_name}{f' — {body.note}' if body.note else ''}")
         recipient_name = recip.full_name
     else:
@@ -397,19 +409,29 @@ async def fulfill_payment_request(
         raise HTTPException(status_code=400, detail="This request has already been fulfilled or cancelled.")
 
     amount_inr = req.amount / 100
-    if current_user.balance < amount_inr:
-        raise HTTPException(status_code=400, detail=f"Insufficient balance. You need ₹{amount_inr:.2f}.")
 
-    requester_result = await db.execute(select(User).where(User.id == req.user_id).with_for_update())
-    requester = requester_result.scalar_one_or_none()
+    # Deterministic lock ordering to prevent deadlocks
+    requester = None
+    payer = None
+    if str(req.user_id) < str(current_user.id):
+        requester_result = await db.execute(select(User).where(User.id == req.user_id).with_for_update())
+        requester = requester_result.scalar_one_or_none()
+        payer_result = await db.execute(select(User).where(User.id == current_user.id).with_for_update())
+        payer = payer_result.scalar_one()
+    else:
+        payer_result = await db.execute(select(User).where(User.id == current_user.id).with_for_update())
+        payer = payer_result.scalar_one()
+        requester_result = await db.execute(select(User).where(User.id == req.user_id).with_for_update())
+        requester = requester_result.scalar_one_or_none()
+
     if not requester:
         raise HTTPException(status_code=404, detail="Requester not found.")
 
-    payer_result = await db.execute(select(User).where(User.id == current_user.id).with_for_update())
-    payer = payer_result.scalar_one()
+    if payer.balance < amount_inr:
+        raise HTTPException(status_code=400, detail=f"Insufficient balance. You need ₹{amount_inr:.2f}.")
 
-    payer.balance -= amount_inr
-    requester.balance += amount_inr
+    payer.balance = round(payer.balance - amount_inr, 2)
+    requester.balance = round(requester.balance + amount_inr, 2)
     req.status = PaymentStatus.SUCCESS
     req.amount_paid = req.amount
 
@@ -472,17 +494,22 @@ async def verify_and_credit_wallet(
         raise HTTPException(status_code=400, detail="Invalid payment signature. Payment not credited.")
 
     amount_paise = int(body.amount * 100)
-    result = await db.execute(select(User).where(User.id == current_user.id).with_for_update())
+    
+    from services.payments_service import settle_payment, PaymentServiceError
+    try:
+        payment = await settle_payment(
+            db, 
+            razorpay_order_id=body.razorpay_order_id, 
+            razorpay_payment_id=body.razorpay_payment_id, 
+            amount_paid=amount_paise, 
+            currency="INR"
+        )
+        await db.commit()
+    except PaymentServiceError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    result = await db.execute(select(User).where(User.id == current_user.id))
     user = result.scalar_one()
-    user.balance += body.amount
-
-    txn_id = str(uuid.uuid4())
-    _write_ledger(db, user_id=user.id, entry_type=LedgerEntryType.CREDIT,
-                  amount_paise=amount_paise, ref_id=txn_id,
-                  description=f"Wallet top-up via Razorpay {body.razorpay_payment_id}")
-
-    await db.commit()
-    await db.refresh(user)
 
     return {"success": True, "new_balance": user.balance, "message": f"₹{body.amount:.2f} added to your BODHI Wallet!"}
 

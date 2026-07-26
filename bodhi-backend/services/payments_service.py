@@ -89,6 +89,42 @@ async def process_webhook(db: AsyncSession, raw_body: bytes, signature: str) -> 
     elif event_name == "payment.failed": await _handle_payment_failed(db, payload, idem_key)
     return WebhookAck(status="ok", message=f"event '{event_name}' processed")
 
+async def settle_payment(db: AsyncSession, razorpay_order_id: str, razorpay_payment_id: str, amount_paid: int, currency: str, idem_key: str | None = None) -> Payment:
+    payment = await _get_payment_for_update(db, razorpay_order_id)
+    if payment.status == PaymentStatus.SUCCESS:
+        return payment
+
+    # Lock user deterministically to prevent balance race conditions
+    user = await _get_user_for_update(db, int(payment.user_id))
+
+    new_amount_paid = payment.amount_paid + amount_paid
+    if new_amount_paid > payment.amount: new_amount_paid = payment.amount
+    new_status = PaymentStatus.SUCCESS if new_amount_paid >= payment.amount else PaymentStatus.PARTIAL
+
+    payment.status = new_status
+    payment.amount_paid = new_amount_paid
+    payment.razorpay_payment_id = razorpay_payment_id
+    if idem_key:
+        payment.webhook_idempotency_key = idem_key
+
+    # Safely update user balance with precision rounding
+    amount_inr = round(float(amount_paid) / 100.0, 2)
+    user.balance = round(user.balance + amount_inr, 2)
+
+    _write_ledger_entry(
+        db,
+        user_id=int(payment.user_id),
+        entry_type=LedgerEntryType.CREDIT,
+        amount=amount_paid,
+        currency=currency,
+        reference_type=LedgerReferenceType.PAYMENT,
+        reference_id=payment.id,
+        status=new_status,
+        description=f"Razorpay capture {razorpay_payment_id} for order {razorpay_order_id}"
+    )
+
+    return payment
+
 async def _handle_payment_captured(db: AsyncSession, payload: dict[str, Any], idem_key: str) -> None:
     payment_entity: dict[str, Any] = payload.get("payment", {}).get("entity", {}) or payload.get("order", {}).get("entity", {})
     order_entity: dict[str, Any] = payload.get("order", {}).get("entity", {})
@@ -98,19 +134,9 @@ async def _handle_payment_captured(db: AsyncSession, payload: dict[str, Any], id
     currency: str = payment_entity.get("currency", "INR")
 
     if not razorpay_order_id: raise PaymentServiceError("Missing order_id in webhook payload")
-    payment = await _get_payment_for_update(db, razorpay_order_id)
-
-    if payment.status == PaymentStatus.SUCCESS: return
-    new_amount_paid = payment.amount_paid + amount_paid
-    if new_amount_paid > payment.amount: new_amount_paid = payment.amount
-    new_status = PaymentStatus.SUCCESS if new_amount_paid >= payment.amount else PaymentStatus.PARTIAL
-
-    payment.status = new_status
-    payment.amount_paid = new_amount_paid
-    payment.razorpay_payment_id = razorpay_payment_id
-    payment.webhook_idempotency_key = idem_key
-
-    _write_ledger_entry(db, user_id=payment.user_id, entry_type=LedgerEntryType.CREDIT, amount=amount_paid, currency=currency, reference_type=LedgerReferenceType.PAYMENT, reference_id=payment.id, status=new_status, description=f"Razorpay capture {razorpay_payment_id} for order {razorpay_order_id}")
+    
+    # Delegate to unified settlement to ensure atomicity
+    await settle_payment(db, razorpay_order_id, razorpay_payment_id, amount_paid, currency, idem_key)
 
 async def _handle_payment_failed(db: AsyncSession, payload: dict[str, Any], idem_key: str) -> None:
     payment_entity: dict[str, Any] = payload.get("payment", {}).get("entity", {})
