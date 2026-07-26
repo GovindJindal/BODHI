@@ -119,22 +119,23 @@ async def update_my_profile(
         has_password=current_user.hashed_password is not None
     )
 
-# @router.delete("/me", status_code=status.HTTP_200_OK)
-# async def delete_my_account(
-#     data: AccountDelete,
-#     db: AsyncSession = Depends(get_db),
-#     current_user: User = Depends(get_current_user)
-# ):
-#     # Verify password before deletion
-#     if not verify_password(data.password, current_user.hashed_password):
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Incorrect password. Deletion cancelled.",
-#         )
-#     
-#     await db.delete(current_user)
-#     await db.commit()
-#     return {"message": "Account deleted successfully."}
+@router.delete("/me", status_code=status.HTTP_200_OK)
+async def delete_my_account(
+    data: AccountDelete,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Soft-delete your own account. Irreversible.
+    Requires password confirmation.
+    """
+    if not current_user.hashed_password or not verify_password(data.password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect password.")
+        
+    from services.user_deletion_service import anonymize_user
+    await anonymize_user(current_user, db)
+    await db.commit()
+    return {"message": "Account successfully deleted and anonymized."}
 
 @router.post("/verify")
 async def verify_user_password(

@@ -55,8 +55,20 @@ async def stream_tts_audio(filename: str, text: str):
         tf.write(audio_bytes)
         tf.close()
         
+        # Cleanup helper to prevent disk exhaustion
+        def cleanup_temp_file(path: str):
+            try:
+                import os
+                if os.path.exists(path):
+                    os.remove(path)
+                    print(f"🧹 Cleaned up temporary audio file: {path}")
+            except Exception as e:
+                print(f"⚠️ Failed to cleanup temporary audio file {path}: {e}")
+        
+        from fastapi.background import BackgroundTask
+        
         print(f"✅ Voice generated and cached to temp file.")
-        return FileResponse(tf.name, media_type="audio/wav")
+        return FileResponse(tf.name, media_type="audio/wav", background=BackgroundTask(cleanup_temp_file, tf.name))
     except Exception as e:
         print(f"❌ Streaming TTS Error: {e}")
         raise HTTPException(status_code=500, detail="Failed to stream audio")

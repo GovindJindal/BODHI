@@ -146,6 +146,7 @@ class User(Base):
     reset_otp_expiry = Column(DateTime(timezone=True), nullable=True, default=None)
 
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
 
     sessions: Mapped[list["Session"]] = relationship(
         "Session", back_populates="user", lazy="noload", cascade="all, delete-orphan"
@@ -175,7 +176,7 @@ class Ledger(Base):
     )
     user_id: Mapped[str] = mapped_column(
         String(36),
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey("users.id"),
         nullable=False,
         index=True,
     )
@@ -255,7 +256,7 @@ class Payment(Base):
     )
     user_id: Mapped[str] = mapped_column(
         String(36),
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey("users.id"),
         nullable=False,
         index=True,
     )
@@ -328,7 +329,7 @@ class UserSubscription(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
     user_id: Mapped[str] = mapped_column(
         String(36),
-        ForeignKey("users.id", ondelete="CASCADE"),
+        ForeignKey("users.id"),
         nullable=False,
         index=True,
     )

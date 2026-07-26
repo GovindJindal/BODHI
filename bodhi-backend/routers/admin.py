@@ -163,7 +163,7 @@ async def get_all_users(skip: int = 0, limit: int = 50, admin: User = Depends(ge
 
 @router.delete("/user/{user_id}")
 async def delete_user(user_id: str, admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
-    """Permanently delete a user."""
+    """Soft-delete a user by anonymizing PII and revoking access."""
     if user_id == str(admin.id):
         raise HTTPException(status_code=400, detail="Cannot delete your own active admin account.")
         
@@ -173,9 +173,10 @@ async def delete_user(user_id: str, admin: User = Depends(get_current_admin), db
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
-    await db.delete(user)
+    from services.user_deletion_service import anonymize_user
+    await anonymize_user(user, db)
     await db.commit()
-    return {"message": f"User {user.email} successfully deleted"}
+    return {"message": f"User successfully deleted and anonymized"}
 
 @router.get("/user/{user_id}")
 async def get_specific_user(user_id: str, admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
