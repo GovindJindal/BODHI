@@ -13,8 +13,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/React%20Native-0.73.4-61DAFB?logo=react&logoColor=black" alt="React Native" />
   <img src="https://img.shields.io/badge/FastAPI-1.0.0-009688?logo=fastapi&logoColor=white" alt="FastAPI" />
-  <img src="https://img.shields.io/badge/PostgreSQL-RDS-336791?logo=postgresql&logoColor=white" alt="PostgreSQL" />
-  <img src="https://img.shields.io/badge/AWS-Elastic%20Beanstalk-FF9900?logo=amazon-aws&logoColor=white" alt="AWS" />
+  <img src="https://img.shields.io/badge/PostgreSQL-Neon-336791?logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/AWS-Serverless%20%28Lambda%29-FF9900?logo=amazon-aws&logoColor=white" alt="AWS Serverless" />
   <img src="https://img.shields.io/badge/AI-Gemini%201.5%20Flash-4285F4?logo=google-gemini&logoColor=white" alt="Gemini AI" />
   <img src="https://img.shields.io/badge/Payments-Razorpay-008CFF?logo=razorpay&logoColor=white" alt="Razorpay" />
 </p>
@@ -106,13 +106,14 @@ Upload a complex 50-page insurance PDF and let GAP summarize the "Critical 5" th
 ```mermaid
 graph TD
     User((User)) -->|React Native| Mobile[BODHI Mobile App]
-    Mobile -->|HTTPS/JWT| Gateway[AWS Elastic Beanstalk]
-    Gateway -->|FastAPI| App[API Services]
-    App -->|SQLAlchemy| DB[(PostgreSQL RDS)]
-    App -->|Sarvam AI| Voice[STT / TTS]
-    App -->|Google Gemini| Brain[Intent Analysis]
-    App -->|Razorpay| Pay[Payment Gateway]
-    App -->|Redis| Cache[Price Ticker Cache]
+    Mobile -->|HTTPS/JWT| Gateway[Amazon API Gateway]
+    Gateway -->|Mangum| Lambda[AWS Lambda]
+    Lambda -->|SQLAlchemy Async| DB[(Neon PostgreSQL)]
+    Lambda -->|Secrets Manager| Secrets[AWS Secrets Manager]
+    Lambda -->|Sarvam AI| Voice[STT / TTS]
+    Lambda -->|Google Gemini| Brain[Intent Analysis]
+    Lambda -->|Razorpay| Pay[Payment Gateway]
+    Lambda -->|CloudWatch| Logs[Centralized Logging]
 ```
 
 ---
@@ -126,11 +127,13 @@ graph TD
 *   **Reanimated 3** — 60FPS fluid UI interactions.
 *   **Lucide Icons** — Premium minimalist iconography.
 
-### Backend
+### Serverless Backend
 *   **FastAPI** — High-performance Python framework.
-*   **SQLAlchemy / Alembic** — Robust ORM & database migrations.
-*   **PostgreSQL (AWS RDS)** — Production-grade relational storage.
-*   **Nginx / Gunicorn** — Reliable process management.
+*   **AWS Lambda & Mangum** — Serverless execution layer.
+*   **Amazon API Gateway** — HTTP API routing.
+*   **Neon PostgreSQL** — Serverless relational storage.
+*   **SQLAlchemy Async & Alembic** — Robust ORM & database migrations.
+*   **AWS CloudFormation & SAM** — Infrastructure as Code and deployment.
 
 ### AI & Payments
 *   **Google Gemini 1.5 Flash** — Advanced LLM for intent & coaching.
@@ -165,8 +168,8 @@ BODHI/
 
 ## 📡 API Reference (Deployed)
 
-**Base URL:** `http://bodhi-env.eba-at8qpmww.ap-south-1.elasticbeanstalk.com`
-**Swagger UI:** [/docs](http://bodhi-env.eba-at8qpmww.ap-south-1.elasticbeanstalk.com/docs)
+**Base URL:** `https://l6927740gk.execute-api.ap-southeast-1.amazonaws.com`
+**Swagger UI:** [/docs](https://l6927740gk.execute-api.ap-southeast-1.amazonaws.com/docs)
 
 | Category | Method | Endpoint | Description |
 | :--- | :--- | :--- | :--- |
@@ -180,25 +183,36 @@ BODHI/
 
 ---
 
-## ⚙️ Local Setup
+## ⚙️ Development & Deployment
 
 ### 1. Prerequisites
 *   Node.js (v18+)
-*   Python 3.10+
-*   PostgreSQL (Local or RDS)
+*   Python 3.11+ (Lambda Environment)
+*   AWS CLI & AWS SAM CLI
+*   Docker (for SAM build)
 *   CocoaPods (for iOS)
 
-### 2. Backend Setup
+### 2. Local Backend Development
 ```bash
 cd bodhi-backend
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate
 pip install -r requirements.txt
-# Configure .env with your GEMINI_API_KEY and RAZORPAY_KEY
+# Local .env is used for local database (Neon or SQLite) and API keys
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 3. Mobile Setup
+### 3. Serverless Deployment Workflow (AWS SAM)
+The backend is deployed as a Dockerized Lambda function via AWS SAM. Configuration is driven by `template.yaml` and AWS Secrets Manager (for production secrets).
+```bash
+# 1. Build the Docker Image natively
+sam build
+
+# 2. Deploy to AWS CloudFormation / API Gateway / Lambda
+sam deploy
+```
+
+### 4. Mobile Setup
 ```bash
 cd mobileApp_BODHI
 npm install --legacy-peer-deps
