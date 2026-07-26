@@ -33,7 +33,7 @@ async def create_group(
 
 @router.get(f"{_GROUP_PREFIX}/{{group_id}}", response_model=GroupWalletRead)
 async def get_group(group_id: str, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_user)) -> GroupWalletRead:
-    try: return await group_svc.get_group(db, group_id)
+    try: return await group_svc.get_group(db, group_id, current_user.id)
     except group_svc.GroupNotFoundError as exc: raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
 
 @router.post(f"{_GROUP_PREFIX}/{{group_id}}/members", response_model=GroupMemberRead, status_code=status.HTTP_201_CREATED)
@@ -49,7 +49,8 @@ async def join_group(
 
 @router.get(f"{_GROUP_PREFIX}/{{group_id}}/members", response_model=list[GroupMemberRead])
 async def list_group_members(group_id: str, db: AsyncSession = Depends(get_db), current_user = Depends(get_current_user)) -> list[GroupMemberRead]:
-    return await group_svc.list_members(db, group_id)
+    try: return await group_svc.list_members(db, group_id, current_user.id)
+    except group_svc.GroupNotFoundError as exc: raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
 
 @router.post(f"{_GROUP_PREFIX}/{{group_id}}/contribute", response_model=GroupContributeResponse)
 async def contribute_to_group(

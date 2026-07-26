@@ -13,6 +13,8 @@ from typing import Optional
 import jwt
 import os
 import requests
+import logging
+import uuid
 from dotenv import load_dotenv
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
@@ -116,10 +118,17 @@ def get_password_hash(password: str):
     print(f"🔒 Hashing password fingerprint (length: {len(final_input)} bytes)")
     return pwd_context.hash(final_input.decode('utf-8'))
 
+logger = logging.getLogger(__name__)
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta if expires_delta else timedelta(minutes=15))
-    to_encode.update({"exp": expire})
+    now = datetime.utcnow()
+    expire = now + (expires_delta if expires_delta else timedelta(minutes=15))
+    to_encode.update({
+        "exp": expire,
+        "iat": now,
+        "jti": str(uuid.uuid4())
+    })
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 def verify_token_payload(token: str) -> dict:
@@ -127,7 +136,14 @@ def verify_token_payload(token: str) -> dict:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
+    except jwt.ExpiredSignatureError as exc:
+        logger.warning("Token Validation Failed: Expired signature")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+        ) from exc
     except jwt.PyJWTError as exc:
+        logger.warning("Token Validation Failed: Invalid signature or malformed token")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
@@ -143,15 +159,29 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
+            logger.warning("Token Validation Failed: Missing 'sub' claim")
             raise credentials_exception
-    except jwt.PyJWTError:
+    except jwt.ExpiredSignatureError:
+        logger.warning("Token Validation Failed: Expired signature in get_current_user")
+        raise credentials_exception
+    except jwt.PyJWTError as exc:
+        logger.warning(f"Token Validation Failed: {str(exc)}")
         raise credentials_exception
         
     result = await db.execute(select(User).where(User.email == username))
     user = result.scalar_one_or_none()
     
     if user is None:
+        logger.warning(f"Token Validation Failed: Unknown user ID/email referenced in valid token ({username})")
         raise credentials_exception
+        
+    if not user.is_active:
+        logger.warning(f"Access Denied: Attempted access by disabled/inactive user ({username})")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is suspended or inactive."
+        )
+        
     return user
 
 def _format_otp_for_display(otp: str) -> str:

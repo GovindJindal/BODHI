@@ -121,12 +121,25 @@ async def create_proposal(db: AsyncSession, group_id: str, payload: ProposalCrea
     await db.flush()
     return ProposalRead.model_validate(proposal)
 
-async def get_group(db: AsyncSession, group_id: str) -> GroupWalletRead:
+async def get_group(db: AsyncSession, group_id: str, user_id: str) -> GroupWalletRead:
     result = await db.execute(select(GroupWallet).where(GroupWallet.id == group_id))
     group = result.scalar_one_or_none()
     if group is None: raise GroupNotFoundError(f"GroupWallet {group_id} not found")
+    
+    # IDOR/BOLA Protection: Ensure requesting user is a member
+    member = await db.execute(select(GroupMember).where(GroupMember.group_id == group_id, GroupMember.user_id == user_id))
+    if not member.scalar_one_or_none():
+        # Prefer GroupNotFoundError (404) over 403 to prevent enumeration
+        raise GroupNotFoundError(f"GroupWallet {group_id} not found")
+        
     return GroupWalletRead.model_validate(group)
 
-async def list_members(db: AsyncSession, group_id: str) -> list[GroupMemberRead]:
+async def list_members(db: AsyncSession, group_id: str, user_id: str) -> list[GroupMemberRead]:
+    # IDOR/BOLA Protection: Ensure requesting user is a member
+    member = await db.execute(select(GroupMember).where(GroupMember.group_id == group_id, GroupMember.user_id == user_id))
+    if not member.scalar_one_or_none():
+        # Prefer GroupNotFoundError (404) over 403 to prevent enumeration
+        raise GroupNotFoundError(f"GroupWallet {group_id} not found")
+        
     result = await db.execute(select(GroupMember).where(GroupMember.group_id == group_id))
     return [GroupMemberRead.model_validate(m) for m in result.scalars().all()]

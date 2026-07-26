@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # Updated BODHI Imports
 from models.core import Ledger, LedgerEntryType, LedgerReferenceType, PaymentStatus
 from models.core import User
-from models.wallets import MemberRole
+from models.wallets import MemberRole, TripWallet, TripMember, TripWalletStatus, TripExpense
 from schemas.wallets import (
     MemberRefundDetail, TripCloseResponse, TripContributeRequest,
     TripContributeResponse, TripExpenseCreate, TripExpenseRead,
@@ -166,16 +166,32 @@ async def close_trip(db: AsyncSession, trip_id: str) -> TripCloseResponse:
     await db.flush()
     return TripCloseResponse(trip_id=trip_id, status=TripWalletStatus.CLOSED, total_contributed=trip.total_contributed, total_expenses=trip.total_expenses, remaining_balance=0, refunds=refund_details, closed_at=closed_at)
 
-async def get_trip(db: AsyncSession, trip_id: str) -> TripWalletRead:
+async def get_trip(db: AsyncSession, trip_id: str, user_id: str) -> TripWalletRead:
     result = await db.execute(select(TripWallet).where(TripWallet.id == trip_id))
     trip = result.scalar_one_or_none()
     if trip is None: raise TripNotFoundError(f"TripWallet {trip_id} not found")
+    
+    # IDOR/BOLA Protection: Ensure requesting user is a member
+    member = await db.execute(select(TripMember).where(TripMember.trip_id == trip_id, TripMember.user_id == user_id))
+    if not member.scalar_one_or_none():
+        raise TripNotFoundError(f"TripWallet {trip_id} not found")
+        
     return TripWalletRead.model_validate(trip)
 
-async def list_trip_members(db: AsyncSession, trip_id: str) -> list[TripMemberRead]:
+async def list_trip_members(db: AsyncSession, trip_id: str, user_id: str) -> list[TripMemberRead]:
+    # IDOR/BOLA Protection
+    member = await db.execute(select(TripMember).where(TripMember.trip_id == trip_id, TripMember.user_id == user_id))
+    if not member.scalar_one_or_none():
+        raise TripNotFoundError(f"TripWallet {trip_id} not found")
+        
     result = await db.execute(select(TripMember).where(TripMember.trip_id == trip_id))
     return [TripMemberRead.model_validate(m) for m in result.scalars().all()]
 
-async def list_trip_expenses(db: AsyncSession, trip_id: str) -> list[TripExpenseRead]:
+async def list_trip_expenses(db: AsyncSession, trip_id: str, user_id: str) -> list[TripExpenseRead]:
+    # IDOR/BOLA Protection
+    member = await db.execute(select(TripMember).where(TripMember.trip_id == trip_id, TripMember.user_id == user_id))
+    if not member.scalar_one_or_none():
+        raise TripNotFoundError(f"TripWallet {trip_id} not found")
+        
     result = await db.execute(select(TripExpense).where(TripExpense.trip_id == trip_id))
     return [TripExpenseRead.model_validate(e) for e in result.scalars().all()]
