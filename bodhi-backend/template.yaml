@@ -14,9 +14,11 @@ Globals:
     MemorySize: 1024
     Environment:
       Variables:
-        AWS_EXECUTION_ENV: "AWS_Lambda_Python" # Tells our code it's in Lambda
+        AWS_EXECUTION_ENV: "AWS_Lambda_Python"
         CRON_SECRET: "{{resolve:secretsmanager:bodhi/prod/cron:SecretString:CRON_SECRET}}"
-        # Note: In a real environment you would map all your required secrets here.
+        # Email Service Configuration for OTPs
+        SMTP_USER: "{{resolve:secretsmanager:bodhi/prod/smtp:SecretString:SMTP_USER}}"
+        SMTP_PASSWORD: "{{resolve:secretsmanager:bodhi/prod/smtp:SecretString:SMTP_PASSWORD}}"
 
 Resources:
   BodhiApi:
