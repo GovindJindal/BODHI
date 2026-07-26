@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { ShieldPlus, User, Mail, Lock, CheckCircle2, ShieldAlert, ArrowRight } from 'lucide-react';
 import api from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { config } from '@/lib/config';
+import axios from 'axios';
 
 export default function CreateAdminPage() {
   const [email, setEmail] = useState('');
@@ -17,11 +19,14 @@ export default function CreateAdminPage() {
     setStatus(null);
     
     try {
-      // Assuming a /create-admin endpoint exists on backend admin router
-      await api.post('/create-admin', {
+      // The create-admin endpoint lives on /admin router, not /admin-v2
+      const token = localStorage.getItem(config.STORAGE_KEYS.TOKEN);
+      await axios.post(`${config.API_GATEWAY_URL}/admin/create-admin`, {
         email,
         password,
         full_name: fullName
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       setStatus({ success: true, message: 'New administrative entity has been successfully provisioned.' });
       setEmail('');

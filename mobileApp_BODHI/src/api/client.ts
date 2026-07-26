@@ -3,10 +3,10 @@ import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
-// Hardcoded API configuration pointing to AWS Elastic Beanstalk
+// Hardcoded API configuration pointing to AWS API Gateway (Serverless)
 // (Bypassing @env to ensure Metro cache issues don't accidentally load local IP)
 const getBaseUrl = () => {
-  return 'http://bodhi-env.eba-at8qpmww.ap-south-1.elasticbeanstalk.com';
+  return 'https://l6927740gk.execute-api.ap-southeast-1.amazonaws.com';
 };
 
 export const BASE_URL = getBaseUrl();
@@ -390,5 +390,3 @@ export const CollaborationAPI = {
     return res.data;
   },
 };
-
-export { BASE_URL };

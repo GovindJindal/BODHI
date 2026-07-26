@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { ShieldCheck, Lock, Mail, ArrowRight } from 'lucide-react';
-import axios from 'axios';
+import api from '@/lib/api';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -15,11 +15,11 @@ export default function LoginPage() {
     setError('');
     
     try {
-      const formData = new FormData();
-      formData.append('username', email);
-      formData.append('password', password);
+      const params = new URLSearchParams();
+      params.append('username', email);
+      params.append('password', password);
 
-      const res = await axios.post('http://localhost:8000/admin-v2/login', formData);
+      const res = await api.post('/login', params);
       localStorage.setItem('bodhi_admin_token', res.data.access_token);
       localStorage.setItem('bodhi_admin_user', JSON.stringify(res.data.user));
       window.location.href = '/';

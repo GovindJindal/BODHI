@@ -1,8 +1,16 @@
 'use client';
 import React, { useEffect, useState } from 'react';
-import { ShieldCheck, Calendar, User, Activity } from 'lucide-react';
+import { 
+  ShieldAlert,
+  Activity,
+  User,
+  History,
+  TerminalSquare
+} from 'lucide-react';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/utils';
+import { TableSkeleton } from '@/components/LoadingSkeleton';
+import { EmptyState } from '@/components/EmptyState';
 
 export default function AuditPage() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -25,41 +33,59 @@ export default function AuditPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <header>
-        <h1 className="text-3xl font-bold tracking-tight">System Audit logs</h1>
-        <p className="text-slate-400 mt-1">Immutable record of all administrative commands and modifications.</p>
+        <h1 className="text-3xl font-bold tracking-tight">Audit Logs</h1>
+        <p className="text-slate-400 mt-1">Immutable record of all critical system actions and administrator activity.</p>
       </header>
 
-      <div className="space-y-4">
-        {loading ? (
-            <div className="text-slate-500 italic">Scanning cipher-blocks...</div>
-        ) : logs.length === 0 ? (
-            <div className="text-slate-500 italic">No administrative activity recorded in this session.</div>
-        ) : (
-            logs.map((log: any) => (
-                <div key={log.id} className="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl flex items-center justify-between group hover:border-violet-500/30 transition-all">
-                    <div className="flex items-center gap-6">
-                        <div className="w-12 h-12 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center">
-                            <Activity className="w-5 h-5 text-violet-400" />
-                        </div>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <span className="font-bold text-white uppercase tracking-tighter">{log.action}</span>
-                                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20">VERIFIED</span>
-                            </div>
-                            <div className="text-xs text-slate-500 flex items-center gap-4 mt-1">
-                                <span className="flex items-center gap-1"><User className="w-3 h-3" /> Admin ID: {log.admin_id.slice(0,8)}...</span>
-                                <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(log.created_at)}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="text-right">
-                        <div className="text-xs font-mono text-slate-400 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
-                            TARGET: {log.target_id || 'SYSTEM_GLOBAL'}
-                        </div>
-                    </div>
-                </div>
-            ))
-        )}
+      <div className="bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-hidden shadow-2xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-950/50 text-slate-400 text-xs font-bold uppercase tracking-widest border-b border-slate-800">
+                <th className="px-8 py-6">Timestamp</th>
+                <th className="px-8 py-6">Actor</th>
+                <th className="px-8 py-6">Action</th>
+                <th className="px-8 py-6">Target</th>
+              </tr>
+            </thead>
+            {loading ? null : (
+            <tbody className="divide-y divide-slate-800/50">
+              {logs.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-8 py-10">
+                    <EmptyState 
+                      icon={TerminalSquare} 
+                      title="No Audit Logs" 
+                      description="No administrative actions have been logged yet."
+                    />
+                  </td>
+                </tr>
+              ) : (
+                logs.map((log) => (
+                  <tr key={log.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-8 py-6 text-sm text-slate-400 font-mono">
+                      {formatDate(log.timestamp)}
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-violet-400" />
+                        <span className="font-bold text-slate-300">{log.actor}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 font-mono text-sm text-slate-300">
+                      {log.action}
+                    </td>
+                    <td className="px-8 py-6 font-mono text-sm text-slate-500">
+                      {log.target || '—'}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+            )}
+          </table>
+          {loading && <TableSkeleton rows={8} />}
+        </div>
       </div>
     </div>
   );

@@ -1,17 +1,17 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { 
-  Users, 
   Search, 
-  Filter, 
   MoreVertical, 
-  ShieldAlert, 
-  ShieldCheck,
   UserX,
-  CreditCard
+  CreditCard,
+  Users
 } from 'lucide-react';
 import api from '@/lib/api';
-import { formatDate, formatCurrency, cn } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
+import { StatusBadge, RoleBadge } from '@/components/StatusBadge';
+import { TableSkeleton } from '@/components/LoadingSkeleton';
+import { EmptyState } from '@/components/EmptyState';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -80,58 +80,49 @@ export default function UsersPage() {
                 <th className="px-8 py-6 text-right">Controls</th>
               </tr>
             </thead>
+            {loading ? null : (
             <tbody className="divide-y divide-slate-800/50">
-              {loading ? (
-                <tr><td colSpan={5} className="px-8 py-20 text-center text-slate-500 italic">Scanning database...</td></tr>
-              ) : users.length === 0 ? (
-                <tr><td colSpan={5} className="px-8 py-20 text-center text-slate-500 italic">No entities found in target parameters.</td></tr>
+              {users.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-8 py-10">
+                    <EmptyState 
+                      icon={Users} 
+                      title="No entities found" 
+                      description="Adjust your search filters to find registered users."
+                    />
+                  </td>
+                </tr>
               ) : (
                 users.map((user) => (
                   <tr key={user.id} className="hover:bg-slate-800/30 transition-colors group">
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center font-bold text-white shadow-lg shadow-violet-500/10">
-                          {user.full_name[0]}
+                          {user.full_name?.[0] ?? user.email?.[0] ?? '?'}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-100 group-hover:text-violet-400 transition-colors">{user.full_name}</div>
+                          <div className="font-bold text-slate-100 group-hover:text-violet-400 transition-colors">{user.full_name || 'No Name'}</div>
                           <div className="text-xs text-slate-500 font-mono">{user.email}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <span className={cn(
-                        "text-[10px] font-black px-2 py-1 rounded-md tracking-tighter border",
-                        user.role === 'super_admin' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
-                        user.role === 'admin' ? "bg-violet-500/10 text-violet-400 border-violet-500/20" :
-                        "bg-slate-500/10 text-slate-400 border-slate-700"
-                      )}>
-                        {user.role.toUpperCase()}
-                      </span>
+                      <RoleBadge role={user.role} />
                     </td>
                     <td className="px-8 py-6">
-                      <div className="flex items-center gap-2">
-                        {user.is_active ? (
-                          <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20">
-                            <ShieldCheck className="w-3 h-3" /> ACTIVE
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5 text-rose-400 text-xs font-bold bg-rose-500/10 px-2 py-1 rounded-full border border-rose-500/20">
-                            <ShieldAlert className="w-3 h-3" /> SUSPENDED
-                          </div>
-                        )}
-                      </div>
+                      <StatusBadge status={user.is_active} />
                     </td>
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-1.5 font-bold text-slate-100">
                         <CreditCard className="w-4 h-4 text-slate-500" />
-                        {user.balance.toLocaleString()} INR
+                        {formatCurrency(user.balance)}
                       </div>
                     </td>
                     <td className="px-8 py-6 text-right">
                       <div className="flex justify-end gap-2">
                         <button 
                           onClick={() => handleToggleStatus(user.id)}
+                          title={user.is_active ? "Suspend User" : "Activate User"}
                           className={cn(
                             "p-2 rounded-lg border transition-all",
                             user.is_active ? "hover:bg-rose-500/10 hover:border-rose-500/20 text-slate-500 hover:text-rose-500" : "hover:bg-emerald-500/10 hover:border-emerald-500/20 text-slate-500 hover:text-emerald-500"
@@ -148,7 +139,9 @@ export default function UsersPage() {
                 ))
               )}
             </tbody>
+            )}
           </table>
+          {loading && <TableSkeleton rows={8} />}
         </div>
       </div>
     </div>

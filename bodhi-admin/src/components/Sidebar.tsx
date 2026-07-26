@@ -8,7 +8,6 @@ import {
   History, 
   Bell, 
   ShieldCheck, 
-  Settings, 
   LogOut,
   Zap,
   Briefcase,

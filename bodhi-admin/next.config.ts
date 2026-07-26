@@ -5,8 +5,14 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  // Ensure that links work correctly in subdirectories if needed
-  // trailingSlash: true,
+  async rewrites() {
+    return [
+      {
+        source: '/api/admin/:path*',
+        destination: 'https://l6927740gk.execute-api.ap-southeast-1.amazonaws.com/admin-v2/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

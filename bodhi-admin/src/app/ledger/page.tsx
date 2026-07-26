@@ -5,11 +5,12 @@ import {
   ArrowUpRight, 
   ArrowDownLeft, 
   Clock, 
-  CheckCircle2, 
-  AlertCircle 
+  CheckCircle2,
 } from 'lucide-react';
 import api from '@/lib/api';
 import { formatDate, formatCurrency, cn } from '@/lib/utils';
+import { TableSkeleton } from '@/components/LoadingSkeleton';
+import { EmptyState } from '@/components/EmptyState';
 
 export default function LedgerPage() {
   const [items, setItems] = useState<any[]>([]);
@@ -49,9 +50,18 @@ export default function LedgerPage() {
                 <th className="px-8 py-6 text-right">Timestamp</th>
               </tr>
             </thead>
+            {loading ? null : (
             <tbody className="divide-y divide-slate-800/50">
-              {loading ? (
-                <tr><td colSpan={6} className="px-8 py-20 text-center text-slate-500">Retrieving ledger fragments...</td></tr>
+              {items.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-8 py-10">
+                    <EmptyState 
+                      icon={History} 
+                      title="No transactions" 
+                      description="The global ledger is currently empty."
+                    />
+                  </td>
+                </tr>
               ) : (
                 items.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-800/30 transition-colors group">
@@ -95,7 +105,9 @@ export default function LedgerPage() {
                 ))
               )}
             </tbody>
+            )}
           </table>
+          {loading && <TableSkeleton rows={8} />}
         </div>
       </div>
     </div>
