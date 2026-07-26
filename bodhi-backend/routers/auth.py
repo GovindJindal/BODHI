@@ -259,7 +259,7 @@ async def confirm_password_reset(request: PasswordResetConfirm, db: AsyncSession
 @router.post("/send-register-otp")
 @limiter.limit("3/minute")
 async def send_register_otp(request: Request, payload: OtpRequest):
-    identifier = normalize_identifier(payload.email, request.phone)
+    identifier = normalize_identifier(payload.email, payload.phone)
     if not identifier:
         raise HTTPException(status_code=400, detail="Email or Phone is required")
         
@@ -276,7 +276,7 @@ async def send_register_otp(request: Request, payload: OtpRequest):
         success = send_signup_otp_email(payload.email, otp)
     else:
         # 🚀 SEND SMS
-        success = send_otp_sms(request.phone, otp)
+        success = send_otp_sms(payload.phone, otp)
         
     if not success:
         # 🧪 DEV BYPASS: Log it but don't fail the request.
@@ -289,7 +289,7 @@ async def send_register_otp(request: Request, payload: OtpRequest):
 @router.post("/verify-register-otp")
 @limiter.limit("5/minute")
 async def verify_register_otp(request: Request, payload: OtpVerify):
-    identifier = normalize_identifier(payload.email, request.phone)
+    identifier = normalize_identifier(payload.email, payload.phone)
     if not identifier:
         raise HTTPException(status_code=400, detail="Email or Phone is required")
         
@@ -302,7 +302,7 @@ async def verify_register_otp(request: Request, payload: OtpVerify):
         del register_otps[identifier]
         raise HTTPException(status_code=400, detail="OTP has expired")
         
-    if stored_data["otp"] != request.otp:
+    if stored_data["otp"] != payload.otp:
         raise HTTPException(status_code=400, detail="Invalid OTP")
         
     # Valid! Clean up
@@ -314,7 +314,7 @@ async def verify_upin(request: Request, payload: UpinVerify, user: User = Depend
     if not user.u_pin:
         return {"success": True, "message": "No U-PIN set for this user."}
         
-    if not verify_password(request.u_pin, user.u_pin):
+    if not verify_password(payload.u_pin, user.u_pin):
         raise HTTPException(status_code=400, detail="Invalid U-PIN")
         
     return {"success": True, "message": "U-PIN verified"}
