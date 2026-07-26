@@ -22,7 +22,7 @@ Resources:
   BodhiApi:
     Type: AWS::Serverless::HttpApi
     Properties:
-      StageName: !Ref Stage
+      StageName: $default
       CorsConfiguration:
         AllowOrigins:
           - "*"

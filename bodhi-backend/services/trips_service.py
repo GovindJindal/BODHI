@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # Updated BODHI Imports
 from models.core import Ledger, LedgerEntryType, LedgerReferenceType, PaymentStatus
 from models.core import User
-from models.wallets import MemberRole, TripWallet, TripMember, TripWalletStatus, TripExpense
+from models.social import TripWallet, TripMember, TripExpense, TripStatus as TripWalletStatus
+from models.wallets import MemberRole
 from schemas.wallets import (
     MemberRefundDetail, TripCloseResponse, TripContributeRequest,
     TripContributeResponse, TripExpenseCreate, TripExpenseRead,
