@@ -81,8 +81,6 @@ GOOGLE_CLIENT_ID_IOS      = os.getenv("GOOGLE_CLIENT_ID_IOS", "")
 GOOGLE_CLIENT_ID_ANDROID  = os.getenv("GOOGLE_CLIENT_ID_ANDROID", "")
 GOOGLE_CLIENT_ID_WEB      = os.getenv("GOOGLE_CLIENT_ID", "")   # primary web/backend client
 APPLE_APP_BUNDLE_ID       = os.getenv("APPLE_APP_BUNDLE_ID", "com.bodhi.app")
-JWT_SECRET_KEY            = os.getenv("SECRET_KEY", "super_secret_bodhi_key_do_not_share")
-JWT_ALGORITHM             = os.getenv("JWT_ALGORITHM", "HS256")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

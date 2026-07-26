@@ -2,12 +2,12 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import declarative_base
 import os
 from dotenv import load_dotenv
+from core.config import settings
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "")
-SECRET_KEY = os.getenv("SECRET_KEY", "fallback_secret")
-SENDER_PASSWORD = os.getenv("SENDER_PASSWORD", "")
+DATABASE_URL = settings.database_url
+SENDER_PASSWORD = settings.sender_password or settings.smtp_password or ""
 
 try:
     if DATABASE_URL:

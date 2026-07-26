@@ -40,29 +40,22 @@ if not hasattr(bcrypt, "__about__"):
     bcrypt.__about__ = BcryptAbout()
 # ─────────────────────────────────────────────────────────────────────────────
 
+from core.config import settings
+
 # ── Security config ────────────────────────────────────────────────────────────
-# SECRET_KEY MUST be set in .env on production. The fallback is only for local dev.
-_env_secret = os.getenv("SECRET_KEY")
-if not _env_secret:
-    import warnings
-    warnings.warn(
-        "\u26a0\ufe0f  SECRET_KEY not set in environment. Using insecure default. "
-        "Set SECRET_KEY in your .env before deploying!",
-        stacklevel=2,
-    )
-SECRET_KEY = _env_secret or "super_secret_bodhi_key_do_not_share"
-ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", str(60 * 24 * 7)))  # 7 days
+SECRET_KEY = settings.secret_key
+ALGORITHM = settings.jwt_algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 
 # Configuration
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
-SENDER_EMAIL = os.getenv("SENDER_EMAIL") or os.getenv("SMTP_USER")
-SENDER_PASSWORD = os.getenv("SENDER_PASSWORD") or os.getenv("SMTP_PASSWORD")
+SENDER_EMAIL = settings.sender_email or settings.smtp_user
+SENDER_PASSWORD = settings.sender_password or settings.smtp_password
 
 # SMS Configuration (Fast2SMS)
-SMS_KEY = os.getenv("SMS_API_KEY")
-SMS_SENDER_ID = os.getenv("SMS_SENDER_ID", "FSTSMS")
+SMS_KEY = settings.sms_api_key
+SMS_SENDER_ID = settings.sms_sender_id
 
 import passlib.handlers.bcrypt
 def patched_detect_wrap_bug(ident):
