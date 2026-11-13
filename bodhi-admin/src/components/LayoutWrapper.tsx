@@ -1,12 +1,15 @@
 'use client';
 import { usePathname } from 'next/navigation';
-import { useEffect, useSyncExternalStore } from 'react';
-import { Sidebar } from "@/components/Sidebar";
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { Menu, X } from 'lucide-react';
+import { Sidebar, BodhiMark, type AdminUser } from '@/components/Sidebar';
 import { config } from '@/lib/config';
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isLoginPage = pathname === '/login';
+  const [navOpen, setNavOpen] = useState(false);
+
   // Read the stored session without a setState-in-effect; null while prerendering.
   const session = useSyncExternalStore(subscribeStorage, readSession, () => null);
   const isAuthenticated = isLoginPage ? true : session === null ? null : Boolean(session.token);
@@ -17,76 +20,77 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     }
   }, [isLoginPage, session]);
 
-  // Show nothing while checking auth (prevents flash of content)
+  if (isLoginPage) return <>{children}</>;
+
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-slate-500 animate-pulse text-sm font-medium">Verifying session...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <BodhiMark className="w-8 h-8 text-leaf opacity-60 animate-pulse" />
+        <span className="sr-only">Checking your session</span>
       </div>
     );
   }
 
-  if (isLoginPage) return <div className="min-h-screen bg-slate-950">{children}</div>;
-
-  const adminUser = session?.user ?? null;
-
-  const pageTitle = getPageTitle(pathname);
-
   return (
-    <div className="flex">
-      <Sidebar />
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* Top Bar */}
-        <header className="h-16 border-b border-slate-800 bg-slate-950/80 backdrop-blur-xl flex items-center justify-between px-8 shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-500 font-medium">System</span>
-            <span className="text-slate-700">/</span>
-            <span className="text-sm text-white font-semibold">{pageTitle}</span>
+    <div className="h-screen flex overflow-hidden">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 bg-surface px-3 py-2 rounded-lg">
+        Skip to content
+      </a>
+
+      <div className="hidden lg:flex">
+        <Sidebar user={session?.user ?? null} />
+      </div>
+
+      {navOpen && (
+        <div className="lg:hidden fixed inset-0 z-40 flex">
+          <button aria-label="Close menu" className="absolute inset-0 bg-ink/30" onClick={() => setNavOpen(false)} />
+          <div className="relative drawer-in">
+            <Sidebar user={session?.user ?? null} onNavigate={() => setNavOpen(false)} />
+            <button
+              aria-label="Close menu"
+              onClick={() => setNavOpen(false)}
+              className="absolute top-4 -right-12 w-9 h-9 rounded-lg bg-surface text-ink flex items-center justify-center"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          {adminUser && (
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <div className="text-sm font-bold text-slate-200">{adminUser.full_name || adminUser.email}</div>
-                <div className="text-[10px] text-violet-400 font-bold uppercase tracking-wider">{adminUser.role?.replace('_', ' ')}</div>
-              </div>
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-violet-500/20">
-                {(adminUser.full_name || adminUser.email || 'A')[0].toUpperCase()}
-              </div>
-            </div>
-          )}
-        </header>
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-slate-950 p-8">
-          {children}
+        </div>
+      )}
+
+      <div className="flex-1 min-w-0 flex flex-col">
+        <div className="lg:hidden h-14 shrink-0 flex items-center gap-3 px-4 border-b border-line bg-surface">
+          <button
+            aria-label="Open menu"
+            onClick={() => setNavOpen(true)}
+            className="w-9 h-9 -ml-1 rounded-lg flex items-center justify-center text-ink hover:bg-sunken"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <BodhiMark className="w-6 h-6 text-leaf" />
+          <span className="font-bold text-ink">BODHI</span>
+          <span className="text-[13px] text-muted">Admin</span>
+        </div>
+        <main id="main" className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-[1200px] px-4 sm:px-8 py-8 lg:py-10">{children}</div>
         </main>
       </div>
     </div>
   );
 }
 
-function getPageTitle(pathname: string): string {
-  const titles: Record<string, string> = {
-    '/': 'Dashboard',
-    '/users': 'User Intelligence',
-    '/ledger': 'Global Ledger',
-    '/trips': 'Trip Monitoring',
-    '/clubs': 'Venture Clubs',
-    '/notifications': 'Notifications',
-    '/ai': 'AI Monitoring',
-    '/audit': 'Audit Logs',
-    '/create-admin': 'Provision Admin',
-  };
-  return titles[pathname] || 'Dashboard';
-}
-
-type AdminUser = { full_name?: string; email?: string; role?: string };
 type StoredSession = { token: string | null; user: AdminUser | null; raw: string };
 
 let cachedSession: StoredSession | null = null;
 
 function readSession(): StoredSession {
-  const token = localStorage.getItem(config.STORAGE_KEYS.TOKEN);
-  const rawUser = localStorage.getItem(config.STORAGE_KEYS.USER) ?? '';
+  let token: string | null = null;
+  let rawUser = '';
+  try {
+    token = localStorage.getItem(config.STORAGE_KEYS.TOKEN);
+    rawUser = localStorage.getItem(config.STORAGE_KEYS.USER) ?? '';
+  } catch {
+    /* storage blocked – treat as signed out */
+  }
   const raw = `${token ?? ''}|${rawUser}`;
   if (cachedSession && cachedSession.raw === raw) return cachedSession; // stable snapshot
   let user: AdminUser | null = null;

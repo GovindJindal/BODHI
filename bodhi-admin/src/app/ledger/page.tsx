@@ -1,117 +1,130 @@
 'use client';
-import React, { useEffect, useState } from 'react';
-import { 
-  History, 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  Clock, 
-  CheckCircle2,
-} from 'lucide-react';
-import api from '@/lib/api';
-import { formatDate, formatCurrency, cn } from '@/lib/utils';
-import { TableSkeleton } from '@/components/LoadingSkeleton';
-import { EmptyState } from '@/components/EmptyState';
+import React, { useState } from 'react';
+import { ChevronLeft, ChevronRight, ReceiptIndianRupee, Copy, Check } from 'lucide-react';
+import { useApi } from '@/lib/useApi';
+import { formatCurrency, formatDate, humanize } from '@/lib/utils';
+import { Badge, Button, EmptyState, Money, PageHeader, Panel, Segmented, SkeletonRows, Table, Td, Th, type Tone } from '@/components/ui';
+import type { LedgerItem } from '@/components/MoneyRibbon';
 
-type LedgerItem = { id: string; ref: string; type: string; status: string; amount: number; time: string };
+const PAGE_SIZE = 50;
+type TypeFilter = 'all' | 'CREDIT' | 'DEBIT';
+
+const statusTone: Record<string, Tone> = {
+  SUCCESS: 'leaf',
+  PENDING: 'turmeric',
+  PARTIAL: 'turmeric',
+  FAILED: 'madder',
+  CANCELLED: 'neutral',
+};
 
 export default function LedgerPage() {
-  const [items, setItems] = useState<LedgerItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await api.get('/ledger');
-        setItems(res.data);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-  }, []);
+  const [type, setType] = useState<TypeFilter>('all');
+  const [page, setPage] = useState(1);
+  const { data, loading, error, reload } = useApi<LedgerItem[]>('/ledger', {
+    page,
+    limit: PAGE_SIZE,
+    entry_type: type === 'all' ? undefined : type,
+  });
+  const rows = data ?? [];
+  const hasNext = rows.length === PAGE_SIZE;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">Global Ledger</h1>
-        <p className="text-slate-400 mt-1">The immutable source of truth for all BODHI capital movement.</p>
-      </header>
+    <>
+      <PageHeader
+        title="Ledger"
+        description="Every credit and debit on member wallets, newest first. Amounts are exact to the paisa."
+      />
 
-      <div className="bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-hidden shadow-2xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
+      <Panel flush>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-line">
+          <Segmented<TypeFilter>
+            label="Entry type"
+            value={type}
+            onChange={(v) => {
+              setType(v);
+              setPage(1);
+            }}
+            options={[
+              { value: 'all', label: 'All entries' },
+              { value: 'CREDIT', label: 'Credits' },
+              { value: 'DEBIT', label: 'Debits' },
+            ]}
+          />
+          <span className="text-[13px] text-muted">Page {page}</span>
+        </div>
+
+        {error ? (
+          <EmptyState icon={ReceiptIndianRupee} title="The ledger couldn't be loaded" description={error} action={<Button onClick={reload}>Try again</Button>} />
+        ) : (
+          <Table>
             <thead>
-              <tr className="bg-slate-950/50 text-slate-400 text-xs font-bold uppercase tracking-widest border-b border-slate-800">
-                <th className="px-8 py-6">Transaction Flow</th>
-                <th className="px-8 py-6">Reference ID</th>
-                <th className="px-8 py-6">Type</th>
-                <th className="px-8 py-6">Status</th>
-                <th className="px-8 py-6">Value</th>
-                <th className="px-8 py-6 text-right">Timestamp</th>
+              <tr>
+                <Th>When</Th>
+                <Th>Member</Th>
+                <Th>What</Th>
+                <Th>Reference</Th>
+                <Th>Status</Th>
+                <Th align="right">Amount</Th>
               </tr>
             </thead>
-            {loading ? null : (
-            <tbody className="divide-y divide-slate-800/50">
-              {items.length === 0 ? (
+            <tbody>
+              {loading && !data ? (
+                <SkeletonRows rows={10} cols={6} />
+              ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-8 py-10">
-                    <EmptyState 
-                      icon={History} 
-                      title="No transactions" 
-                      description="The global ledger is currently empty."
-                    />
+                  <td colSpan={6}>
+                    <EmptyState icon={ReceiptIndianRupee} title="No entries here" description={type === 'all' ? 'Wallet movements appear as members transfer, top up and contribute.' : 'Try showing all entries.'} />
                   </td>
                 </tr>
               ) : (
-                items.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-800/30 transition-colors group">
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center",
-                          item.type === 'CREDIT' ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"
-                        )}>
-                          {item.type === 'CREDIT' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
-                        </div>
-                        <div className="text-xs font-mono text-slate-400">{item.id.slice(0, 8)}...</div>
-                      </div>
-                    </td>
-                    <td className="px-8 py-6">
-                      <span className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-300 font-mono italic">
-                        {item.ref}
-                      </span>
-                    </td>
-                    <td className="px-8 py-6">
-                       <span className="text-xs font-bold text-slate-300">{item.type}</span>
-                    </td>
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
-                        {item.status === 'SUCCESS' ? <CheckCircle2 className="w-3 h-3 text-emerald-500" /> : <Clock className="w-3 h-3 text-amber-500" />}
-                        {item.status}
-                      </div>
-                    </td>
-                    <td className="px-8 py-6">
-                       <span className={cn(
-                         "font-bold font-mono tracking-tighter text-lg",
-                         item.type === 'CREDIT' ? "text-emerald-400" : "text-rose-400"
-                       )}>
-                         {item.type === 'CREDIT' ? '+' : '-'}{formatCurrency(item.amount, 'paise')}
-                       </span>
-                    </td>
-                    <td className="px-8 py-6 text-right text-slate-500 text-sm font-medium">
-                      {formatDate(item.time)}
-                    </td>
+                rows.map((item) => (
+                  <tr key={item.id} className="hover:bg-sunken/70">
+                    <Td className="whitespace-nowrap text-muted">{formatDate(item.time)}</Td>
+                    <Td className="max-w-[14rem] truncate">{item.user_name || <span className="text-faint">Unknown</span>}</Td>
+                    <Td>
+                      <span className="block">{humanize(item.ref)}</span>
+                      {item.description && <span className="block text-[12px] text-muted truncate max-w-[18rem]">{item.description}</span>}
+                    </Td>
+                    <Td><RefCell value={item.reference_id || item.id} /></Td>
+                    <Td><Badge tone={statusTone[item.status] ?? 'neutral'}>{humanize(item.status)}</Badge></Td>
+                    <Td align="right" className="whitespace-nowrap">
+                      <Money value={formatCurrency(item.amount, 'paise')} signed={item.type === 'CREDIT' ? 'credit' : 'debit'} />
+                    </Td>
                   </tr>
                 ))
               )}
             </tbody>
-            )}
-          </table>
-          {loading && <TableSkeleton rows={8} />}
+          </Table>
+        )}
+
+        <div className="flex items-center justify-end gap-2 px-5 py-3">
+          <Button size="sm" icon={ChevronLeft} disabled={page <= 1 || loading} onClick={() => setPage((p) => p - 1)}>Newer</Button>
+          <Button size="sm" disabled={!hasNext || loading} onClick={() => setPage((p) => p + 1)}>
+            Older <ChevronRight className="w-3.5 h-3.5" aria-hidden />
+          </Button>
         </div>
-      </div>
-    </div>
+      </Panel>
+    </>
+  );
+}
+
+/** Shortened reference with copy-to-clipboard, so support can paste it into a search. */
+function RefCell({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => {
+        navigator.clipboard?.writeText(value).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1400);
+        });
+      }}
+      className="group inline-flex items-center gap-1.5 text-[13px] text-muted hover:text-ink tabular-nums"
+      title={`Copy ${value}`}
+      aria-label={copied ? 'Reference copied' : `Copy reference ${value}`}
+    >
+      {value.length > 14 ? `${value.slice(0, 8)}…${value.slice(-4)}` : value}
+      {copied ? <Check className="w-3.5 h-3.5 text-leaf" aria-hidden /> : <Copy className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden />}
+    </button>
   );
 }

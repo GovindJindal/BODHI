@@ -14,7 +14,9 @@ from core.rate_limit import limiter
 from database import get_db
 from models.core import User, Ledger, Payment, AuditLog
 from models.notification import Notification, NotificationType
-from models.social import InvestmentGroup, TripWallet
+from models.social import InvestmentGroup, InvestmentMember, TripExpense, TripMember, TripWallet
+from core.config import settings
+import os
 from models.portfolio import Transaction as TradingTransaction
 import uuid
 
@@ -31,6 +33,17 @@ ADMIN_ROLES = ("super_admin", "admin", "support")
 
 def _client_ip(request: Request) -> Optional[str]:
     return request.client.host if request.client else None
+
+def _enum_value(v):
+    return getattr(v, "value", v)
+
+
+def _utc(dt):
+    """Some tables store naive UTC datetimes; tag them so clients don't read them as local time."""
+    if dt is not None and dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
 
 # ── Dependencies ──
 
@@ -182,7 +195,9 @@ async def list_users(
     if search and search.strip():
         term = "%" + search.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
         query = query.where(or_(User.email.ilike(term), User.full_name.ilike(term), User.phone.ilike(term)))
-    if role:
+    if role == "staff":
+        query = query.where(User.role.in_(ADMIN_ROLES))
+    elif role:
         query = query.where(User.role == role)
         
     count_query = select(func.count()).select_from(query.subquery())
@@ -212,11 +227,11 @@ async def get_user_activity(user_id: str, admin: User = Depends(get_current_admi
     
     return {
         "ledger": [
-            {"id": l.id, "type": l.entry_type, "amount": l.amount, "ref": l.reference_type, "time": l.created_at} 
+            {"id": l.id, "type": _enum_value(l.entry_type), "amount": l.amount, "ref": _enum_value(l.reference_type), "description": l.description, "time": l.created_at} 
             for l in ledger_items
         ],
         "trading": [
-            {"id": t.id, "type": t.type, "symbol": t.symbol, "val": t.total_value, "time": t.timestamp} 
+            {"id": t.id, "type": t.type, "symbol": t.symbol, "val": t.total_value, "time": _utc(t.timestamp)} 
             for t in trading_items
         ]
     }
@@ -246,23 +261,107 @@ async def view_global_ledger(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=200),
     user_id: Optional[str] = None,
+    entry_type: Optional[str] = Query(None, pattern="^(CREDIT|DEBIT)$"),
     admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    query = select(Ledger).order_by(desc(Ledger.created_at))
+    """Newest-first ledger rows with the owner's name (page through with page/limit)."""
+    query = select(Ledger, User.full_name, User.email).outerjoin(User, User.id == Ledger.user_id)
     if user_id:
         query = query.where(Ledger.user_id == user_id)
-        
-    result = await db.execute(query.offset((page - 1) * limit).limit(limit))
-    items = result.scalars().all()
-    
+    if entry_type:
+        query = query.where(Ledger.entry_type == entry_type)
+
+    result = await db.execute(query.order_by(desc(Ledger.created_at)).offset((page - 1) * limit).limit(limit))
     return [
         {
-            "id": i.id, "user_id": i.user_id, "type": i.entry_type, 
-            "amount": i.amount, "ref": i.reference_type, "status": i.status, 
-            "time": i.created_at
-        } for i in items
+            "id": i.id, "user_id": i.user_id, "user_name": name or email,
+            "type": _enum_value(i.entry_type), "amount": i.amount,
+            "ref": _enum_value(i.reference_type), "reference_id": i.reference_id,
+            "status": _enum_value(i.status), "description": i.description,
+            "time": i.created_at,
+        } for i, name, email in result.all()
     ]
+
+# ── Trips & clubs ──
+
+@router.get("/trips")
+async def list_trips(
+    limit: int = Query(100, ge=1, le=500),
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    members = select(TripMember.trip_id, func.count(TripMember.id).label("n")).group_by(TripMember.trip_id).subquery()
+    expenses = select(TripExpense.trip_id, func.count(TripExpense.id).label("n")).group_by(TripExpense.trip_id).subquery()
+    rows = await db.execute(
+        select(TripWallet, func.coalesce(members.c.n, 0), func.coalesce(expenses.c.n, 0), User.full_name)
+        .outerjoin(members, members.c.trip_id == TripWallet.id)
+        .outerjoin(expenses, expenses.c.trip_id == TripWallet.id)
+        .outerjoin(User, User.id == TripWallet.created_by)
+        .order_by(desc(TripWallet.created_at))
+        .limit(limit)
+    )
+    return [
+        {
+            "id": t.id, "name": t.name, "emoji": t.emoji, "destination": t.destination or None,
+            "status": _enum_value(t.status), "members": n_members, "expenses": n_expenses,
+            "total_spent": t.total_spent or 0, "created_by": creator, "created_at": _utc(t.created_at),
+        }
+        for t, n_members, n_expenses, creator in rows.all()
+    ]
+
+
+@router.get("/clubs")
+async def list_clubs(
+    limit: int = Query(100, ge=1, le=500),
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    members = select(InvestmentMember.group_id, func.count(InvestmentMember.id).label("n")).group_by(InvestmentMember.group_id).subquery()
+    rows = await db.execute(
+        select(InvestmentGroup, func.coalesce(members.c.n, 0), User.full_name)
+        .outerjoin(members, members.c.group_id == InvestmentGroup.id)
+        .outerjoin(User, User.id == InvestmentGroup.created_by)
+        .order_by(desc(InvestmentGroup.created_at))
+        .limit(limit)
+    )
+    return [
+        {
+            "id": g.id, "name": g.name, "emoji": g.emoji, "status": _enum_value(g.status), "members": n,
+            "total_invested": g.total_invested or 0, "cash": g.total_balance or 0, "value": g.total_value or 0,
+            "created_by": creator, "created_at": _utc(g.created_at),
+        }
+        for g, n, creator in rows.all()
+    ]
+
+
+# ── System status ──
+
+@router.get("/system")
+async def system_status(admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
+    """Which integrations are configured (booleans only – never the values)."""
+    started = datetime.now(timezone.utc)
+    await db.execute(select(1))
+    db_ms = round((datetime.now(timezone.utc) - started).total_seconds() * 1000, 1)
+
+    def configured(*values):
+        return all(bool(v and str(v).strip()) for v in values)
+
+    return {
+        "database": {"ok": True, "latency_ms": db_ms},
+        "integrations": [
+            {"key": "email", "name": "Email (OTP and reset codes)", "configured": configured(settings.smtp_user or settings.sender_email, settings.smtp_password or settings.sender_password)},
+            {"key": "razorpay", "name": "Razorpay wallet top-ups", "configured": configured(settings.razorpay_key_id, settings.razorpay_key_secret) and not str(settings.razorpay_key_id).endswith("_x")},
+            {"key": "razorpay_webhook", "name": "Razorpay webhook", "configured": configured(settings.razorpay_webhook_secret)},
+            {"key": "gemini", "name": "Gemini (AI assistant)", "configured": configured(settings.gemini_api_key)},
+            {"key": "sarvam", "name": "Sarvam (voice)", "configured": configured(settings.sarvam_api_key)},
+            {"key": "google", "name": "Google sign-in", "configured": configured(settings.google_client_id or settings.google_client_id_android or settings.google_client_id_ios)},
+            {"key": "sms", "name": "SMS", "configured": configured(settings.sms_api_key)},
+            {"key": "rapidapi", "name": "Flight search (RapidAPI)", "configured": configured(os.getenv("RAPIDAPI_KEY"))},
+        ],
+        "rate_limiting": settings.rate_limit_enabled,
+        "checked_at": started,
+    }
 
 # ── Notifications ──
 

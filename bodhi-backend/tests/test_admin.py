@@ -79,3 +79,23 @@ async def test_create_admin_and_login(client, outbox):
     r = await client.post("/admin-v2/login", data={"username": "ops.person@example.com", "password": "s3cure-pass"})
     assert r.status_code == 200, r.text
     assert r.json()["user"]["role"] == "admin"
+
+
+async def test_trips_clubs_and_system(client, outbox):
+    sup = await make_admin(client, outbox, "super_admin")
+    member = await register_user(client, outbox)
+    trip = (await client.post("/social/trips", headers=member["headers"], json={"name": "Hampi"})).json()
+    await client.post(f"/social/trips/{trip['id']}/expenses", headers=member["headers"], json={"description": "Bus", "amount": 400})
+    await client.post("/social/investments", headers=member["headers"], json={"name": "Index Club"})
+    h = sup["admin_headers"]
+
+    trips = (await client.get("/admin-v2/trips", headers=h)).json()
+    row = next(t for t in trips if t["id"] == trip["id"])
+    assert row["members"] == 1 and row["expenses"] == 1 and row["total_spent"] == 400 and row["status"] == "active"
+
+    clubs = (await client.get("/admin-v2/clubs", headers=h)).json()
+    assert any(c["name"] == "Index Club" and c["members"] == 1 for c in clubs)
+
+    system = (await client.get("/admin-v2/system", headers=h)).json()
+    assert system["database"]["ok"] and {i["key"] for i in system["integrations"]} >= {"email", "gemini", "razorpay"}
+    assert (await client.get("/admin-v2/system", headers=member["headers"])).status_code == 403

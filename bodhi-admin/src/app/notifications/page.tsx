@@ -1,176 +1,189 @@
 'use client';
 import React, { useState } from 'react';
-import { 
-  Bell, 
-  Send, 
-  Users, 
-  ShieldAlert, 
-  Info,
-  CheckCircle2,
-  AlertTriangle,
-  Mail
-} from 'lucide-react';
+import { Send, Info, CheckCircle2, AlertTriangle, Siren } from 'lucide-react';
 import api, { apiErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/utils';
+import { BodhiMark } from '@/components/Sidebar';
+import { Button, Field, Input, Notice, PageHeader, Panel, Segmented, Textarea } from '@/components/ui';
+
+type Kind = 'INFO' | 'SUCCESS' | 'WARNING' | 'ALERT';
+type Audience = 'user' | 'admin' | 'all';
+
+const kinds: Record<Kind, { label: string; icon: typeof Info; color: string; soft: string }> = {
+  INFO: { label: 'Update', icon: Info, color: 'text-sky', soft: 'bg-sky-soft' },
+  SUCCESS: { label: 'Good news', icon: CheckCircle2, color: 'text-leaf', soft: 'bg-leaf-soft' },
+  WARNING: { label: 'Warning', icon: AlertTriangle, color: 'text-turmeric', soft: 'bg-turmeric-soft' },
+  ALERT: { label: 'Urgent', icon: Siren, color: 'text-madder', soft: 'bg-madder-soft' },
+};
+
+const audienceLabel: Record<Audience, string> = {
+  user: 'all members',
+  admin: 'admins only',
+  all: 'everyone, including staff',
+};
 
 export default function NotificationsPage() {
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
-  const [targetRole, setTargetRole] = useState('user');
-  const [type, setType] = useState('INFO');
-  const [sendEmail, setSendEmail] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<{ success: boolean; count?: number; error?: string } | null>(null);
+  const [audience, setAudience] = useState<Audience>('user');
+  const [kind, setKind] = useState<Kind>('INFO');
+  const [confirming, setConfirming] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setStatus(null);
-    
+  const canSend = title.trim().length > 0 && message.trim().length > 0;
+
+  const send = async () => {
+    setSending(true);
+    setResult(null);
     try {
       const res = await api.post('/notifications/bulk', {
-        title,
-        message,
-        target_role: targetRole === 'all' ? null : targetRole,
-        type: type,
-        send_email: sendEmail
+        title: title.trim(),
+        message: message.trim(),
+        target_role: audience === 'all' ? null : audience,
+        type: kind,
       });
-      setStatus({ success: true, count: res.data.recipients });
+      const n: number = res.data.recipients;
+      setResult({ ok: true, text: `Sent to ${n.toLocaleString('en-IN')} ${n === 1 ? 'person' : 'people'}. It's in their notifications now.` });
       setTitle('');
       setMessage('');
     } catch (err) {
-      setStatus({ success: false, error: apiErrorMessage(err, 'Transmission failed.') });
+      setResult({ ok: false, text: apiErrorMessage(err, 'The announcement was not sent. Try again.') });
     } finally {
-      setLoading(false);
+      setSending(false);
+      setConfirming(false);
     }
   };
 
+  const K = kinds[kind];
+
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">Notification Terminal</h1>
-        <p className="text-slate-400 mt-1">Broadcast formal communications and emergency alerts across the BODHI network.</p>
-      </header>
+    <>
+      <PageHeader
+        title="Announcements"
+        description="Send an in-app notification. Members see it in their notification list the next time they open BODHI."
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-slate-900/50 border border-slate-800 p-8 rounded-[2.5rem] shadow-2xl">
-            <form onSubmit={handleSend} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Dispatch Title</label>
-                <input 
-                  type="text" 
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. System Maintenance Update" 
-                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-all placeholder:text-slate-700"
-                  required
+      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6 items-start">
+        <Panel>
+          <form
+            className="space-y-5"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (canSend) setConfirming(true);
+            }}
+          >
+            <Field label="Title" htmlFor="title" hint={`${title.length}/200`}>
+              <Input id="title" maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="UPI transfers are back to normal" required />
+            </Field>
+            <Field label="Message" htmlFor="message" hint={`${message.length}/2000`}>
+              <Textarea
+                id="message"
+                maxLength={2000}
+                rows={5}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Payments sent between 2 and 3 pm were delayed. Every one of them has now gone through, and no money was lost."
+                required
+              />
+            </Field>
+
+            <div className="grid sm:grid-cols-2 gap-5">
+              <div className="space-y-1.5">
+                <p className="text-[13px] font-medium">Send to</p>
+                <Segmented<Audience>
+                  label="Audience"
+                  value={audience}
+                  onChange={setAudience}
+                  options={[
+                    { value: 'user', label: 'Members' },
+                    { value: 'admin', label: 'Admins' },
+                    { value: 'all', label: 'Everyone' },
+                  ]}
                 />
               </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Message Content (Markdown Supported)</label>
-                <textarea 
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Compose your broadcast message here..." 
-                  rows={6}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-6 text-white focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-all placeholder:text-slate-700 resize-none"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Target Audience</label>
-                  <select 
-                    value={targetRole}
-                    onChange={(e) => setTargetRole(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-4 text-white outline-none focus:border-violet-500 transition-all appearance-none cursor-pointer"
-                  >
-                    <option value="user">General Users</option>
-                    <option value="admin">Administrators Only</option>
-                    <option value="all">Global Broadcast (Everyone)</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Priority Layer</label>
-                  <select 
-                    value={type}
-                    onChange={(e) => setType(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 px-4 text-white outline-none focus:border-violet-500 transition-all appearance-none cursor-pointer"
-                  >
-                    <option value="INFO">Information (Standard)</option>
-                    <option value="WARNING">Warning (High)</option>
-                    <option value="CRITICAL">Critical (Immediate)</option>
-                    <option value="SUCCESS">Success (Completion)</option>
-                  </select>
+              <div className="space-y-1.5">
+                <p className="text-[13px] font-medium">Tone</p>
+                <div role="radiogroup" aria-label="Tone" className="flex flex-wrap gap-1.5">
+                  {(Object.keys(kinds) as Kind[]).map((k) => {
+                    const Icon = kinds[k].icon;
+                    return (
+                      <button
+                        type="button"
+                        key={k}
+                        role="radio"
+                        aria-checked={kind === k}
+                        onClick={() => setKind(k)}
+                        className={cn(
+                          'h-8 px-2.5 inline-flex items-center gap-1.5 rounded-md text-[13px] border transition-colors',
+                          kind === k ? cn(kinds[k].soft, kinds[k].color, 'border-transparent font-medium') : 'border-line text-muted hover:text-ink',
+                        )}
+                      >
+                        <Icon className="w-3.5 h-3.5" aria-hidden />
+                        {kinds[k].label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
+            </div>
 
-              <div className="flex items-center gap-3 p-4 bg-violet-500/5 rounded-2xl border border-violet-500/10">
-                  <input 
-                    type="checkbox" 
-                    id="send_email"
-                    checked={sendEmail}
-                    onChange={(e) => setSendEmail(e.target.checked)}
-                    className="w-5 h-5 rounded border-slate-700 bg-slate-950 text-violet-600 focus:ring-violet-500 focus:ring-offset-slate-950 cursor-pointer"
-                  />
-                  <label htmlFor="send_email" className="text-sm font-semibold text-slate-300 cursor-pointer">
-                      Dispatch formal email broadcast to target audience
-                  </label>
-              </div>
+            {result && <Notice tone={result.ok ? 'leaf' : 'madder'}>{result.text}</Notice>}
 
-              {status && (
-                <div className={cn(
-                  "p-4 rounded-2xl border flex items-center gap-3 animate-in fade-in zoom-in duration-300",
-                  status.success ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-rose-500/10 border-rose-500/20 text-rose-400"
-                )}>
-                  {status.success ? <CheckCircle2 className="w-5 h-5" /> : <ShieldAlert className="w-5 h-5" />}
-                  <span className="text-sm font-bold">
-                    {status.success ? `Broadcast deployed successfully to ${status.count} entities.` : status.error}
-                  </span>
+            {confirming ? (
+              <div className="rounded-lg border border-line-strong p-4 space-y-3">
+                <p className="text-[14px]">
+                  Send “{title.trim()}” to <strong className="font-semibold">{audienceLabel[audience]}</strong>? It can&apos;t be recalled once sent.
+                </p>
+                <div className="flex gap-2">
+                  <Button type="button" variant="primary" icon={Send} disabled={sending} onClick={send}>
+                    {sending ? 'Sending…' : 'Send announcement'}
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={() => setConfirming(false)}>Keep editing</Button>
                 </div>
-              )}
+              </div>
+            ) : (
+              <Button type="submit" variant="primary" icon={Send} disabled={!canSend}>
+                Review and send
+              </Button>
+            )}
+          </form>
+        </Panel>
 
-              <button 
-                type="submit" 
-                disabled={loading}
-                className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-violet-600/20 flex items-center justify-center gap-3 group"
-              >
-                {loading ? 'TRANSMITTING...' : (
-                  <>
-                    DISPATCH BROADCAST <Send className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-3xl">
-            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-              <Mail className="w-4 h-4" /> Protocol Guidelines
-            </h3>
-            <ul className="space-y-4">
-              <li className="flex gap-3">
-                <div className="mt-1"><Info className="w-4 h-4 text-violet-400" /></div>
-                <p className="text-xs text-slate-400 leading-relaxed">Notifications appear in real-time within the mobile application&apos;s Social Hub.</p>
-              </li>
-              <li className="flex gap-3">
-                <div className="mt-1"><AlertTriangle className="w-4 h-4 text-amber-400" /></div>
-                <p className="text-xs text-slate-400 leading-relaxed">Critical alerts bypass local notification silencers on supported devices.</p>
-              </li>
-              <li className="flex gap-3">
-                <div className="mt-1"><Users className="w-4 h-4 text-emerald-400" /></div>
-                <p className="text-xs text-slate-400 leading-relaxed">Global broadcasts impact active system load. Use sparingly during peak hours.</p>
-              </li>
-            </ul>
+        {/* Live preview of how it lands in the app */}
+        <div className="lg:sticky lg:top-6">
+          <p className="text-[13px] text-muted mb-2">Preview on a phone</p>
+          <div className="mx-auto max-w-[320px] rounded-[28px] border border-line-strong bg-sunken p-3 shadow-panel">
+            <div className="rounded-[20px] bg-paper px-3 pt-3 pb-6 min-h-[300px]">
+              <div className="flex justify-between text-[11px] text-muted px-1 mb-4 tabular-nums">
+                <span>9:41</span>
+                <span>Notifications</span>
+              </div>
+              <div className="rounded-2xl bg-surface border border-line p-3.5 flex gap-3">
+                <span className={cn('w-9 h-9 rounded-full flex items-center justify-center shrink-0', K.soft, K.color)}>
+                  <K.icon className="w-[18px] h-[18px]" aria-hidden />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[14px] font-semibold leading-snug break-words">{title.trim() || 'Your title appears here'}</p>
+                  <p className="text-[13px] text-muted mt-1 leading-relaxed break-words whitespace-pre-line line-clamp-6">
+                    {message.trim() || 'And the message underneath it.'}
+                  </p>
+                  <p className="text-[11px] text-faint mt-2">now</p>
+                </div>
+              </div>
+              <div className="mt-3 rounded-2xl bg-surface/60 border border-line p-3.5 flex gap-3 opacity-60" aria-hidden>
+                <span className="w-9 h-9 rounded-full bg-leaf-soft text-leaf flex items-center justify-center shrink-0">
+                  <BodhiMark className="w-[18px] h-[18px]" />
+                </span>
+                <div className="flex-1 space-y-2 pt-1">
+                  <div className="h-2.5 rounded bg-sunken w-3/4" />
+                  <div className="h-2 rounded bg-sunken w-1/2" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
