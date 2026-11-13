@@ -227,7 +227,7 @@ function TripCard({
 
       <View style={styles.statsGrid}>
         <View style={styles.statColumn}>
-          <Text style={styles.statLabel}>Total Balance</Text>
+          <Text style={styles.statLabel}>Trip Total</Text>
           <Text style={[styles.statValue, { color: C.neonLime }]}>{trip.total_balance}</Text>
         </View>
         <StatDivider />

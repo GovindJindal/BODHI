@@ -1,7 +1,8 @@
 'use client';
 import React, { useState } from 'react';
 import { ShieldCheck, Lock, Mail, ArrowRight } from 'lucide-react';
-import api from '@/lib/api';
+import api, { apiErrorMessage } from '@/lib/api';
+import { config } from '@/lib/config';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -16,15 +17,15 @@ export default function LoginPage() {
     
     try {
       const params = new URLSearchParams();
-      params.append('username', email);
+      params.append('username', email.trim().toLowerCase());
       params.append('password', password);
 
       const res = await api.post('/login', params);
-      localStorage.setItem('bodhi_admin_token', res.data.access_token);
-      localStorage.setItem('bodhi_admin_user', JSON.stringify(res.data.user));
+      localStorage.setItem(config.STORAGE_KEYS.TOKEN, res.data.access_token);
+      localStorage.setItem(config.STORAGE_KEYS.USER, JSON.stringify(res.data.user));
       window.location.href = '/';
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'System authentication failed.');
+    } catch (err) {
+      setError(apiErrorMessage(err, 'System authentication failed.'));
     } finally {
       setLoading(false);
     }

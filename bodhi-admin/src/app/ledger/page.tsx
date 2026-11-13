@@ -12,8 +12,10 @@ import { formatDate, formatCurrency, cn } from '@/lib/utils';
 import { TableSkeleton } from '@/components/LoadingSkeleton';
 import { EmptyState } from '@/components/EmptyState';
 
+type LedgerItem = { id: string; ref: string; type: string; status: string; amount: number; time: string };
+
 export default function LedgerPage() {
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<LedgerItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -95,7 +97,7 @@ export default function LedgerPage() {
                          "font-bold font-mono tracking-tighter text-lg",
                          item.type === 'CREDIT' ? "text-emerald-400" : "text-rose-400"
                        )}>
-                         {item.type === 'CREDIT' ? '+' : '-'}{formatCurrency(item.amount)}
+                         {item.type === 'CREDIT' ? '+' : '-'}{formatCurrency(item.amount, 'paise')}
                        </span>
                     </td>
                     <td className="px-8 py-6 text-right text-slate-500 text-sm font-medium">

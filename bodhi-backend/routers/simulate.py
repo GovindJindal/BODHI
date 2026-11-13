@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from typing import Optional
 import pandas as pd
 import logging
-import asyncio
 
 from services.yfinance_service import get_historical, get_stock_info
 from core.crash_events import (

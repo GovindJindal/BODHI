@@ -13,13 +13,11 @@ from services.trade_service import execute_buy, execute_sell, compute_costs, res
 from services.auth_service import get_current_user
 from services.yfinance_service import get_live_price
 from services.market_hours import market_status
-from sqlalchemy.orm import Session
 import yfinance as yf
 import asyncio
 import math
 
 from services.scheduler import process_morning_amos
-import os
 
 router = APIRouter()
 
@@ -56,10 +54,9 @@ async def buy_stock(
     
     try:
         price_data = await get_live_price(req.symbol)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Could not fetch live price for {req.symbol}")
-    
-    # 🔥 FIX: Pass status["open"] as the final argument
+    except Exception:
+        raise HTTPException(status_code=502, detail=f"Could not fetch live price for {req.symbol}") from None
+
     result = await execute_buy(db, current_user.id, req.symbol.upper(), req.amount_inr, price_data["price"], status["open"])
     
     if "error" in result:
@@ -79,10 +76,9 @@ async def sell_stock(
     
     try:
         price_data = await get_live_price(req.symbol)
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Could not fetch live price for {req.symbol}")
-    
-    # 🔥 FIX: Pass status["open"] as the final argument
+    except Exception:
+        raise HTTPException(status_code=502, detail=f"Could not fetch live price for {req.symbol}") from None
+
     result = await execute_sell(db, current_user.id, req.symbol.upper(), req.quantity, price_data["price"], status["open"])
     
     if "error" in result:
@@ -109,14 +105,22 @@ async def get_portfolio_summary(
     total_value = current_cash
     holdings_detail = []
 
-    for holding in holdings:
-        # Try to get the live price, if yfinance fails, fallback to average buy price
+    async def _quote(symbol: str):
         try:
-            price_data = await get_live_price(holding.symbol)
+            return await get_live_price(symbol)
+        except Exception:
+            return None
+
+    # Fetch all live prices concurrently instead of one-by-one.
+    quotes = await asyncio.gather(*(_quote(h.symbol) for h in holdings))
+
+    for holding, price_data in zip(holdings, quotes):
+        if price_data:
             live_price = price_data["price"]
             day_change_pct = price_data.get("change_pct", 0)
-            company_name = price_data.get("shortName", holding.symbol) 
-        except Exception:
+            company_name = price_data.get("shortName", holding.symbol)
+        else:
+            # yfinance failed: fall back to the average buy price
             live_price = holding.average_buy_price
             day_change_pct = 0.0
             company_name = holding.symbol
@@ -157,7 +161,7 @@ async def get_portfolio_summary(
 
 @router.get("/history")
 async def transaction_history(
-    limit: int = Query(50), 
+    limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)  # 🔒 Requires Login
 ):
@@ -165,11 +169,18 @@ async def transaction_history(
         select(Transaction).where(Transaction.user_id == current_user.id).order_by(desc(Transaction.timestamp)).limit(limit)
     )
     txns = result.scalars().all()
-    return {"transactions": txns}
+    return {"transactions": [
+        {
+            "id": t.id, "type": t.type, "symbol": t.symbol, "quantity": t.quantity,
+            "price": t.price, "total_value": t.total_value, "status": t.status,
+            "timestamp": t.timestamp.isoformat() if t.timestamp else None,
+        }
+        for t in txns
+    ]}
 
 
 @router.post("/reset")
-async def reset_portfolio(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def reset_portfolio(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     # We pass current_user.id to the service
     success = await reset_portfolio_db(db, str(current_user.id))
     
@@ -182,7 +193,7 @@ async def reset_portfolio(db: Session = Depends(get_db), current_user: User = De
 @router.get("/costs-preview")
 async def costs_preview(
     symbol: str = Query(...), 
-    amount_inr: float = Query(...), 
+    amount_inr: float = Query(..., gt=0),
     side: str = Query("BUY"),
     current_user: User = Depends(get_current_user)
 ):
@@ -195,11 +206,10 @@ async def costs_preview(
         live_price = price_data["price"]
     except HTTPException as he:
         raise he
-    except Exception as e:
-        print(f"Error in costs-preview: {e}")
-        raise HTTPException(status_code=502, detail=f"Could not fetch price for {symbol}")
+    except Exception:
+        raise HTTPException(status_code=502, detail=f"Could not fetch price for {symbol}") from None
     
-    qty = int(amount_inr / live_price)
+    qty = int(amount_inr // live_price)
     trade_value = qty * live_price
     costs = compute_costs(trade_value, side.upper())
     
@@ -215,8 +225,13 @@ async def costs_preview(
         "market_status": market_status()
     }
 
+_CHART_PERIODS = {"1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"}
+
+
 @router.get("/chart")
-async def get_chart_data(symbol: str = Query(...), period: str = Query("1mo")):
+async def get_chart_data(symbol: str = Query(..., min_length=1, max_length=30), period: str = Query("1mo")):
+    if period not in _CHART_PERIODS:
+        period = "1mo"
     # 1. Clean the symbol for Indian Markets
     clean_symbol = symbol.upper()
     if not clean_symbol.endswith(".NS") and not clean_symbol.endswith(".BO"):
@@ -242,7 +257,7 @@ async def get_chart_data(symbol: str = Query(...), period: str = Query("1mo")):
                     if math.isnan(val) or math.isinf(val):
                         return default
                     return round(float(val), 2)
-                except:
+                except (TypeError, ValueError):
                     return default
 
             data.append({
@@ -259,6 +274,5 @@ async def get_chart_data(symbol: str = Query(...), period: str = Query("1mo")):
         # We run the blocking yfinance call in a separate thread
         chart_data = await asyncio.to_thread(fetch_history)
         return {"symbol": clean_symbol, "data": chart_data}
-    except Exception as e:
-        print(f"Chart Error for {clean_symbol}: {e}")
+    except Exception:
         return {"symbol": clean_symbol, "data": []}

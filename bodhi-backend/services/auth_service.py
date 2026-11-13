@@ -8,10 +8,10 @@
 
 
 import hashlib
-from datetime import datetime, timedelta
+import hmac
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import jwt
-import os
 import requests
 import logging
 import uuid
@@ -115,7 +115,6 @@ def get_password_hash(password: str):
     if len(final_input) > 71:
         final_input = final_input[:71]
         
-    print(f"🔒 Hashing password fingerprint (length: {len(final_input)} bytes)")
     return pwd_context.hash(final_input.decode('utf-8'))
 
 import secrets
@@ -130,13 +129,63 @@ def hash_refresh_token(token: str) -> str:
 
 def verify_refresh_token(token: str, hashed_token: str) -> bool:
     """Verify a raw refresh token against its hash."""
-    return hash_refresh_token(token) == hashed_token
+    return hmac.compare_digest(hash_refresh_token(token), hashed_token or "")
+
+
+def generate_otp() -> str:
+    """Cryptographically secure 6-digit OTP."""
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def otp_matches(provided: Optional[str], expected: Optional[str]) -> bool:
+    """Constant-time OTP comparison that tolerates whitespace."""
+    if not provided or not expected:
+        return False
+    return hmac.compare_digest(str(provided).strip(), str(expected).strip())
+
+
+REFRESH_TOKEN_TTL_DAYS = 30
+
+
+async def issue_session_tokens(db: AsyncSession, user: User, request=None) -> dict:
+    """Create a refresh-token session row and a matching access token.
+
+    Shared by password login and Google/Apple sign-in so every client gets the
+    same response shape (access + refresh token + session id).
+    Caller is responsible for committing.
+    """
+    from models.core import Session  # local import avoids a cycle at module load
+
+    raw_refresh_token = generate_opaque_token()
+    user_agent = request.headers.get("User-Agent") if request is not None else None
+    session = Session(
+        user_id=user.id,
+        refresh_token_hash=hash_refresh_token(raw_refresh_token),
+        device_info=user_agent[:255] if user_agent else None,
+        ip_address=(request.client.host if request is not None and request.client else None),
+        expires_at=datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_TTL_DAYS),
+    )
+    db.add(session)
+    await db.flush()
+
+    access_token = create_access_token(
+        data={"sub": user.email, "user_id": user.id, "role": user.role},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        session_id=session.id,
+    )
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "refresh_token": raw_refresh_token,
+        "session_id": session.id,
+        "full_name": user.full_name,
+    }
 
 logger = logging.getLogger(__name__)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None, session_id: Optional[str] = None):
     to_encode = data.copy()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expire = now + (expires_delta if expires_delta else timedelta(minutes=15))
     to_encode.update({
         "exp": expire,
@@ -173,26 +222,37 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            logger.warning("Token Validation Failed: Missing 'sub' claim")
-            raise credentials_exception
     except jwt.ExpiredSignatureError:
         logger.warning("Token Validation Failed: Expired signature in get_current_user")
-        raise credentials_exception
+        raise credentials_exception from None
     except jwt.PyJWTError as exc:
-        logger.warning(f"Token Validation Failed: {str(exc)}")
+        logger.warning(f"Token Validation Failed: {exc}")
+        raise credentials_exception from None
+
+    subject = payload.get("sub")
+    user_id = payload.get("user_id")
+    if not subject and not user_id:
+        logger.warning("Token Validation Failed: Missing 'sub' claim")
         raise credentials_exception
-        
-    result = await db.execute(select(User).where(User.email == username))
+
+    # Prefer the immutable user id; legacy tokens carry only the email (or, for
+    # older OAuth tokens, the user id) in `sub`.
+    if user_id:
+        condition = User.id == str(user_id)
+    elif "@" in str(subject):
+        condition = User.email == str(subject).lower()
+    else:
+        condition = User.id == str(subject)
+
+    result = await db.execute(select(User).where(condition))
     user = result.scalar_one_or_none()
-    
-    if user is None:
-        logger.warning(f"Token Validation Failed: Unknown user ID/email referenced in valid token ({username})")
+
+    if user is None or user.deleted_at is not None:
+        logger.warning("Token Validation Failed: token references an unknown user")
         raise credentials_exception
-        
+
     if not user.is_active:
-        logger.warning(f"Access Denied: Attempted access by disabled/inactive user ({username})")
+        logger.warning(f"Access Denied: inactive user ({user.id})")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Account is suspended or inactive."
@@ -201,11 +261,20 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     if user.password_changed_at:
         iat = payload.get("iat")
         if iat:
-            from datetime import timezone
             iat_dt = datetime.fromtimestamp(iat, tz=timezone.utc)
-            if iat_dt < user.password_changed_at:
-                logger.warning(f"Access Denied: Token issued before password change for user ({username})")
+            # `iat` has 1s resolution, so compare against the truncated change time.
+            if iat_dt < user.password_changed_at.replace(microsecond=0):
+                logger.warning(f"Access Denied: Token issued before password change for user ({user.id})")
                 raise credentials_exception
+
+    # Logged-out / revoked sessions must not keep working until the JWT expires.
+    sid = payload.get("sid")
+    if sid:
+        from models.core import Session
+        revoked = await db.scalar(select(Session.revoked_at).where(Session.id == sid))
+        if revoked is not None:
+            logger.warning(f"Access Denied: revoked session used by user ({user.id})")
+            raise credentials_exception
 
     return user
 
@@ -221,18 +290,17 @@ def _deliver_html_email(email_address: str, subject: str, html_body: str) -> boo
         msg['Subject'] = subject
         msg.attach(MIMEText(html_body, 'html'))
 
-        print(f"📧 Attempting to send mail to {email_address} via {SENDER_EMAIL}...")
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        if not SENDER_EMAIL or not SENDER_PASSWORD:
+            logger.warning("SMTP credentials are not configured; email not sent.")
+            return False
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=15)
         server.starttls()
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.send_message(msg)
         server.quit()
-        print(f"✅ Mail sent successfully to {email_address}")
         return True
     except Exception as e:
-        import traceback
-        print(f"❌ Mail Error for {email_address}: {e}")
-        traceback.print_exc()
+        logger.error(f"Mail delivery failed: {type(e).__name__}: {e}")
         return False
 
 
@@ -337,7 +405,7 @@ def send_role_update_email(email_address: str, new_role: str):
         msg['To'] = email_address
         
         status_action = "Promoted" if new_role == "admin" else "Demoted"
-        msg['Subject'] = f"Action Required: Your BODHI Account Access Level Has Changed"
+        msg['Subject'] = "Action Required: Your BODHI Account Access Level Has Changed"
 
         body = f"""
         <html>
@@ -362,7 +430,7 @@ def send_role_update_email(email_address: str, new_role: str):
         msg.attach(MIMEText(body, 'html'))
 
         # Connect and Send
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=15)
         server.starttls()
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.send_message(msg)
@@ -397,8 +465,10 @@ def send_otp_sms(phone_number: str, otp: str):
             'Cache-Control': "no-cache",
         }
 
-        print(f"📱 [XHR] Sending JSON OTP to {clean_phone}...")
-        response = requests.post(url, json=payload, headers=headers)
+        if not clean_key:
+            logger.warning("SMS_API_KEY is not configured; SMS not sent.")
+            return False
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
         res_data = response.json()
         
         if res_data.get("return"):

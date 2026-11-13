@@ -10,7 +10,7 @@ import {
   AlertTriangle,
   Mail
 } from 'lucide-react';
-import api from '@/lib/api';
+import api, { apiErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 export default function NotificationsPage() {
@@ -20,7 +20,7 @@ export default function NotificationsPage() {
   const [type, setType] = useState('INFO');
   const [sendEmail, setSendEmail] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<any>(null);
+  const [status, setStatus] = useState<{ success: boolean; count?: number; error?: string } | null>(null);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,8 +38,8 @@ export default function NotificationsPage() {
       setStatus({ success: true, count: res.data.recipients });
       setTitle('');
       setMessage('');
-    } catch (err: any) {
-      setStatus({ success: false, error: err.response?.data?.detail || 'Transmission failed.' });
+    } catch (err) {
+      setStatus({ success: false, error: apiErrorMessage(err, 'Transmission failed.') });
     } finally {
       setLoading(false);
     }
@@ -157,7 +157,7 @@ export default function NotificationsPage() {
             <ul className="space-y-4">
               <li className="flex gap-3">
                 <div className="mt-1"><Info className="w-4 h-4 text-violet-400" /></div>
-                <p className="text-xs text-slate-400 leading-relaxed">Notifications appear in real-time within the mobile application's Social Hub.</p>
+                <p className="text-xs text-slate-400 leading-relaxed">Notifications appear in real-time within the mobile application&apos;s Social Hub.</p>
               </li>
               <li className="flex gap-3">
                 <div className="mt-1"><AlertTriangle className="w-4 h-4 text-amber-400" /></div>

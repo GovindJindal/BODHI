@@ -5,9 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from services.auth_service import get_current_user
 from services.expense_service import (
-    AlreadySettledError, DebtNotFoundError, ExpenseNotFoundError, ExpenseServiceError,
+    AlreadySettledError, DebtNotFoundError, ExpenseServiceError,
     OverpaymentError, SplitValidationError, UserNotFoundError, create_expense,
-    get_net_debts, get_user_debts, settle_debt, simplify_debts,
+    get_user_debts, settle_debt, simplify_debts,
 )
 from schemas.expenses import ExpenseCreate, ExpenseRead, NetDebtGraph, SettlementCreate, SettlementRead
 
@@ -33,20 +33,23 @@ async def all_debts(
     db: AsyncSession = Depends(get_db), 
     current_user = Depends(get_current_user)
 ) -> NetDebtGraph:
-    return await get_net_debts(db, currency.upper())
+    # Only the caller's own debts – the global graph would expose every user's balances.
+    return await get_user_debts(db, current_user.id, currency.upper())
 
 @router.get("/debts/{user_id}", response_model=NetDebtGraph)
 async def user_debts(
-    user_id: int, # UPDATED to Integer
+    user_id: str,
     currency: str = Query(default="INR"), 
     db: AsyncSession = Depends(get_db), 
     current_user = Depends(get_current_user)
 ) -> NetDebtGraph:
+    if user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You can only view your own debts")
     return await get_user_debts(db, user_id, currency.upper())
 
 @router.post("/debts/simplify", response_model=list[dict])
 async def simplify(
-    user_ids: list[int], # UPDATED to Integer list
+    user_ids: list[str],
     currency: str = Query(default="INR"), 
     db: AsyncSession = Depends(get_db), 
     current_user = Depends(get_current_user)

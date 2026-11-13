@@ -144,6 +144,7 @@ class User(Base):
 
     reset_otp = Column(String(6), nullable=True, default=None)
     reset_otp_expiry = Column(DateTime(timezone=True), nullable=True, default=None)
+    reset_otp_attempts = Column(Integer, nullable=False, default=0, server_default="0")
 
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)

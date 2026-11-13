@@ -7,22 +7,28 @@ import {
   CreditCard,
   Users
 } from 'lucide-react';
-import api from '@/lib/api';
+import api, { apiErrorMessage } from '@/lib/api';
 import { formatCurrency, cn } from '@/lib/utils';
 import { StatusBadge, RoleBadge } from '@/components/StatusBadge';
 import { TableSkeleton } from '@/components/LoadingSkeleton';
 import { EmptyState } from '@/components/EmptyState';
 
+type AdminUserRow = { id: string; email: string; full_name: string | null; role: string; is_active: boolean; balance: number };
+
+async function fetchUsers(search: string): Promise<AdminUserRow[]> {
+  const res = await api.get('/users', { params: search ? { search } : {} });
+  return res.data.users;
+}
+
 export default function UsersPage() {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<AdminUserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/users', { params: { search } });
-      setUsers(res.data.users);
+      setUsers(await fetchUsers(search.trim()));
     } catch (e) {
       console.error(e);
     } finally {
@@ -31,15 +37,20 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    loadUsers();
+    let cancelled = false;
+    fetchUsers('')
+      .then((rows) => { if (!cancelled) setUsers(rows); })
+      .catch(console.error)
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const handleToggleStatus = async (id: string) => {
       try {
           await api.post(`/users/${id}/toggle-status`);
-          loadUsers();
+          setUsers((rows) => rows.map((u) => (u.id === id ? { ...u, is_active: !u.is_active } : u)));
       } catch (e) {
-          alert('Operation failed');
+          alert(apiErrorMessage(e, 'Operation failed'));
       }
   };
 

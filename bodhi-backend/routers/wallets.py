@@ -11,9 +11,9 @@ import services.trips_service as trip_svc
 from schemas.wallets import (
     GroupContributeRequest, GroupContributeResponse, GroupJoinRequest, GroupMemberRead,
     GroupWalletCreate, GroupWalletRead, ProposalCreate, ProposalRead,
-    TripCloseResponse, TripContributeRequest, TripContributeResponse,
+    TripContributeRequest, TripContributeResponse,
     TripExpenseCreate, TripExpenseRead, TripJoinRequest, TripMemberRead,
-    TripWalletActivate, TripWalletCreate, TripWalletRead,
+    TripWalletCreate, TripWalletRead,
 )
 
 logger = logging.getLogger(__name__)

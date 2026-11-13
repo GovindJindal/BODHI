@@ -4,12 +4,9 @@ import {
   GoogleSignin,
   statusCodes as GoogleStatusCodes,
 } from '@react-native-google-signin/google-signin';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-import { BASE_URL } from '../api/client';
+import { BASE_URL, saveSession } from '../api/client';
 
 const API_URL = `${BASE_URL}/auth`;
-const JWT_STORAGE_KEY = 'bodhi_access_token';
 
 interface OAuthResult {
   accessToken: string;
@@ -28,10 +25,6 @@ export function configureGoogleSignIn(): void {
 
 export function useOAuthSignIn() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
-
-  const saveToken = async (token: string) => {
-    await AsyncStorage.setItem(JWT_STORAGE_KEY, token);
-  };
 
   // ── GOOGLE ──────────────────────────────────────────────────────────────────
   const handleGoogleLogin = useCallback(async (): Promise<OAuthResult | null> => {
@@ -52,7 +45,7 @@ export function useOAuthSignIn() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Backend verification failed');
 
-      await saveToken(data.access_token);
+      await saveSession(data);
       return { accessToken: data.access_token, isNewUser: data.is_new_user };
 
     } catch (error: any) {

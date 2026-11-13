@@ -24,8 +24,14 @@ import { formatCurrency } from '@/lib/utils';
 import { StatCard } from '@/components/StatCard';
 import { EmptyState } from '@/components/EmptyState';
 
+type Stats = {
+  users?: { total?: number; active_24h?: number };
+  financials?: { ledger_volume_paise?: number; success_volume_paise?: number; failed_payments_count?: number };
+  features?: { venture_clubs?: number; active_trips?: number };
+};
+
 export default function Dashboard() {
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -98,22 +104,22 @@ export default function Dashboard() {
         />
         <StatCard 
           label="Ledger Volume" 
-          value={formatCurrency(stats?.financials?.ledger_volume_paise)} 
+          value={formatCurrency(stats?.financials?.ledger_volume_paise, 'paise')} 
           icon={IndianRupee} 
           subtext="Total circulating capital"
         />
         <StatCard 
           label="AUM (Venture Clubs)" 
-          value={formatCurrency(stats?.financials?.success_volume_paise)} 
+          value={formatCurrency(stats?.financials?.success_volume_paise, 'paise')} 
           icon={Briefcase} 
           subtext={`${stats?.features?.venture_clubs ?? 0} active clubs`}
           accent="violet"
         />
         <StatCard 
           label="System Health" 
-          value={`${stats?.financials?.failed_payments_count > 0 ? 'ANOMALY' : 'OPTIMAL'}`} 
+          value={(stats?.financials?.failed_payments_count ?? 0) > 0 ? 'ANOMALY' : 'OPTIMAL'} 
           icon={Activity} 
-          accent={stats?.financials?.failed_payments_count > 0 ? 'red' : 'green'}
+          accent={(stats?.financials?.failed_payments_count ?? 0) > 0 ? 'red' : 'green'}
           subtext={`${stats?.financials?.failed_payments_count ?? 0} failed tx logs`}
         />
       </div>

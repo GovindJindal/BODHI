@@ -1,29 +1,24 @@
 'use client';
-import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { useEffect, useSyncExternalStore } from 'react';
 import { Sidebar } from "@/components/Sidebar";
 import { config } from '@/lib/config';
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isLoginPage = pathname === '/login';
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  // Read the stored session without a setState-in-effect; null while prerendering.
+  const session = useSyncExternalStore(subscribeStorage, readSession, () => null);
+  const isAuthenticated = isLoginPage ? true : session === null ? null : Boolean(session.token);
 
   useEffect(() => {
-    if (isLoginPage) {
-      setIsAuthenticated(true); // Don't guard the login page
-      return;
-    }
-    const token = localStorage.getItem(config.STORAGE_KEYS.TOKEN);
-    if (!token) {
+    if (!isLoginPage && session !== null && !session.token) {
       window.location.href = '/login';
-    } else {
-      setIsAuthenticated(true);
     }
-  }, [pathname, isLoginPage]);
+  }, [isLoginPage, session]);
 
   // Show nothing while checking auth (prevents flash of content)
-  if (isAuthenticated === null) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-slate-500 animate-pulse text-sm font-medium">Verifying session...</div>
@@ -33,12 +28,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
   if (isLoginPage) return <div className="min-h-screen bg-slate-950">{children}</div>;
 
-  // Get admin user info for the top bar
-  let adminUser: any = null;
-  try {
-    const stored = localStorage.getItem(config.STORAGE_KEYS.USER);
-    if (stored) adminUser = JSON.parse(stored);
-  } catch {}
+  const adminUser = session?.user ?? null;
 
   const pageTitle = getPageTitle(pathname);
 
@@ -87,4 +77,29 @@ function getPageTitle(pathname: string): string {
     '/create-admin': 'Provision Admin',
   };
   return titles[pathname] || 'Dashboard';
+}
+
+type AdminUser = { full_name?: string; email?: string; role?: string };
+type StoredSession = { token: string | null; user: AdminUser | null; raw: string };
+
+let cachedSession: StoredSession | null = null;
+
+function readSession(): StoredSession {
+  const token = localStorage.getItem(config.STORAGE_KEYS.TOKEN);
+  const rawUser = localStorage.getItem(config.STORAGE_KEYS.USER) ?? '';
+  const raw = `${token ?? ''}|${rawUser}`;
+  if (cachedSession && cachedSession.raw === raw) return cachedSession; // stable snapshot
+  let user: AdminUser | null = null;
+  try {
+    user = rawUser ? (JSON.parse(rawUser) as AdminUser) : null;
+  } catch {
+    user = null;
+  }
+  cachedSession = { token, user, raw };
+  return cachedSession;
+}
+
+function subscribeStorage(onChange: () => void) {
+  window.addEventListener('storage', onChange);
+  return () => window.removeEventListener('storage', onChange);
 }

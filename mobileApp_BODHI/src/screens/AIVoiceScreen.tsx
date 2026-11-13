@@ -13,6 +13,7 @@ import {
   Image,
   ActivityIndicator,
   PermissionsAndroid,
+  Alert,
 } from 'react-native';
 import { isTablet, isLandscape, responsiveFont, responsiveWidth, responsiveHeight } from '../utils/responsive';
 import LinearGradient from 'react-native-linear-gradient';
@@ -36,11 +37,8 @@ import { Colors, Radius, Spacing, ScreenColors } from '../theme/tokens';
 import RNFS from 'react-native-fs';
 import { WebView } from 'react-native-webview';
 
-import { UsersAPI, NotificationAPI, BASE_URL } from '../api/client';
-import { SARVAM_API_KEY } from '@env';
-
-// Fallback for missing API keys
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+import { UsersAPI, NotificationAPI, BASE_URL, AIAPI, TransactionAPI } from '../api/client';
+import type { VoiceCommandResponse } from '../api/client';
 
 const NUM_BARS = 5;
 const BAR_MIN_HEIGHT = 8;
@@ -260,122 +258,16 @@ export function AIVoiceScreen() {
         return;
       }
 
-      // ─── Step 1: Sarvam STT ────────────────────────────────────
-      setTranscription('Transcribing...');
-      const formData = new FormData();
-      
-      const fileUri = Platform.OS === 'ios' ? uri.replace('file://', '') : `file://${uri.replace('file://', '')}`;
-      
-      formData.append('file', {
-        uri: fileUri,
-        type: Platform.OS === 'ios' ? 'audio/m4a' : 'audio/mp4',
-        name: Platform.OS === 'ios' ? 'speech_upload.m4a' : 'speech_upload.mp4',
-      } as any);
-      formData.append('model', 'saaras:v3');
-      formData.append('language_code', 'hi-IN');
-      formData.append('mode', 'transcribe');
-
-      console.log('📡 Sending audio to Sarvam STT...');
-      const sttResponse = await fetch('https://api.sarvam.ai/speech-to-text', {
-        method: 'POST',
-        headers: {
-          'api-subscription-key': SARVAM_API_KEY,
-        },
-        body: formData,
-      });
-
-      const sttData = await sttResponse.json();
-      console.log('📥 Sarvam STT Response:', JSON.stringify(sttData).substring(0, 200));
-
-      if (!sttData.transcript) {
-        console.warn('No transcript in response:', sttData);
-        setTranscription('Could not understand audio. Please try again.');
+      setTranscription('Thinking...');
+      const result = await AIAPI.command(uri);
+      if (!result.transcript) {
+        setTranscription(result.text_response || 'Could not understand audio. Please try again.');
         return;
       }
-
-      const userQuestion = sttData.transcript;
-      setInputText(userQuestion);
-      setTranscription(`You said: "${userQuestion}"\n\nThinking...`);
-
-      // ─── Step 2: Gemini AI ─────────────────────────────────────
-      console.log('🧠 Sending to Gemini:', userQuestion);
-
-      if (!GEMINI_API_KEY) {
-        console.error('❌ GEMINI_API_KEY is missing! Did you restart Metro after adding it to .env?');
-        setTranscription('API Key missing. Restart Metro.');
-        return;
-      }
-
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-
-      const geminiResponse = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `You are GAP, Bodhi's AI financial assistant. You help Indian users manage their money. Answer in a friendly, concise way (2-3 sentences max), and ans in a funny snarky way. If the question is in Hindi, reply in Hindi. If in English, reply in English. 
-              
-              CRITICAL INTERNAL MEMORY - The user's transaction history is as follows:
-              []
-              
-              Answer questions utilizing the transaction history above. If they ask about their wallet, reference these transactions.
-              
-              User: ${userQuestion}`,
-            }],
-          }],
-        }),
-      });
-
-      console.log('🤖 Gemini HTTP Status:', geminiResponse.status);
-      const geminiData = await geminiResponse.json();
-      console.log('🤖 Gemini Response received:', JSON.stringify(geminiData).substring(0, 200));
-
-      if (!geminiResponse.ok) {
-        console.error('❌ Gemini Error Data:', geminiData);
-        setTranscription(`Gemini Error: ${geminiResponse.status}`);
-        return;
-      }
-
-      const aiReply =
-        geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        'GAP could not generate a response.';
-
-      setTranscription(aiReply);
-
-      // ─── Step 3: Fetch Base64 from Sarvam ----------
-      console.log('🗣️ Fetching TTS Base64...');
-
-      const ttsResponse = await fetch('https://api.sarvam.ai/text-to-speech', {
-        method: 'POST',
-        headers: {
-          'api-subscription-key': SARVAM_API_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: aiReply,
-          target_language_code: 'hi-IN',
-          speaker: 'ritu',
-          pace: 1.1,
-          sample_rate: 24000,
-          enable_preprocessing: true,
-          model: 'bulbul:v3',
-        }),
-      });
-
-      const ttsData = await ttsResponse.json();
-
-      if (ttsData.audios && ttsData.audios.length > 0) {
-        console.log('✅ Base64 received successfully. Injecting into WebView Player...');
-        // The WebView in the render output will auto-play this!
-        setBase64Audio(ttsData.audios[0]);
-      } else {
-        console.error('❌ Failed to fetch TTS Base64', ttsData);
-      }
-
-    } catch (error) {
-      console.error('❌ Voice Pipeline Error:', error);
-      setTranscription('Something went wrong. Please try again.');
+      await presentReply(result);
+    } catch (error: any) {
+      console.error('Voice Pipeline Error:', error?.message || error);
+      setTranscription(aiErrorMessage(error));
     } finally {
       setIsProcessing(false);
     }
@@ -389,44 +281,63 @@ export function AIVoiceScreen() {
     }
   };
 
+  const aiErrorMessage = (error: any) => {
+    const detail = error?.response?.data?.detail;
+    if (typeof detail === 'string') return detail;
+    if (error?.code === 'ECONNABORTED') return 'GAP took too long to answer. Please try again.';
+    return 'Something went wrong. Please try again.';
+  };
+
+  /** Shows the reply, plays the voice and offers to log any detected transaction. */
+  const presentReply = async (result: VoiceCommandResponse) => {
+    setTranscription(result.transcript
+      ? `You said: "${result.transcript}"\n\n${result.text_response}`
+      : result.text_response);
+    if (result.audio_base64) setBase64Audio(result.audio_base64);
+
+    const tx = result.transaction_data;
+    if (result.intent === 'add_transaction' && tx && tx.amount > 0) {
+      Alert.alert(
+        'Log this transaction?',
+        `${tx.type === 'CREDIT' ? 'Received' : 'Spent'} ₹${tx.amount.toLocaleString('en-IN')} · ${tx.merchant} (${tx.category})`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Save',
+            onPress: async () => {
+              try {
+                await TransactionAPI.saveVoiceTransaction({
+                  merchant: tx.merchant,
+                  category: tx.category,
+                  amount: tx.amount,
+                  type: tx.type,
+                  note: result.transcript,
+                });
+                Alert.alert('Saved', 'Transaction added to your history.');
+              } catch (e) {
+                Alert.alert('Error', 'Could not save the transaction. Please try again.');
+              }
+            },
+          },
+        ],
+      );
+    }
+  };
+
   // ─── Send typed text ────────────────────────────────────────────
   const handleSendText = async (overrideText?: string) => {
-    const textToProcess = overrideText || inputText;
-    if (!textToProcess) return;
-    
+    const textToProcess = (overrideText || inputText).trim();
+    if (!textToProcess || isProcessing) return;
+
     setIsProcessing(true);
     setTranscription(`You said: "${textToProcess}"\n\nThinking...`);
     setInputText('');
 
     try {
-      if (!GEMINI_API_KEY) {
-        setTranscription('API Key missing. Restart Metro.');
-        return;
-      }
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-      const geminiResponse = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: `You are GAP, Bodhi's AI financial assistant. Answer in a friendly, concise way (2-3 sentences max). User: ${textToProcess}` }] }]
-        }),
-      });
-
-      const geminiData = await geminiResponse.json();
-      const aiReply = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || 'GAP could not generate a response.';
-      setTranscription(aiReply);
-
-      const ttsResponse = await fetch('https://api.sarvam.ai/text-to-speech', {
-        method: 'POST',
-        headers: { 'api-subscription-key': SARVAM_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: aiReply, target_language_code: 'hi-IN', speaker: 'ritu', pace: 1.1, sample_rate: 24000, enable_preprocessing: true, model: 'bulbul:v3' }),
-      });
-      const ttsData = await ttsResponse.json();
-      if (ttsData.audios && ttsData.audios.length > 0) {
-        setBase64Audio(ttsData.audios[0]);
-      }
-    } catch (err) {
-      setTranscription('Something went wrong. Please try again.');
+      const result = await AIAPI.chat(textToProcess);
+      await presentReply(result);
+    } catch (err: any) {
+      setTranscription(aiErrorMessage(err));
     } finally {
       setIsProcessing(false);
     }

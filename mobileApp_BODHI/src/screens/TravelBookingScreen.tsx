@@ -474,7 +474,7 @@ export const TravelBookingScreen = () => {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#FDFDF9' },
   header: { paddingTop: 60, paddingHorizontal: 20, paddingBottom: 20, flexDirection: 'row', alignItems: 'center', gap: 15 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyCenter: 'center', paddingTop: 10, paddingLeft: 10 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.05)', alignItems: 'center', justifyContent: 'center' },
   headerTitle: { color: '#1C1C1E', fontSize: responsiveFont(18), fontWeight: '800' },
   headerSub: { color: 'rgba(0,0,0,0.45)', fontSize: responsiveFont(12) },
   scrollView: { flex: 1, paddingHorizontal: 20 },

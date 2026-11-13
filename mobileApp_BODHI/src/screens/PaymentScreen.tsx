@@ -1,5 +1,5 @@
 // src/screens/PaymentScreen.tsx
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,11 @@ import {
   Dimensions,
   Animated,
   Platform,
+  KeyboardAvoidingView,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
 import { isTablet, isLandscape, responsiveFont, responsiveWidth, responsiveHeight } from '../utils/responsive';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -24,15 +28,20 @@ import {
   Tv,
   ArrowLeft,
   Check,
-  ChevronRight
+  ChevronRight,
+  X,
 } from 'lucide-react-native'; // <-- Professional Vector Icons
 import { Colors, Spacing, Radius, Shadow, Gradients } from '../theme/tokens';
 import LinearGradient from 'react-native-linear-gradient';
-import { BottomNav, GradientCard, SectionHeader } from '../components';
+import { BottomNav, GradientCard } from '../components';
 import type { NavTab } from '../components/shared';
-import { PaymentAPI } from '../api/client';
+import { PaymentAPI, UsersAPI } from '../api/client';
 
 const { width: W } = Dimensions.get('window');
+
+const SectionHeader: React.FC<{ title: string }> = ({ title }) => (
+  <Text style={{ color: Colors.textPrimary, fontSize: 16, fontWeight: '800', marginBottom: 12 }}>{title}</Text>
+);
 
 interface Props {
   onNavigate?: (tab: NavTab) => void;
@@ -432,10 +441,7 @@ export const PaymentScreen: React.FC<Props> = ({
 
               <View style={styles.realQrContainer}>
                 {myProfile ? (
-                  <Image
-                    source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(getMyUpiString())}` }}
-                    style={styles.realQrImage}
-                  />
+                  <QRCode value={getMyUpiString()} size={200} backgroundColor="#FFFFFF" color="#000000" />
                 ) : (
                   <ActivityIndicator color={Colors.purple} />
                 )}
@@ -457,7 +463,7 @@ export const PaymentScreen: React.FC<Props> = ({
   // ── HOME SCREEN ────────────────────────────────────────────────────────────
   return (
     <LinearGradient
-      colors={Gradients.darkVibrant.colors}
+      colors={[...Gradients.darkVibrant.colors]}
       start={Gradients.darkVibrant.start}
       end={Gradients.darkVibrant.end}
       style={styles.container}
@@ -666,6 +672,9 @@ export const PaymentScreen: React.FC<Props> = ({
 
 // ─── styles ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  blob: { position: 'absolute', borderRadius: 999, opacity: 0.18 },
+  blob1: { width: 260, height: 260, top: -80, right: -60, backgroundColor: '#7C3AED' },
+  blob2: { width: 220, height: 220, bottom: -60, left: -70, backgroundColor: '#3D4DFF' },
   container: { flex: 1 },
   scroll: { paddingBottom: 32 },
 

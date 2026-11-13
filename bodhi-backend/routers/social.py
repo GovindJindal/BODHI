@@ -8,16 +8,22 @@ Endpoints:
   GET /social/trips        → User's active trip wallets with spent/owed amounts
 """
 
-from datetime import datetime
+import asyncio
+import secrets
+import string
+import uuid
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
-from sqlalchemy import select, func, and_
+from fastapi.concurrency import run_in_threadpool
+from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from database import get_db
+from models.core import User
 from services.auth_service import get_current_user
 from models.social import (
     InvestmentGroup,
@@ -35,17 +41,32 @@ router = APIRouter(tags=["social"])
 
 # ── POST Schemas ──
 class CreateGroupReq(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=120)
+
+    @field_validator("name")
+    @classmethod
+    def _strip(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Name cannot be empty")
+        return v
 
 class CreateExpenseReq(BaseModel):
-    description: str
-    amount: float
+    description: str = Field(..., min_length=1, max_length=200)
+    amount: float = Field(..., gt=0, le=10_000_000)
+    category: Optional[str] = Field(default="general", max_length=60)
 
 class ContributeReq(BaseModel):
-    amount: float
+    amount: float = Field(..., gt=0, le=10_000_000)
 
 class JoinReq(BaseModel):
-    invite_code: str
+    invite_code: str = Field(..., min_length=4, max_length=12)
+
+class CreatePollReq(BaseModel):
+    symbol: str = Field(..., min_length=1, max_length=20)
+    quantity: float = Field(..., gt=0)
+    type: str = Field(..., pattern=r"(?i)^(BUY|SELL)$")
+    expires_hours: int = Field(default=48, ge=1, le=24 * 30)
 
 # ── Response Schemas ───────────────────────────────────────────────────────────
 
@@ -314,7 +335,7 @@ async def get_trips(
                 emoji=trip.emoji,
                 member_count=trip.member_count,
                 status_label=_status_label(trip),
-                total_balance=_fmt_inr(trip.total_balance),
+                total_balance=_fmt_inr(trip.total_spent or 0),
                 you_spent=_fmt_inr(you_spent),
                 you_owe=_fmt_inr(abs(you_owe_net)),
                 you_owe_raw=you_owe_net,
@@ -382,7 +403,7 @@ async def social_dashboard(
                 emoji=trip.emoji,
                 member_count=trip.member_count,
                 status_label=_status_label(trip),
-                total_balance=_fmt_inr(trip.total_balance),
+                total_balance=_fmt_inr(trip.total_spent or 0),
                 you_spent=_fmt_inr(you_spent),
                 you_owe=_fmt_inr(abs(you_owe_net)),
                 you_owe_raw=you_owe_net,
@@ -398,6 +419,89 @@ async def social_dashboard(
         total_trips=len(trip_items),
     )
 
+# ── Shared helpers for write endpoints ─────────────────────────────────────────
+
+_INVITE_ALPHABET = string.ascii_uppercase + string.digits
+
+
+async def _new_invite_code(db: AsyncSession, model) -> str:
+    """Cryptographically random, collision-checked 6-char invite code."""
+    for _ in range(10):
+        code = "".join(secrets.choice(_INVITE_ALPHABET) for _ in range(6))
+        if not await db.scalar(select(model.id).where(model.invite_code == code)):
+            return code
+    raise HTTPException(status_code=500, detail="Could not allocate an invite code, please retry")
+
+
+async def _user_names(db: AsyncSession, user_ids) -> dict:
+    ids = {u for u in user_ids if u}
+    if not ids:
+        return {}
+    rows = await db.execute(select(User.id, User.full_name).where(User.id.in_(ids)))
+    return {uid: (name or "Member") for uid, name in rows.all()}
+
+
+async def _load_trip(db: AsyncSession, trip_id: int, uid: str, *, with_splits: bool = True) -> TripWallet:
+    expenses = selectinload(TripWallet.expenses)
+    if with_splits:
+        expenses = expenses.selectinload(TripExpense.splits)
+    trip = (await db.execute(
+        select(TripWallet).options(selectinload(TripWallet.members), expenses).where(TripWallet.id == trip_id)
+    )).scalar_one_or_none()
+    if not trip or trip.status != TripStatus.ACTIVE:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    if not any(m.user_id == uid for m in trip.members):
+        raise HTTPException(status_code=403, detail="Not a member of this trip")
+    return trip
+
+
+async def _load_club(db: AsyncSession, club_id: int, uid: str) -> InvestmentGroup:
+    club = (await db.execute(
+        select(InvestmentGroup).options(selectinload(InvestmentGroup.members)).where(InvestmentGroup.id == club_id)
+    )).scalar_one_or_none()
+    if not club or club.status != InvestmentStatus.ACTIVE:
+        raise HTTPException(status_code=404, detail="Club not found")
+    if not any(m.user_id == uid for m in club.members):
+        raise HTTPException(status_code=403, detail="Not a member of this club")
+    return club
+
+
+def _trip_net_balances(trip: TripWallet) -> dict:
+    """Net position per member (+ = is owed money, - = owes money).
+
+    Uses the stored splits; legacy expenses without splits fall back to an
+    equal split across the current members.
+    """
+    member_ids = [m.user_id for m in trip.members]
+    net = {uid: 0.0 for uid in member_ids}
+    for exp in trip.expenses:
+        net[exp.paid_by_user_id] = net.get(exp.paid_by_user_id, 0.0) + exp.amount
+        if exp.splits:
+            for sp in exp.splits:
+                net[sp.user_id] = net.get(sp.user_id, 0.0) - _resolve_split_amount(sp, exp)
+        elif member_ids:
+            share = exp.amount / len(member_ids)
+            for uid in member_ids:
+                net[uid] -= share
+    return {uid: round(v, 2) for uid, v in net.items()}
+
+
+def _greedy_settlement(net: dict) -> list:
+    debtors = sorted(([u, -v] for u, v in net.items() if v < -0.01), key=lambda x: x[1], reverse=True)
+    creditors = sorted(([u, v] for u, v in net.items() if v > 0.01), key=lambda x: x[1], reverse=True)
+    out, i, j = [], 0, 0
+    while i < len(debtors) and j < len(creditors):
+        amt = min(debtors[i][1], creditors[j][1])
+        out.append({"from_user": debtors[i][0], "to_user": creditors[j][0], "amount": round(amt, 2)})
+        debtors[i][1] -= amt
+        creditors[j][1] -= amt
+        if debtors[i][1] < 0.01:
+            i += 1
+        if creditors[j][1] < 0.01:
+            j += 1
+    return out
+
+
 # ── Endpoint: POST /social/investments ──
 @router.post("/investments")
 async def create_investment_group(
@@ -405,32 +509,18 @@ async def create_investment_group(
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
 ):
-    import string
-    import random
-    # Generate a random 6-character invite code
-    code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    
-    # 1. Create the Group
     new_group = InvestmentGroup(
         name=req.name,
         created_by=current_user.id,
-        invite_code=code,
-        status=InvestmentStatus.ACTIVE
+        invite_code=await _new_invite_code(db, InvestmentGroup),
+        status=InvestmentStatus.ACTIVE,
     )
     db.add(new_group)
-    await db.flush() # Get the new ID
-
-    # 2. Add the creator as the first Admin member (100% share initially)
-    new_member = InvestmentMember(
-        group_id=new_group.id,
-        user_id=current_user.id,
-        share_percentage=100.0,
-        is_admin=True
-    )
-    db.add(new_member)
+    await db.flush()
+    db.add(InvestmentMember(group_id=new_group.id, user_id=current_user.id, share_percentage=100.0, is_admin=True))
     await db.commit()
-    
-    return {"message": "Investment group created", "id": new_group.id}
+    return {"message": "Investment group created", "id": new_group.id, "invite_code": new_group.invite_code}
+
 
 # ── Endpoint: POST /social/trips ──
 @router.post("/trips")
@@ -439,30 +529,18 @@ async def create_trip_wallet(
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user),
 ):
-    import string
-    import random
-    code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-    
-    # 1. Create the Wallet
     new_trip = TripWallet(
         name=req.name,
         created_by=current_user.id,
-        invite_code=code,
-        status=TripStatus.ACTIVE
+        invite_code=await _new_invite_code(db, TripWallet),
+        status=TripStatus.ACTIVE,
     )
     db.add(new_trip)
     await db.flush()
-
-    # 2. Add the creator as the first Admin member
-    new_member = TripMember(
-        trip_id=new_trip.id,
-        user_id=current_user.id,
-        is_admin=True
-    )
-    db.add(new_member)
+    db.add(TripMember(trip_id=new_trip.id, user_id=current_user.id, is_admin=True))
     await db.commit()
-    
-    return {"message": "Trip wallet created", "id": new_trip.id}
+    return {"message": "Trip wallet created", "id": new_trip.id, "invite_code": new_trip.invite_code}
+
 
 # ── Endpoint: POST /trips/join ──
 @router.post("/trips/join")
@@ -471,30 +549,20 @@ async def join_trip_wallet(
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    # 1. Find trip by code
-    query = select(TripWallet).where(TripWallet.invite_code == req.invite_code.upper())
-    result = await db.execute(query)
-    trip = result.scalar_one_or_none()
-    
-    if not trip:
+    trip = (await db.execute(
+        select(TripWallet).where(TripWallet.invite_code == req.invite_code.strip().upper())
+    )).scalar_one_or_none()
+    if not trip or trip.status != TripStatus.ACTIVE:
         raise HTTPException(status_code=404, detail="Invalid invite code")
-        
-    # 2. Check if already a member
-    mem_query = select(TripMember).where(TripMember.trip_id == trip.id, TripMember.user_id == current_user.id)
-    mem_result = await db.execute(mem_query)
-    if mem_result.scalar_one_or_none():
+
+    existing = await db.scalar(select(TripMember.id).where(TripMember.trip_id == trip.id, TripMember.user_id == current_user.id))
+    if existing:
         return {"message": "Already a member", "id": trip.id}
-        
-    # 3. Add member
-    new_member = TripMember(
-        trip_id=trip.id,
-        user_id=current_user.id,
-        is_admin=False
-    )
-    db.add(new_member)
+
+    db.add(TripMember(trip_id=trip.id, user_id=current_user.id, is_admin=False))
     await db.commit()
-    
     return {"message": "Joined trip successfully", "id": trip.id}
+
 
 # ── Endpoint: POST /investments/join ──
 @router.post("/investments/join")
@@ -503,242 +571,152 @@ async def join_investment_club(
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    # 1. Find club by code
-    query = select(InvestmentGroup).where(InvestmentGroup.invite_code == req.invite_code.upper())
-    result = await db.execute(query)
-    group = result.scalar_one_or_none()
-    
-    if not group:
+    group = (await db.execute(
+        select(InvestmentGroup).where(InvestmentGroup.invite_code == req.invite_code.strip().upper())
+    )).scalar_one_or_none()
+    if not group or group.status != InvestmentStatus.ACTIVE:
         raise HTTPException(status_code=404, detail="Invalid invite code")
-        
-    # 2. Check if already a member
-    mem_query = select(InvestmentMember).where(InvestmentMember.group_id == group.id, InvestmentMember.user_id == current_user.id)
-    mem_result = await db.execute(mem_query)
-    if mem_result.scalar_one_or_none():
+
+    existing = await db.scalar(select(InvestmentMember.id).where(
+        InvestmentMember.group_id == group.id, InvestmentMember.user_id == current_user.id))
+    if existing:
         return {"message": "Already a member", "id": group.id}
-        
-    # 3. Add member (0% share initially until contribution)
-    new_member = InvestmentMember(
-        group_id=group.id,
-        user_id=current_user.id,
-        share_percentage=0.0,
-        is_admin=False
-    )
-    db.add(new_member)
+
+    # 0% share until they contribute
+    db.add(InvestmentMember(group_id=group.id, user_id=current_user.id, share_percentage=0.0, is_admin=False))
     await db.commit()
-    
     return {"message": "Joined club successfully", "id": group.id}
+
 
 # ── Endpoint: GET /social/trips/{trip_id} ──
 @router.get("/trips/{trip_id}")
 async def get_trip_details(
     trip_id: int,
-    db: AsyncSession = Depends(get_db), 
+    db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    # Fetch the trip along with its members and expenses
-    query = select(TripWallet).options(
-        selectinload(TripWallet.members),
-        selectinload(TripWallet.expenses).selectinload(TripExpense.splits)
-    ).where(TripWallet.id == trip_id)
-    
-    result = await db.execute(query)
-    trip = result.scalar_one_or_none()
-    
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trip not found")
-        
-    # Check if user is a member
-    if not any(m.user_id == current_user.id for m in trip.members):
-        raise HTTPException(status_code=403, detail="Not a member of this trip")
+    trip = await _load_trip(db, trip_id, current_user.id)
+    names = await _user_names(db, [m.user_id for m in trip.members] + [e.paid_by_user_id for e in trip.expenses])
+    net = _trip_net_balances(trip)
 
-    member_balances = []
+    members = []
     for member in trip.members:
-        # Calculate how much this user has paid out-of-pocket
-        paid_by_user = sum(exp.amount for exp in trip.expenses if exp.paid_by_user_id == member.user_id)
-        
-        # Calculate their share of total expenses (simplified for now: total / member_count)
-        # In a real app, we'd sum their individual splits
-        total_trip_spent = sum(exp.amount for exp in trip.expenses)
-        share = total_trip_spent / len(trip.members) if trip.members else 0
-        
-        balance = paid_by_user - share
-        
-        member_balances.append({
+        paid = sum(e.amount for e in trip.expenses if e.paid_by_user_id == member.user_id)
+        members.append({
             "user_id": member.user_id,
-            "contributed": paid_by_user,
-            "balance": round(balance, 2)
+            "name": names.get(member.user_id, "Member"),
+            "is_admin": member.is_admin,
+            "is_you": member.user_id == current_user.id,
+            "contributed": round(paid, 2),
+            "balance": net.get(member.user_id, 0.0),
         })
 
+    expenses = sorted(trip.expenses, key=lambda e: e.created_at or datetime.min, reverse=True)
     return {
         "id": trip.id,
         "name": trip.name,
-        "total_expenses": trip.total_spent,
+        "total_expenses": round(sum(e.amount for e in trip.expenses), 2),
         "expenses": [
             {
-                "id": e.id, 
-                "desc": e.title, 
-                "amount": e.amount, 
+                "id": e.id,
+                "desc": e.title,
+                "amount": e.amount,
                 "paid_by": e.paid_by_user_id,
+                "paid_by_name": names.get(e.paid_by_user_id, "Member"),
                 "category": e.category,
-                "created_at": e.created_at
-            } for e in trip.expenses
+                "created_at": e.created_at,
+            } for e in expenses
         ],
-        "members": member_balances,
-        "invite_code": trip.invite_code
+        "members": members,
+        "invite_code": trip.invite_code,
+        "is_admin": any(m.user_id == current_user.id and m.is_admin for m in trip.members),
     }
+
 
 # ── Endpoint: POST /social/trips/{trip_id}/expenses ──
 @router.post("/trips/{trip_id}/expenses")
 async def add_trip_expense(
-    trip_id: int, 
+    trip_id: int,
     req: CreateExpenseReq,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    trip = await db.get(TripWallet, trip_id)
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trip not found")
+    trip = await _load_trip(db, trip_id, current_user.id, with_splits=False)
+    amount = round(req.amount, 2)
+    member_ids = sorted(m.user_id for m in trip.members)
 
-    new_expense = TripExpense(
-        trip_id=trip_id,
+    expense = TripExpense(
+        trip_id=trip.id,
         paid_by_user_id=current_user.id,
-        amount=req.amount,
-        title=req.description,
+        amount=amount,
+        title=req.description.strip(),
         split_type=SplitType.EQUAL,
-        category="general"
+        category=(req.category or "general").strip().lower() or "general",
     )
-    db.add(new_expense)
-    
-    # Update the total spent in the wallet
-    trip.total_spent += req.amount
-        
+    db.add(expense)
+    await db.flush()
+
+    # Equal split among current members; the first member absorbs rounding paise.
+    per_head = round(amount / len(member_ids), 2)
+    remainder = round(amount - per_head * len(member_ids), 2)
+    for idx, uid in enumerate(member_ids):
+        db.add(TripSplit(
+            expense_id=expense.id,
+            user_id=uid,
+            amount=round(per_head + (remainder if idx == 0 else 0), 2),
+            is_settled=uid == current_user.id,  # the payer's own share is already "paid"
+        ))
+
+    trip.total_spent = round((trip.total_spent or 0) + amount, 2)
     await db.commit()
-    return {"message": "Expense added successfully"}
+    return {"message": "Expense added successfully", "id": expense.id}
+
 
 # ── Endpoint: GET /social/trips/{trip_id}/settle ──
 @router.get("/trips/{trip_id}/settle")
 async def get_trip_settlement_plan(
-    trip_id: int, 
-    db: AsyncSession = Depends(get_db), 
+    trip_id: int,
+    db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    # 1. Fetch the trip and expenses
-    query = select(TripWallet).options(
-        selectinload(TripWallet.members),
-        selectinload(TripWallet.expenses)
-    ).where(TripWallet.id == trip_id)
-    
-    result = await db.execute(query)
-    trip = result.scalar_one_or_none()
-    
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trip not found")
-        
-    total_expenses = sum(exp.amount for exp in trip.expenses)
-    if total_expenses == 0:
-        return {"transactions": []} # Nothing to settle!
-        
-    member_count = len(trip.members) if len(trip.members) > 0 else 1
-    split_amount = total_expenses / member_count
-    
-    # 2. Separate into Debtors (owe money) and Creditors (are owed money)
-    debtors = []
-    creditors = []
-    
-    for member in trip.members:
-        paid_by_user = sum(exp.amount for exp in trip.expenses if exp.recorded_by == member.user_id)
-        balance = paid_by_user - split_amount
-        
-        # We use a tiny threshold (0.01) to ignore floating point math rounding errors
-        if balance < -0.01:
-            debtors.append({"user_id": member.user_id, "amount": abs(balance)})
-        elif balance > 0.01:
-            creditors.append({"user_id": member.user_id, "amount": balance})
-
-    # 3. Greedy Algorithm to match Debtors and Creditors
-    # Sort them so largest debts are paid to largest creditors first
-    debtors.sort(key=lambda x: x["amount"], reverse=True)
-    creditors.sort(key=lambda x: x["amount"], reverse=True)
-    
-    transactions = []
-    i, j = 0, 0
-    
-    while i < len(debtors) and j < len(creditors):
-        debt_amt = debtors[i]["amount"]
-        cred_amt = creditors[j]["amount"]
-        
-        # Find the minimum amount that can be transferred between the two
-        settle_amt = min(debt_amt, cred_amt)
-        
-        transactions.append({
-            "from_user": debtors[i]["user_id"],
-            "to_user": creditors[j]["user_id"],
-            "amount": round(settle_amt, 2)
-        })
-        
-        # Adjust remaining balances
-        debtors[i]["amount"] -= settle_amt
-        creditors[j]["amount"] -= settle_amt
-        
-        # Move to the next person if they are fully settled
-        if debtors[i]["amount"] < 0.01:
-            i += 1
-        if creditors[j]["amount"] < 0.01:
-            j += 1
-
+    trip = await _load_trip(db, trip_id, current_user.id)
+    transactions = _greedy_settlement(_trip_net_balances(trip))
+    names = await _user_names(db, [t["from_user"] for t in transactions] + [t["to_user"] for t in transactions])
+    for t in transactions:
+        t["from_name"] = names.get(t["from_user"], "Member")
+        t["to_name"] = names.get(t["to_user"], "Member")
     return {"transactions": transactions}
+
+
+def _latest_price(symbol: str) -> Optional[float]:
+    try:
+        import yfinance as yf
+        price = yf.Ticker(symbol).fast_info.get("lastPrice")
+        return float(price) if price else None
+    except Exception:
+        return None
+
 
 # ── Endpoint: GET /social/investments/{club_id} ──
 @router.get("/investments/{club_id}")
 async def get_club_details(
     club_id: int,
-    db: AsyncSession = Depends(get_db), 
+    db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
     from models.social import InvestmentHolding, InvestmentPoll
 
-    query = select(InvestmentGroup).options(
-        selectinload(InvestmentGroup.members)
-    ).where(InvestmentGroup.id == club_id)
-    result = await db.execute(query)
-    club = result.scalar_one_or_none()
-    
-    if not club:
-        raise HTTPException(status_code=404, detail="Club not found")
-        
-    # Fetch Holdings
-    h_query = select(InvestmentHolding).where(InvestmentHolding.group_id == club_id)
-    h_result = await db.execute(h_query)
-    holdings = h_result.scalars().all()
+    club = await _load_club(db, club_id, current_user.id)
+    holdings = (await db.execute(select(InvestmentHolding).where(InvestmentHolding.group_id == club_id))).scalars().all()
+    polls = (await db.execute(
+        select(InvestmentPoll)
+        .where(InvestmentPoll.group_id == club_id, InvestmentPoll.status == "ACTIVE")
+        .order_by(InvestmentPoll.created_at.desc())
+    )).scalars().all()
 
-    # Fetch Active Polls
-    p_query = select(InvestmentPoll).where(InvestmentPoll.group_id == club_id, InvestmentPoll.status == "ACTIVE")
-    p_result = await db.execute(p_query)
-    polls = p_result.scalars().all()
-
-    import yfinance as yf
-    
-    holdings_out = []
-    for h in holdings:
-        current_price = h.average_price
-        try:
-            ticker = yf.Ticker(h.symbol)
-            # Use fast info for latest price if available
-            info = ticker.fast_info
-            if info and "lastPrice" in info:
-                current_price = info["lastPrice"]
-        except Exception as e:
-            # Fallback to average price if yfinance fails
-            pass
-            
-        holdings_out.append({
-            "id": h.id, 
-            "symbol": h.symbol, 
-            "qty": h.quantity, 
-            "avgPrice": h.average_price,
-            "currentPrice": current_price
-        })
+    # Price lookups are blocking network calls: run them in parallel off the event loop.
+    prices = await asyncio.gather(*(run_in_threadpool(_latest_price, h.symbol) for h in holdings))
+    names = await _user_names(db, [m.user_id for m in club.members])
 
     return {
         "id": club.id,
@@ -747,10 +725,66 @@ async def get_club_details(
         "total_value": club.total_value,
         "total_invested": club.total_invested,
         "total_returns": club.total_returns,
-        "members": [{"user_id": m.user_id, "share": m.share_percentage} for m in club.members],
-        "holdings": holdings_out,
-        "invite_code": club.invite_code
+        "members": [
+            {
+                "user_id": m.user_id,
+                "name": names.get(m.user_id, "Member"),
+                "share": round(m.share_percentage, 2),
+                "contributed": m.contributed_amount,
+                "is_admin": m.is_admin,
+                "is_you": m.user_id == current_user.id,
+            }
+            for m in club.members
+        ],
+        "holdings": [
+            {
+                "id": h.id,
+                "symbol": h.symbol,
+                "qty": h.quantity,
+                "avgPrice": h.average_price,
+                "currentPrice": price if price is not None else h.average_price,
+            }
+            for h, price in zip(holdings, prices)
+        ],
+        "polls": [
+            {
+                "id": p.id, "type": p.type, "symbol": p.symbol, "quantity": p.quantity,
+                "votes_for": p.votes_for, "votes_against": p.votes_against, "votes_needed": p.votes_needed,
+                "expires_at": p.expires_at,
+            }
+            for p in polls
+        ],
+        "invite_code": club.invite_code,
+        "is_admin": any(m.user_id == current_user.id and m.is_admin for m in club.members),
     }
+
+
+# ── Endpoint: POST /social/investments/{club_id}/polls ──
+@router.post("/investments/{club_id}/polls")
+async def create_club_proposal(
+    club_id: int,
+    req: CreatePollReq,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    """Propose a BUY/SELL for the club; a simple majority of members is needed."""
+    from models.social import InvestmentPoll
+
+    club = await _load_club(db, club_id, current_user.id)
+    poll = InvestmentPoll(
+        group_id=club.id,
+        created_by=current_user.id,
+        type=req.type.upper(),
+        symbol=req.symbol.strip().upper(),
+        quantity=req.quantity,
+        votes_needed=len(club.members) // 2 + 1,
+        status="ACTIVE",
+        expires_at=datetime.utcnow() + timedelta(hours=req.expires_hours),
+    )
+    db.add(poll)
+    await db.commit()
+    return {"message": "Proposal created", "id": poll.id}
+
 
 # ── Endpoint: POST /social/investments/{club_id}/contribute ──
 @router.post("/investments/{club_id}/contribute")
@@ -760,70 +794,77 @@ async def add_club_funds(
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    if req.amount <= 0:
-        raise HTTPException(status_code=400, detail="Amount must be positive")
+    """Move money from the member's BODHI wallet into the club pool."""
+    from models.core import Ledger, LedgerEntryType, LedgerReferenceType, PaymentStatus
 
-    # 1. Update the Group's total pool
-    group = await db.get(InvestmentGroup, club_id)
-    if not group:
-        raise HTTPException(status_code=404, detail="Club not found")
-    
-    group.total_balance += req.amount
-    group.total_invested += req.amount
+    amount = round(req.amount, 2)
+    club = await _load_club(db, club_id, current_user.id)
 
-    # 2. Update the Member's individual contribution
-    mem_query = select(InvestmentMember).where(
-        InvestmentMember.group_id == club_id, 
-        InvestmentMember.user_id == current_user.id
-    )
-    mem_result = await db.execute(mem_query)
-    member = mem_result.scalar_one_or_none()
+    # Lock the club row and the wallet (fresh values, not the cached identity map).
+    group = (await db.execute(
+        select(InvestmentGroup).where(InvestmentGroup.id == club.id).with_for_update().execution_options(populate_existing=True)
+    )).scalar_one()
+    wallet = (await db.execute(
+        select(User).where(User.id == current_user.id).with_for_update().execution_options(populate_existing=True)
+    )).scalar_one()
+    if wallet.balance + 1e-9 < amount:
+        raise HTTPException(status_code=400, detail=f"Insufficient wallet balance (₹{wallet.balance:,.2f}).")
 
-    if member:
-        member.contributed_amount += req.amount
-    else:
-        # If they aren't a member yet, add them!
-        new_member = InvestmentMember(
-            group_id=club_id,
-            user_id=current_user.id,
-            contributed_amount=req.amount,
-            share_percentage=0.0, # Will need a rebalance logic later
-            is_admin=False
-        )
-        db.add(new_member)
+    wallet.balance = round(wallet.balance - amount, 2)
+    group.total_balance = round((group.total_balance or 0) + amount, 2)
+    group.total_invested = round((group.total_invested or 0) + amount, 2)
+    group.total_value = round((group.total_value or 0) + amount, 2)
 
+    members = (await db.execute(select(InvestmentMember).where(InvestmentMember.group_id == group.id))).scalars().all()
+    for m in members:
+        if m.user_id == current_user.id:
+            m.contributed_amount = round((m.contributed_amount or 0) + amount, 2)
+    total = sum(m.contributed_amount or 0 for m in members)
+    if total > 0:
+        for m in members:
+            m.share_percentage = round((m.contributed_amount or 0) * 100 / total, 4)
+
+    db.add(Ledger(
+        user_id=wallet.id,
+        entry_type=LedgerEntryType.DEBIT,
+        amount=int(round(amount * 100)),
+        currency="INR",
+        reference_type=LedgerReferenceType.PAYMENT,
+        reference_id=str(uuid.uuid4()),
+        status=PaymentStatus.SUCCESS,
+        description=f"Contribution to club '{group.name}'",
+    ))
     await db.commit()
-    return {"message": "Funds added successfully", "new_balance": group.total_balance}
+    return {"message": "Funds added successfully", "new_balance": group.total_balance, "wallet_balance": wallet.balance}
 
-    await db.commit()
-    return {"message": "Funds added successfully", "new_balance": group.total_balance}
 
 # ── DELETE INVESTMENT CLUB ──
 @router.delete("/investments/{club_id}")
 async def delete_investment_club(
-    club_id: int, # <--- MUST BE int
+    club_id: int,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    group = await db.get(InvestmentGroup, club_id)
-    if not group:
-        raise HTTPException(status_code=404, detail="Club not found")
-    
-    await db.delete(group)
-    await db.commit() # <--- Crucial to actually save the deletion
+    club = await _load_club(db, club_id, current_user.id)
+    if club.created_by != current_user.id and not any(m.user_id == current_user.id and m.is_admin for m in club.members):
+        raise HTTPException(status_code=403, detail="Only the club admin can delete this club")
+    if (club.total_balance or 0) > 0.009:
+        raise HTTPException(status_code=400, detail="This club still holds funds. Withdraw or settle them before deleting.")
+    await db.delete(club)
+    await db.commit()
     return {"message": "Club deleted successfully"}
+
 
 # ── DELETE TRIP WALLET ──
 @router.delete("/trips/{trip_id}")
 async def delete_trip_wallet(
-    trip_id: int, # <--- MUST BE int
+    trip_id: int,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    trip = await db.get(TripWallet, trip_id)
-    if not trip:
-        raise HTTPException(status_code=404, detail="Trip not found")
-        
+    trip = await _load_trip(db, trip_id, current_user.id, with_splits=False)
+    if trip.created_by != current_user.id and not any(m.user_id == current_user.id and m.is_admin for m in trip.members):
+        raise HTTPException(status_code=403, detail="Only the trip admin can delete this trip")
     await db.delete(trip)
     await db.commit()
     return {"message": "Trip deleted successfully"}

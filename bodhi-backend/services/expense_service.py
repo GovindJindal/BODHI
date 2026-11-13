@@ -22,7 +22,7 @@ class AlreadySettledError(ExpenseServiceError): pass
 class OverpaymentError(ExpenseServiceError): pass
 class SplitValidationError(ExpenseServiceError): pass
 
-def compute_equal_splits(total: int, user_ids: list[int]) -> dict[int, int]: # Updated to ints
+def compute_equal_splits(total: int, user_ids: list[str]) -> dict[str, int]:
     n = len(user_ids)
     base = total // n
     remainder = total % n
@@ -31,10 +31,10 @@ def compute_equal_splits(total: int, user_ids: list[int]) -> dict[int, int]: # U
         result[uid] = base + (1 if i < remainder else 0)
     return result
 
-def compute_exact_splits(participants: list[SplitParticipant]) -> dict[int, int]:
+def compute_exact_splits(participants: list[SplitParticipant]) -> dict[str, int]:
     return {p.user_id: p.exact_amount or 0 for p in participants}
 
-def compute_percentage_splits(total: int, participants: list[SplitParticipant]) -> dict[int, int]:
+def compute_percentage_splits(total: int, participants: list[SplitParticipant]) -> dict[str, int]:
     result: dict[int, int] = {}
     allocated = 0
     largest_uid = max(participants, key=lambda p: p.percentage_bps or 0).user_id
@@ -47,8 +47,8 @@ def compute_percentage_splits(total: int, participants: list[SplitParticipant]) 
     return result
 
 class SimplifiedTransfer(NamedTuple):
-    from_user: int   
-    to_user: int     
+    from_user: str
+    to_user: str
     amount: int      
 
 def net_debts(raw_balances: dict[int, int]) -> list[SimplifiedTransfer]:
@@ -68,10 +68,10 @@ def net_debts(raw_balances: dict[int, int]) -> list[SimplifiedTransfer]:
         if debtors[di][1] == 0: di += 1
     return transfers
 
-def _canonical_pair(a: int, b: int) -> tuple[int, int]:
+def _canonical_pair(a: str, b: str) -> tuple[str, str]:
     return (a, b) if a < b else (b, a)
 
-async def _upsert_debt(db: AsyncSession, debtor: int, creditor: int, delta: int, currency: str) -> None:
+async def _upsert_debt(db: AsyncSession, debtor: str, creditor: str, delta: int, currency: str) -> None:
     small, large = _canonical_pair(debtor, creditor)
     sign = 1 if debtor == small else -1
     result = await db.execute(select(Debt).where(Debt.debtor_id == small, Debt.creditor_id == large, Debt.currency == currency).with_for_update())
@@ -138,7 +138,7 @@ async def get_net_debts(db: AsyncSession, currency: str = "INR") -> NetDebtGraph
     total = sum(d.net_amount for d in debts)
     return NetDebtGraph(debts=[DebtRead.model_validate(d) for d in debts], total_outstanding_paise=total)
 
-async def get_user_debts(db: AsyncSession, user_id: int, currency: str = "INR") -> NetDebtGraph:
+async def get_user_debts(db: AsyncSession, user_id: str, currency: str = "INR") -> NetDebtGraph:
     result = await db.execute(select(Debt).where(Debt.currency == currency, Debt.status == DebtStatus.OUTSTANDING, Debt.net_amount > 0, (Debt.debtor_id == user_id) | (Debt.creditor_id == user_id)))
     debts = list(result.scalars().all())
     total = sum(d.net_amount for d in debts)
@@ -163,7 +163,7 @@ async def settle_debt(db: AsyncSession, payload: SettlementCreate) -> Settlement
     await db.flush()
     return SettlementRead.model_validate(settlement)
 
-async def simplify_debts(db: AsyncSession, user_ids: list[int], currency: str = "INR") -> list[SimplifiedTransfer]:
+async def simplify_debts(db: AsyncSession, user_ids: list[str], currency: str = "INR") -> list[SimplifiedTransfer]:
     raw: dict[int, int] = defaultdict(int)
     result = await db.execute(select(Debt).where(Debt.currency == currency, Debt.status == DebtStatus.OUTSTANDING, Debt.net_amount > 0))
     for debt in result.scalars().all():

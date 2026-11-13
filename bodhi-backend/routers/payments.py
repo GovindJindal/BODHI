@@ -1,5 +1,4 @@
 import logging
-from fastapi import Request
 from core.rate_limit import limiter
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,8 +24,10 @@ async def create_intent(request: Request,
 ) -> PaymentIntentResponse:
     try:
         # Override payload ID with actual logged-in user to prevent spoofing
-        body.user_id = current_user.id 
-        return await create_payment_intent(db, body)
+        body.user_id = current_user.id
+        intent = await create_payment_intent(db, body)
+        await db.commit()
+        return intent
     except UserNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except PaymentServiceError as exc:
@@ -47,7 +48,7 @@ async def razorpay_webhook(
         return WebhookAck(status="ok", message="duplicate event ignored")
     except InvalidSignatureError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid webhook signature") from exc
-    except PaymentNotFoundError as exc:
+    except PaymentNotFoundError:
         return WebhookAck(status="ok", message="order not found; event noted")
     except PaymentServiceError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

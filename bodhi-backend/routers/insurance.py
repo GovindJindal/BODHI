@@ -5,7 +5,6 @@ from typing import Any
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status, Depends
 from pydantic import BaseModel
 
-from database import get_db
 from services.auth_service import get_current_user
 from services.insurance_rag import RAGResponse, rag_pipeline
 

@@ -253,7 +253,7 @@ export function VentureClubScreen({ route, navigation }: any) {
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={styles.currentPrice}>{formatINR(currentPrice)}</Text>
                   <Text style={[styles.profit, { color: isPositive ? C.neonLime : C.red }]}>
-                    {isPositive ? '+' : ''}{formatINR(profit)}
+                    {isPositive ? '+' : '-'}{formatINR(Math.abs(profit))}
                   </Text>
                 </View>
               </View>
@@ -270,9 +270,9 @@ export function VentureClubScreen({ route, navigation }: any) {
                    <User size={16} color={C.white} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.partnerName}>{m.user_id.substring(0, 15)}...</Text>
+                  <Text style={styles.partnerName} numberOfLines={1}>{m.name || 'Partner'}{m.is_you ? ' (You)' : ''}</Text>
                 </View>
-                <Text style={styles.partnerShare}>{m.share || 0}% Share</Text>
+                <Text style={styles.partnerShare}>{Number(m.share || 0).toFixed(1)}% Share</Text>
               </View>
             ))}
             </View>

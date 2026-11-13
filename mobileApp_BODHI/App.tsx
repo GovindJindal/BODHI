@@ -6,6 +6,9 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { CalculatorProvider } from './src/context/CalculatorContext';
 import { FloatingCalculator } from './src/components/FloatingCalculator';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const ONBOARDING_KEY = 'bodhi_onboarding_done';
 
 // Screens
 import { OnboardingScreen } from './src/screens/Onboarding/OnboardingScreen';
@@ -17,9 +20,19 @@ export default function App() {
   // 1. Controls the video splash animation
   const [showSplash, setShowSplash] = useState(true);
   
-  // 2. Controls the Cyber-Glass onboarding
-  // (In a real app, you'd check AsyncStorage here to see if they've already onboarded)
+  // 2. Controls the Cyber-Glass onboarding – shown only on the very first launch
   const [showOnboarding, setShowOnboarding] = useState(true);
+
+  useEffect(() => {
+    AsyncStorage.getItem(ONBOARDING_KEY)
+      .then(done => { if (done === '1') setShowOnboarding(false); })
+      .catch(() => {});
+  }, []);
+
+  const finishOnboarding = () => {
+    setShowOnboarding(false);
+    AsyncStorage.setItem(ONBOARDING_KEY, '1').catch(() => {});
+  };
 
   useEffect(() => {
     try {
@@ -45,7 +58,7 @@ export default function App() {
           <VideoSplashScreen onFinish={() => setShowSplash(false)} />
         ) : showOnboarding ? (
           // Step 2: Show Onboarding. When they click START, it triggers setShowOnboarding(false)
-          <OnboardingScreen onFinish={() => setShowOnboarding(false)} />
+          <OnboardingScreen onFinish={finishOnboarding} />
         ) : (
           // Step 3: Boot up the main application
           <AppNavigator />

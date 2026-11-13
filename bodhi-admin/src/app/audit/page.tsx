@@ -12,8 +12,10 @@ import { formatDate } from '@/lib/utils';
 import { TableSkeleton } from '@/components/LoadingSkeleton';
 import { EmptyState } from '@/components/EmptyState';
 
+type AuditEntry = { id: string; timestamp: string; actor: string; action: string; target: string | null; details?: Record<string, unknown> | null };
+
 export default function AuditPage() {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

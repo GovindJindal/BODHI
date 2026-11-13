@@ -2,24 +2,26 @@
 routers/transfers.py
 Peer-to-peer money transfers, QR code payments, and payment requests.
 """
-import json
+import hashlib
+import hmac
 import logging
-import os
 import re
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
 from urllib.parse import urlparse, parse_qs
 
+from fastapi.concurrency import run_in_threadpool
+
 import razorpay
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
-from sqlalchemy import select, and_
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import func, select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from models.core import Ledger, LedgerEntryType, LedgerReferenceType, Payment, PaymentStatus, User
-from services.auth_service import get_current_user
+from services.auth_service import get_current_user, verify_password
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/transfers", tags=["transfers"])
@@ -33,10 +35,30 @@ _rz_client = razorpay.Client(auth=(_RAZORPAY_KEY_ID, _RAZORPAY_KEY_SECRET))
 
 # ─── Schemas ─────────────────────────────────────────────────────────────────
 
+MAX_TRANSFER_INR = 500_000.0
+
+
+def _validate_amount(v: float) -> float:
+    v = round(float(v), 2)
+    if v <= 0:
+        raise ValueError("Amount must be greater than 0")
+    if v > MAX_TRANSFER_INR:
+        raise ValueError(f"Amount cannot exceed ₹{MAX_TRANSFER_INR:,.0f} per transaction")
+    return v
+
+
+def _to_paise(amount_inr: float) -> int:
+    return int(round(amount_inr * 100))
+
+
 class P2PTransferRequest(BaseModel):
-    recipient_identifier: str
+    recipient_identifier: str = Field(..., min_length=1, max_length=255)
     amount: float
-    note: Optional[str] = None
+    note: Optional[str] = Field(default=None, max_length=200)
+    # When supplied, the transaction PIN is enforced server-side as well.
+    u_pin: Optional[str] = None
+
+    _amount = field_validator("amount")(_validate_amount)
 
 class P2PTransferResponse(BaseModel):
     success: bool
@@ -46,9 +68,11 @@ class P2PTransferResponse(BaseModel):
     recipient_name: str
 
 class PaymentRequestCreate(BaseModel):
-    requester_identifier: str
+    requester_identifier: str = Field(..., min_length=1, max_length=255)
     amount: float
-    note: Optional[str] = None
+    note: Optional[str] = Field(default=None, max_length=200)
+
+    _amount = field_validator("amount")(_validate_amount)
 
 class PaymentRequestResponse(BaseModel):
     request_id: str
@@ -61,7 +85,9 @@ class PaymentRequestResponse(BaseModel):
 class RazorpayOrderRequest(BaseModel):
     amount: float
     currency: str = "INR"
-    description: Optional[str] = "BODHI Top-up"
+    description: Optional[str] = Field(default="BODHI Top-up", max_length=200)
+
+    _amount = field_validator("amount")(_validate_amount)
 
 class RazorpayOrderResponse(BaseModel):
     order_id: str
@@ -73,15 +99,43 @@ class RazorpayVerifyRequest(BaseModel):
     razorpay_order_id: str
     razorpay_payment_id: str
     razorpay_signature: str
-    amount: float
+    amount: Optional[float] = None  # informational only – the stored order amount is credited
 
 class QRPayRequest(BaseModel):
-    qr_data: str
+    qr_data: str = Field(..., min_length=1, max_length=1000)
     amount: float
-    note: Optional[str] = None
+    note: Optional[str] = Field(default=None, max_length=200)
+    u_pin: Optional[str] = None
+
+    _amount = field_validator("amount")(_validate_amount)
 
 class PaymentRequestFulfillRequest(BaseModel):
-    request_id: str
+    u_pin: Optional[str] = None
+
+
+async def _lock_users(db: AsyncSession, *user_ids: str) -> dict[str, User]:
+    """SELECT … FOR UPDATE the given users in a deterministic order (no deadlocks).
+
+    `populate_existing` matters: the current user is already in the session's
+    identity map (loaded by auth), and without it SQLAlchemy would hand back the
+    stale, pre-lock balance – enabling double-spends and lost updates.
+    """
+    locked: dict[str, User] = {}
+    for uid in sorted(set(user_ids)):
+        result = await db.execute(
+            select(User).where(User.id == uid).with_for_update().execution_options(populate_existing=True)
+        )
+        user = result.scalar_one_or_none()
+        if user is not None:
+            locked[uid] = user
+    return locked
+
+
+def _check_upin(user: User, u_pin: Optional[str]) -> None:
+    if u_pin is None or not user.u_pin:
+        return
+    if not verify_password(u_pin.strip(), user.u_pin):
+        raise HTTPException(status_code=403, detail="Incorrect U-PIN.")
 
 
 # ─── Phone normalization ──────────────────────────────────────────────────────
@@ -130,7 +184,7 @@ async def _find_user_by_identifier(db: AsyncSession, identifier: str) -> Optiona
     # 1. Proper email (has @ and a dot in the domain part)
     if "@" in raw and "." in raw.split("@")[-1]:
         result = await db.execute(
-            select(User).where(User.email == raw.lower())
+            select(User).where(func.lower(User.email) == raw.lower(), User.deleted_at.is_(None))
         )
         user = result.scalar_one_or_none()
         if user:
@@ -206,25 +260,6 @@ def _write_ledger(db: AsyncSession, *, user_id: str, entry_type: LedgerEntryType
     db.add(entry)
 
 
-# ─── Debug: lookup without payment ───────────────────────────────────────────
-
-@router.get("/debug/lookup")
-async def debug_lookup(
-    identifier: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    parsed = _parse_qr_identifier(identifier)
-    user = await _find_user_by_identifier(db, parsed)
-    return {
-        "input": identifier,
-        "parsed": parsed,
-        "normalized_phone": _normalize_phone(identifier),
-        "found": user is not None,
-        "user": {"name": user.full_name, "email": user.email, "phone": user.phone} if user else None,
-    }
-
-
 # ─── Routes ──────────────────────────────────────────────────────────────────
 
 @router.post("/send", response_model=P2PTransferResponse)
@@ -233,66 +268,42 @@ async def send_money(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Transfer money to another BODHI user or an external user. Identifier can be email, phone, or UPI ID."""
-    if body.amount <= 0:
-        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
-    if body.amount > current_user.balance:
-        raise HTTPException(status_code=400, detail=f"Insufficient balance. Your balance: ₹{current_user.balance:.2f}")
-
+    """Transfer money to another BODHI user. Identifier can be email, phone, UPI ID or GAP ID."""
     recipient = await _find_user_by_identifier(db, body.recipient_identifier)
-    if recipient and recipient.id == current_user.id:
+    if recipient is None or recipient.deleted_at is not None or not recipient.is_active:
+        raise HTTPException(status_code=404, detail="No active BODHI user found for that email, phone or UPI ID.")
+    if recipient.id == current_user.id:
         raise HTTPException(status_code=400, detail="You cannot send money to yourself.")
 
+    _check_upin(current_user, body.u_pin)
+
+    locked = await _lock_users(db, current_user.id, recipient.id)
+    sender, recip = locked[current_user.id], locked.get(recipient.id)
+    if recip is None:
+        raise HTTPException(status_code=404, detail="Recipient not found.")
+    if sender.balance + 1e-9 < body.amount:
+        raise HTTPException(status_code=400, detail=f"Insufficient balance. Your balance: ₹{sender.balance:,.2f}")
+
     txn_id = str(uuid.uuid4())
-    amount_paise = int(body.amount * 100)
-
-    # Deterministic lock ordering to prevent deadlocks
-    recip = None
-    if recipient and recipient.id < current_user.id:
-        result2 = await db.execute(select(User).where(User.id == recipient.id).with_for_update())
-        recip = result2.scalar_one()
-        result = await db.execute(select(User).where(User.id == current_user.id).with_for_update())
-        sender = result.scalar_one()
-    elif recipient and recipient.id > current_user.id:
-        result = await db.execute(select(User).where(User.id == current_user.id).with_for_update())
-        sender = result.scalar_one()
-        result2 = await db.execute(select(User).where(User.id == recipient.id).with_for_update())
-        recip = result2.scalar_one()
-    else:
-        result = await db.execute(select(User).where(User.id == current_user.id).with_for_update())
-        sender = result.scalar_one()
-
-    if sender.balance < body.amount:
-        raise HTTPException(status_code=400, detail="Insufficient balance.")
+    amount_paise = _to_paise(body.amount)
+    note = f" — {body.note.strip()}" if body.note and body.note.strip() else ""
 
     sender.balance = round(sender.balance - body.amount, 2)
-
-    if recip:
-        recip.balance = round(recip.balance + body.amount, 2)
-
-        _write_ledger(db, user_id=sender.id, entry_type=LedgerEntryType.DEBIT,
-                      amount_paise=amount_paise, ref_id=txn_id,
-                      description=f"Sent ₹{body.amount:.2f} to {recip.full_name}{f' — {body.note}' if body.note else ''}")
-        _write_ledger(db, user_id=recip.id, entry_type=LedgerEntryType.CREDIT,
-                      amount_paise=amount_paise, ref_id=f"{txn_id}_rcv",
-                      description=f"Received ₹{body.amount:.2f} from {sender.full_name}{f' — {body.note}' if body.note else ''}")
-        recipient_name = recip.full_name
-    else:
-        # External payment (user not on BODHI)
-        _write_ledger(db, user_id=sender.id, entry_type=LedgerEntryType.DEBIT,
-                      amount_paise=amount_paise, ref_id=txn_id,
-                      description=f"Sent ₹{body.amount:.2f} to external user ({body.recipient_identifier}){f' — {body.note}' if body.note else ''}")
-        recipient_name = str(body.recipient_identifier)
-
+    recip.balance = round(recip.balance + body.amount, 2)
+    _write_ledger(db, user_id=sender.id, entry_type=LedgerEntryType.DEBIT,
+                  amount_paise=amount_paise, ref_id=txn_id,
+                  description=f"Sent ₹{body.amount:,.2f} to {recip.full_name}{note}")
+    _write_ledger(db, user_id=recip.id, entry_type=LedgerEntryType.CREDIT,
+                  amount_paise=amount_paise, ref_id=txn_id,
+                  description=f"Received ₹{body.amount:,.2f} from {sender.full_name}{note}")
     await db.commit()
-    await db.refresh(sender)
 
     return P2PTransferResponse(
         success=True,
-        message=f"₹{body.amount:.2f} sent to {recipient_name} successfully!",
+        message=f"₹{body.amount:,.2f} sent to {recip.full_name} successfully!",
         transaction_id=txn_id,
         sender_balance=sender.balance,
-        recipient_name=recipient_name,
+        recipient_name=recip.full_name,
     )
 
 
@@ -305,13 +316,13 @@ async def qr_pay(
     """Pay via scanned QR code. Handles full UPI QR URLs automatically."""
     # Parse out the actual identifier from the QR (handles upi://pay?pa=... format)
     parsed_identifier = _parse_qr_identifier(body.qr_data)
-    logger.info(f"QR pay: raw={body.qr_data!r} → parsed={parsed_identifier!r}")
 
     return await send_money(
         P2PTransferRequest(
             recipient_identifier=parsed_identifier,
             amount=body.amount,
             note=body.note,
+            u_pin=body.u_pin,
         ),
         db=db,
         current_user=current_user,
@@ -325,20 +336,15 @@ async def create_payment_request(
     current_user: User = Depends(get_current_user),
 ):
     """Create a payment request directed at another user or an external identifier."""
-    if body.amount <= 0:
-        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
-
     target_user = await _find_user_by_identifier(db, body.requester_identifier)
-    if target_user and target_user.id == current_user.id:
+    if target_user is None or target_user.deleted_at is not None:
+        raise HTTPException(status_code=404, detail="No BODHI user found for that email, phone or UPI ID.")
+    if target_user.id == current_user.id:
         raise HTTPException(status_code=400, detail="You cannot request money from yourself.")
 
     request_id = str(uuid.uuid4())
-    amount_paise = int(body.amount * 100)
-    
-    if target_user:
-        description = f"REQUEST_FROM:{target_user.id}|NOTE:{body.note or ''}"
-    else:
-        description = f"REQUEST_FROM_EXTERNAL:{body.requester_identifier}|NOTE:{body.note or ''}"
+    amount_paise = _to_paise(body.amount)
+    description = f"REQUEST_FROM:{target_user.id}|NOTE:{(body.note or '').replace('|', ' ')}"
 
     payment_req = Payment(
         id=request_id,
@@ -379,11 +385,15 @@ async def get_pending_requests(
         )
     )
     requests = result.scalars().all()
+    requester_ids = {r.user_id for r in requests}
+    requesters: dict[str, User] = {}
+    if requester_ids:
+        rows = await db.execute(select(User).where(User.id.in_(requester_ids)))
+        requesters = {u.id: u for u in rows.scalars()}
 
     pending = []
     for req in requests:
-        requester_result = await db.execute(select(User).where(User.id == req.user_id))
-        requester = requester_result.scalar_one_or_none()
+        requester = requesters.get(req.user_id)
         note = ""
         if req.description and "NOTE:" in req.description:
             note = req.description.split("NOTE:")[-1]
@@ -402,11 +412,15 @@ async def get_pending_requests(
 @router.post("/requests/{request_id}/fulfill")
 async def fulfill_payment_request(
     request_id: str,
+    body: Optional[PaymentRequestFulfillRequest] = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Pay off a pending payment request directed at the current user."""
-    result = await db.execute(select(Payment).where(Payment.id == request_id).with_for_update())
+    _check_upin(current_user, body.u_pin if body else None)
+    result = await db.execute(
+        select(Payment).where(Payment.id == request_id).with_for_update().execution_options(populate_existing=True)
+    )
     req = result.scalar_one_or_none()
 
     if not req or not req.description or f"REQUEST_FROM:{current_user.id}" not in req.description:
@@ -416,19 +430,8 @@ async def fulfill_payment_request(
 
     amount_inr = req.amount / 100
 
-    # Deterministic lock ordering to prevent deadlocks
-    requester = None
-    payer = None
-    if str(req.user_id) < str(current_user.id):
-        requester_result = await db.execute(select(User).where(User.id == req.user_id).with_for_update())
-        requester = requester_result.scalar_one_or_none()
-        payer_result = await db.execute(select(User).where(User.id == current_user.id).with_for_update())
-        payer = payer_result.scalar_one()
-    else:
-        payer_result = await db.execute(select(User).where(User.id == current_user.id).with_for_update())
-        payer = payer_result.scalar_one()
-        requester_result = await db.execute(select(User).where(User.id == req.user_id).with_for_update())
-        requester = requester_result.scalar_one_or_none()
+    locked = await _lock_users(db, req.user_id, current_user.id)
+    payer, requester = locked[current_user.id], locked.get(req.user_id)
 
     if not requester:
         raise HTTPException(status_code=404, detail="Requester not found.")
@@ -446,7 +449,7 @@ async def fulfill_payment_request(
                   amount_paise=req.amount, ref_id=txn_id,
                   description=f"Paid request ₹{amount_inr:.2f} to {requester.full_name}")
     _write_ledger(db, user_id=requester.id, entry_type=LedgerEntryType.CREDIT,
-                  amount_paise=req.amount, ref_id=f"{txn_id}_rcv",
+                  amount_paise=req.amount, ref_id=txn_id,
                   description=f"Received ₹{amount_inr:.2f} from {payer.full_name} (request fulfilled)")
 
     await db.commit()
@@ -457,26 +460,38 @@ async def fulfill_payment_request(
 @router.post("/razorpay/create-order", response_model=RazorpayOrderResponse)
 async def create_razorpay_order(
     body: RazorpayOrderRequest,
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if body.amount <= 0:
-        raise HTTPException(status_code=400, detail="Amount must be greater than 0")
-    amount_paise = int(body.amount * 100)
+    amount_paise = _to_paise(body.amount)
+    currency = (body.currency or "INR").upper()
     try:
-        order = _rz_client.order.create({
+        order = await run_in_threadpool(_rz_client.order.create, {
             "amount": amount_paise,
-            "currency": body.currency,
+            "currency": currency,
             "payment_capture": 1,
-            "notes": {"user_id": current_user.id, "description": body.description},
+            "notes": {"user_id": current_user.id, "description": body.description or "BODHI Top-up"},
         })
     except Exception as exc:
         logger.exception("Razorpay order creation failed")
         raise HTTPException(status_code=502, detail="Payment gateway error. Please try again.") from exc
 
+    # Persist the order so verify/webhook can settle it against the right user & amount.
+    db.add(Payment(
+        user_id=current_user.id,
+        razorpay_order_id=order["id"],
+        amount=amount_paise,
+        amount_paid=0,
+        currency=currency,
+        status=PaymentStatus.PENDING,
+        description=body.description or "BODHI Top-up",
+    ))
+    await db.commit()
+
     return RazorpayOrderResponse(
         order_id=order["id"],
         amount=amount_paise,
-        currency=body.currency,
+        currency=currency,
         key_id=_RAZORPAY_KEY_ID,
     )
 
@@ -487,37 +502,36 @@ async def verify_and_credit_wallet(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    import hmac as _hmac
-    import hashlib as _hashlib
-
-    expected_sig = _hmac.new(
+    expected_sig = hmac.new(
         _RAZORPAY_KEY_SECRET.encode(),
         f"{body.razorpay_order_id}|{body.razorpay_payment_id}".encode(),
-        _hashlib.sha256,
+        hashlib.sha256,
     ).hexdigest()
-
-    if not _hmac.compare_digest(expected_sig, body.razorpay_signature):
+    if not hmac.compare_digest(expected_sig, body.razorpay_signature):
         raise HTTPException(status_code=400, detail="Invalid payment signature. Payment not credited.")
 
-    amount_paise = int(body.amount * 100)
-    
     from services.payments_service import settle_payment, PaymentServiceError
+
+    order = await db.scalar(select(Payment).where(Payment.razorpay_order_id == body.razorpay_order_id))
+    if order is None or order.user_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Payment order not found.")
+
     try:
         payment = await settle_payment(
-            db, 
-            razorpay_order_id=body.razorpay_order_id, 
-            razorpay_payment_id=body.razorpay_payment_id, 
-            amount_paid=amount_paise, 
-            currency="INR"
+            db,
+            razorpay_order_id=body.razorpay_order_id,
+            razorpay_payment_id=body.razorpay_payment_id,
+            amount_paid=order.amount - order.amount_paid,  # credit what was ordered, never the client's number
+            currency=order.currency,
         )
         await db.commit()
     except PaymentServiceError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from None
 
-    result = await db.execute(select(User).where(User.id == current_user.id))
-    user = result.scalar_one()
-
-    return {"success": True, "new_balance": user.balance, "message": f"₹{body.amount:.2f} added to your BODHI Wallet!"}
+    await db.refresh(current_user)
+    credited = payment.amount / 100
+    return {"success": True, "new_balance": current_user.balance, "message": f"₹{credited:,.2f} added to your BODHI Wallet!"}
 
 
 @router.get("/balance")
@@ -525,9 +539,7 @@ async def get_balance(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(User).where(User.id == current_user.id))
-    user = result.scalar_one()
-    return {"balance": user.balance, "email": user.email, "full_name": user.full_name}
+    return {"balance": current_user.balance, "email": current_user.email, "full_name": current_user.full_name}
 
 
 @router.get("/history")

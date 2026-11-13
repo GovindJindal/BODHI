@@ -11,12 +11,12 @@ NonNegPaise = Annotated[int, Field(ge=0)]
 Currency = Annotated[str, Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$")]
 
 class SplitParticipant(BaseModel):
-    user_id: int # UPDATED
+    user_id: str
     exact_amount: NonNegPaise | None = None
     percentage_bps: Annotated[int | None, Field(ge=0, le=10_000)] = None
 
 class ExpenseCreate(BaseModel):
-    paid_by: int # UPDATED
+    paid_by: str
     description: str = Field(min_length=1, max_length=512)
     category: str | None = Field(default=None, max_length=64)
     total_amount: PositivePaise
@@ -53,7 +53,7 @@ class ExpenseSplitRead(BaseModel):
     model_config = _ORM
     id: str
     expense_id: str
-    user_id: int # UPDATED
+    user_id: str
     owed_amount: int
     percentage_bps: int | None
     is_settled: bool
@@ -62,7 +62,7 @@ class ExpenseSplitRead(BaseModel):
 class ExpenseRead(BaseModel):
     model_config = _ORM
     id: str
-    paid_by: int # UPDATED
+    paid_by: str
     group_id: str | None
     trip_id: str | None
     description: str
@@ -78,8 +78,8 @@ class ExpenseRead(BaseModel):
 class DebtRead(BaseModel):
     model_config = _ORM
     id: str
-    debtor_id: int # UPDATED
-    creditor_id: int # UPDATED
+    debtor_id: str
+    creditor_id: str
     currency: str
     net_amount: int
     status: DebtStatus
@@ -91,8 +91,8 @@ class NetDebtGraph(BaseModel):
 
 class SettlementCreate(BaseModel):
     debt_id: str
-    paid_by: int # UPDATED
-    paid_to: int # UPDATED
+    paid_by: str
+    paid_to: str
     amount: PositivePaise
     currency: Currency = "INR"
     note: str | None = Field(default=None, max_length=512)
@@ -101,8 +101,8 @@ class SettlementRead(BaseModel):
     model_config = _ORM
     id: str
     debt_id: str
-    paid_by: int # UPDATED
-    paid_to: int # UPDATED
+    paid_by: str
+    paid_to: str
     amount: int
     currency: str
     note: str | None

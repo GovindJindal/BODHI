@@ -27,7 +27,7 @@ import {
 } from 'lucide-react-native';
 import { Colors, Radius, Spacing, FontSize, Gradients, ScreenColors } from '../theme/tokens';
 import { SocialAuthButtons } from '../components/SocialAuthButtons';
-import { BASE_URL, AuthAPI } from '../api/client';
+import { BASE_URL, AuthAPI, saveSession, UsersAPI, STORAGE_KEYS } from '../api/client';
 
 // New Reusable Components
 import { AuthCard } from '../components/auth/AuthCard';
@@ -116,25 +116,24 @@ export function AuthScreen({ navigation }: any) {
     return () => clearInterval(interval);
   }, [resendTimer]);
 
+  // Restore an existing session so users are not asked to log in on every launch.
   useEffect(() => {
-    // Diagnostic check: Test if we can at least perform a GET request to the server
-    const testConnection = async () => {
+    let cancelled = false;
+    (async () => {
       try {
-        console.log(`🔍 Connectivity Check: Fetching ${BASE_URL}/ ...`);
-        const res = await fetch(`${BASE_URL}/`, { method: 'GET' });
-        console.log(`📊 Status: ${res.status}`);
-        if (res.ok) {
-          const text = await res.text();
-          console.log(`✅ Connectivity Check Success: ${text.substring(0, 50)}`);
-        } else {
-          console.warn(`⚠️ Connectivity Check returned non-OK status: ${res.status}`);
-        }
-      } catch (err: any) {
-        console.error(`❌ Connectivity Check Failed: ${err.message}`, err);
+        const token = await AsyncStorage.getItem(STORAGE_KEYS.accessToken);
+        if (!token) return;
+        // Goes through the axios client, which transparently refreshes an expired token.
+        const profile = await UsersAPI.fetchProfile();
+        if (cancelled) return;
+        if (profile?.id) await AsyncStorage.setItem(STORAGE_KEYS.userId, String(profile.id));
+        navigation.replace('Main');
+      } catch (_) {
+        // Invalid/expired session – stay on the login screen.
       }
-    };
-    testConnection();
-  }, []);
+    })();
+    return () => { cancelled = true; };
+  }, [navigation]);
 
   const startResendTimer = () => setResendTimer(60);
 
@@ -153,7 +152,7 @@ export function AuthScreen({ navigation }: any) {
       const otpResponse = await fetch(`${BASE_URL}/auth/send-register-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(target === 'email' ? { email } : { phone }),
+        body: JSON.stringify(target === 'email' ? { email: email.trim().toLowerCase() } : { phone: phone.trim() }),
       });
 
       if (!otpResponse.ok) {
@@ -161,11 +160,8 @@ export function AuthScreen({ navigation }: any) {
         throw new Error(errorData.detail || `Server responded with ${otpResponse.status}`);
       }
 
-      if (target === 'email') {
-        setIsEmailVerified(true);
-      } else {
-        setIsPhoneVerified(true);
-      }
+      setIsEmailVerified(true);
+      setIsEmailSent(true);
       startResendTimer();
       Alert.alert("Sent!", `OTP has been sent to your ${target}`);
     } catch (error: any) {
@@ -199,10 +195,48 @@ export function AuthScreen({ navigation }: any) {
     navigation.replace('Main');
   };
 
+  const loginWithPin = async (loginEmail: string, pin: string) => {
+    const body = `username=${encodeURIComponent(loginEmail.trim().toLowerCase())}&password=${encodeURIComponent(String(pin).trim())}`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+    let response: Response;
+    try {
+      response = await fetch(`${API_URL}/token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+        signal: controller.signal,
+      });
+    } catch (fetchErr: any) {
+      if (fetchErr.name === 'AbortError') throw new Error('Connection timed out. Please check your network.');
+      throw new Error('Network request failed. Please check your internet connection.');
+    } finally {
+      clearTimeout(timer);
+    }
+
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.access_token) {
+      const detail = data?.detail ?? data?.message ?? `Server responded with ${response.status}`;
+      throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+    }
+
+    await saveSession(data);
+    try {
+      const profile = await UsersAPI.fetchProfile();
+      if (profile?.id) await AsyncStorage.setItem(STORAGE_KEYS.userId, String(profile.id));
+    } catch (_) {}
+
+    navigation.replace('Main');
+  };
+
   const handleStandardAuth = async () => {
     if (authMode === 'signup') {
       if (!email || !mPin || !uPin) {
         Alert.alert('Warning', 'Please enter your Email, M-PIN and U-PIN.');
+        return;
+      }
+      if (mPin === uPin) {
+        Alert.alert('Warning', 'M-PIN and U-PIN must be different.');
         return;
       }
       if (mPin !== confirmMPin) {
@@ -214,8 +248,12 @@ export function AuthScreen({ navigation }: any) {
         return;
       }
     } else {
-      if (!email || !password) {
-        Alert.alert('Warning', 'Please enter your email and password.');
+      if (!email.trim() || !password) {
+        Alert.alert('Warning', 'Please enter your email and M-PIN.');
+        return;
+      }
+      if (!/^\d{4,6}$/.test(password.trim())) {
+        Alert.alert('Warning', 'Your M-PIN is 4 digits.');
         return;
       }
     }
@@ -223,88 +261,18 @@ export function AuthScreen({ navigation }: any) {
     setIsLoading(true);
     try {
       if (authMode === 'login') {
-        const formBody = [];
-        const details: any = {
-          username: email.trim().toLowerCase(),
-          password: String(password).trim().slice(0, 10),
-        };
-        for (const property in details) {
-          const encodedKey = encodeURIComponent(property);
-          const encodedValue = encodeURIComponent(details[property]);
-          formBody.push(encodedKey + "=" + encodedValue);
-        }
-
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 30000);
-        let response;
-        try {
-          response = await fetch(`${API_URL}/token`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formBody.join('&'),
-            signal: controller.signal,
-          });
-        } catch (fetchErr: any) {
-          if (fetchErr.name === 'AbortError') throw new Error('Connection timed out. Please check your network.');
-          throw new Error(`Network request failed. Ensure you have an active internet connection. (${fetchErr.message || fetchErr})`);
-        } finally {
-          clearTimeout(timer);
-        }
-
-        const rawText = await response.text();
-        console.log("📥 Raw Server Response:", rawText); 
-
-        let data;
-        try {
-          data = JSON.parse(rawText);
-        } catch (e) {
-          throw new Error(`Server returned non-JSON: ${rawText.substring(0, 100)}`);
-        }
-
-        if (!response.ok) {
-          // Unpack the error as much as possible
-          const errorDetail = data.detail || data.message || data;
-          const finalMsg = typeof errorDetail === 'object' 
-            ? JSON.stringify(errorDetail) 
-            : String(errorDetail);
-          throw new Error(finalMsg);
-        }
-
-        await AsyncStorage.setItem('bodhi_access_token', data.access_token);
-        if (data.full_name) await AsyncStorage.setItem('user_full_name', data.full_name);
-        
-        try {
-          const profileRes = await fetch(`${BASE_URL}/users/me`, {
-            headers: { Authorization: `Bearer ${data.access_token}` }
-          });
-          if (profileRes.ok) {
-            const profile = await profileRes.json();
-            if (profile.id) await AsyncStorage.setItem('bodhi_user_id', profile.id);
-          }
-        } catch (_) {}
-
-        navigation.replace('Main');
-
+        await loginWithPin(email, password);
       } else if (authMode === 'signup') {
         const payload = {
           email: email.trim().toLowerCase(),
-          password: String(mPin).trim().slice(0, 10),
+          password: String(mPin).trim(),
           full_name: name.trim(),
           phone_number: phone.trim(),
-          m_pin: String(mPin).trim().slice(0, 10),
-          u_pin: String(uPin).trim().slice(0, 10),
+          m_pin: String(mPin).trim(),
+          u_pin: String(uPin).trim(),
           age: parseInt(age) || 0,
           gender: gender
         };
-
-        console.log("📡 SIGNUP PAYLOAD DEBUG:", {
-          email: `${payload.email.length} chars`,
-          password: `${payload.password.length} chars`,
-          full_name: `${payload.full_name.length} chars`,
-          phone_number: `${payload.phone_number.length} chars`,
-          m_pin: `${payload.m_pin.length} chars`,
-          u_pin: `${payload.u_pin.length} chars`,
-        });
 
         const response = await fetch(`${API_URL}/register`, {
           method: 'POST',
@@ -313,7 +281,6 @@ export function AuthScreen({ navigation }: any) {
         });
 
         const rawText = await response.text();
-        console.log("📥 Signup Raw Response:", rawText);
         
         let data;
         try {
@@ -330,8 +297,9 @@ export function AuthScreen({ navigation }: any) {
           throw new Error(finalMsg);
         }
 
-        Alert.alert('Success', 'Account created! Welcome to BODHI.');
-        switchMode('login');
+        // Sign straight in with the PIN they just created.
+        await loginWithPin(payload.email, payload.m_pin);
+        Alert.alert('Welcome to BODHI 🎉', 'Your account is ready.');
       }
     } catch (error: any) {
       console.error("🏁 Auth Logic Failure:", error);
@@ -360,7 +328,11 @@ export function AuthScreen({ navigation }: any) {
         const msg = typeof detail === 'string' ? detail : (detail ? JSON.stringify(detail) : 'Failed to send reset code.');
         throw new Error(msg);
       }
+      setOtp('');
+      setNewPassword('');
+      setConfirmMPin('');
       setAuthMode('reset');
+      startResendTimer();
     } catch (error: any) {
       const msg = typeof error.message === 'string' ? error.message : JSON.stringify(error.message) || 'An unexpected error occurred';
       Alert.alert('Error', msg);
@@ -370,8 +342,8 @@ export function AuthScreen({ navigation }: any) {
   };
 
   const handleResetPassword = async () => {
-    if (otp.length !== 6 || newPassword.length < 4) {
-      Alert.alert('Warning', 'Enter 6-digit code and new 4-digit M-PIN.');
+    if (otp.length !== 6 || !/^\d{4}$/.test(newPassword)) {
+      Alert.alert('Warning', 'Enter the 6-digit code and a new 4-digit M-PIN.');
       return;
     }
 
@@ -397,8 +369,10 @@ export function AuthScreen({ navigation }: any) {
         const msg = typeof detail === 'string' ? detail : (detail ? JSON.stringify(detail) : 'Invalid code.');
         throw new Error(msg);
       }
-      Alert.alert('Success 🎉', 'Your password has been reset!');
+      const resetEmail = email;
+      Alert.alert('Success 🎉', 'Your M-PIN has been reset. Please log in with your new M-PIN.');
       switchMode('login');
+      setEmail(resetEmail);
     } catch (error: any) {
       const msg = typeof error.message === 'string' ? error.message : JSON.stringify(error.message) || 'Failed to reset password';
       Alert.alert('Reset Failed', msg);
@@ -478,7 +452,7 @@ export function AuthScreen({ navigation }: any) {
                     <Text style={[styles.linkText, { color: '#C83232' }]}>Sign Up</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => switchMode('forgot')}>
-                    <Text style={[styles.linkText, { color: '#C83232' }]}>Forgot password?</Text>
+                    <Text style={[styles.linkText, { color: '#C83232' }]}>Forgot M-PIN?</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -496,9 +470,6 @@ export function AuthScreen({ navigation }: any) {
                   </View>
                   <View style={styles.socialRow}>
                     <SocialAuthButtons onSuccess={handleOAuthSuccess} />
-                    <TouchableOpacity style={styles.socialBtn}>
-                      <Smartphone size={24} color="#1C1C1E" />
-                    </TouchableOpacity>
                   </View>
                 </View>
 
@@ -601,7 +572,12 @@ export function AuthScreen({ navigation }: any) {
                           Alert.alert('Warning', 'Please fill in all personal details.');
                           return;
                         }
-                        if (phone.trim().length < 10) {
+                        const ageNum = parseInt(age, 10);
+                        if (isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
+                          Alert.alert('Warning', 'Please enter a valid age (13 or older).');
+                          return;
+                        }
+                        if (phone.replace(/\D/g, '').length < 10) {
                           Alert.alert('Warning', 'Please enter a valid 10-digit phone number.');
                           return;
                         }
@@ -657,7 +633,7 @@ export function AuthScreen({ navigation }: any) {
 
                     <TouchableOpacity
                       activeOpacity={0.8}
-                      onPress={() => handleVerifyOtp('email')}
+                      onPress={handleVerifyOtp}
                       style={{ marginTop: 32 }}
                       disabled={!isEmailVerified || isLoading}
                     >
@@ -765,7 +741,7 @@ export function AuthScreen({ navigation }: any) {
 
             {(authMode === 'forgot' || authMode === 'reset') && (
               <>
-                <Text style={styles.flowTitle}>{authMode === 'forgot' ? "Forgot Password" : "Reset Password"}</Text>
+                <Text style={styles.flowTitle}>{authMode === 'forgot' ? "Forgot M-PIN" : "Reset M-PIN"}</Text>
                 <Text style={styles.flowSub}>
                   {authMode === 'forgot' ? "Enter email to receive reset code" : `Sent to ${email}`}
                 </Text>
@@ -777,6 +753,7 @@ export function AuthScreen({ navigation }: any) {
                     icon={<Mail size={20} color="#C83232" />}
                     value={email}
                     onChangeText={setEmail}
+                    keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
                   />
@@ -785,6 +762,15 @@ export function AuthScreen({ navigation }: any) {
                 {authMode === 'reset' && (
                   <>
                     <OTPInput value={otp} onChange={setOtp} />
+                    <TouchableOpacity
+                      style={{ alignSelf: 'flex-end', marginBottom: 8 }}
+                      disabled={resendTimer > 0 || isLoading}
+                      onPress={handleForgotPassword}
+                    >
+                      <Text style={[styles.linkText, { color: resendTimer > 0 ? 'rgba(0,0,0,0.4)' : '#C83232' }]}>
+                        {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend code'}
+                      </Text>
+                    </TouchableOpacity>
                     <AuthInput
                       label="New Login PIN (M-PIN)"
                       placeholder="••••"
@@ -813,7 +799,7 @@ export function AuthScreen({ navigation }: any) {
                 )}
 
                 <AuthButton
-                  title={authMode === 'forgot' ? "Send Code" : "Update Password"}
+                  title={authMode === 'forgot' ? "Send Code" : "Update M-PIN"}
                   onPress={authMode === 'forgot' ? handleForgotPassword : handleResetPassword}
                   isLoading={isLoading}
                 />

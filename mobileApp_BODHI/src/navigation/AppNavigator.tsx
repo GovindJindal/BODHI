@@ -1,5 +1,4 @@
-// FORCE RELOAD 1
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -37,6 +36,8 @@ import { TravelBookingScreen } from '../screens/TravelBookingScreen';
 // ─── COMPONENT IMPORTS ───
 import { BodhiTabBar } from '../components/BodhiTabBar';
 import HomeStack from './HomeStack';
+import { navigationRef, resetToAuth } from './navigationRef';
+import { setSessionExpiredHandler } from '../api/client';
 
 const Tab = createBottomTabNavigator();
 const RootStack = createNativeStackNavigator();
@@ -90,9 +91,13 @@ function RootNavigator() {
 }
 
 export function AppNavigator() {
+  useEffect(() => {
+    setSessionExpiredHandler(resetToAuth);
+  }, []);
+
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
         <AuthStack.Navigator screenOptions={{ headerShown: false, animation: 'fade', gestureEnabled: true }}>
           <AuthStack.Screen name="Auth" component={AuthScreen} />
           <AuthStack.Screen name="Main" component={RootNavigator} />

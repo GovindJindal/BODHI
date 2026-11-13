@@ -1,8 +1,7 @@
 from __future__ import annotations
-import re
 from datetime import datetime
 from typing import Annotated, Any
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from models.core import LedgerEntryType, LedgerReferenceType, PaymentStatus
 
 _ORM_CONFIG = ConfigDict(from_attributes=True, populate_by_name=True)
@@ -13,7 +12,7 @@ Currency = Annotated[str, Field(min_length=3, max_length=3, pattern=r"^[A-Z]{3}$
 class LedgerEntryRead(BaseModel):
     model_config = _ORM_CONFIG
     id: str
-    user_id: int # UPDATED
+    user_id: str
     entry_type: LedgerEntryType
     amount: PositivePaise
     currency: Currency
@@ -24,14 +23,14 @@ class LedgerEntryRead(BaseModel):
     created_at: datetime
 
 class BalanceSummary(BaseModel):
-    user_id: int # UPDATED
+    user_id: str
     currency: str
     total_credits: int = Field(ge=0)
     total_debits: int = Field(ge=0)
     net_balance: int 
 
 class PaymentIntentCreate(BaseModel):
-    user_id: int = Field(description="Bodhi user Integer ID") # UPDATED
+    user_id: str | int | None = Field(default=None, description="Ignored – the logged-in user is always used")
     amount: PositivePaise = Field(description="Amount in paise")
     currency: Currency = Field(default="INR")
     description: str | None = Field(default=None, max_length=512)
@@ -53,7 +52,7 @@ class PaymentIntentResponse(BaseModel):
 class PaymentRead(BaseModel):
     model_config = _ORM_CONFIG
     id: str
-    user_id: int # UPDATED
+    user_id: str
     razorpay_order_id: str
     razorpay_payment_id: str | None
     amount: int

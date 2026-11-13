@@ -119,9 +119,9 @@ export function TripWalletScreen({ route, navigation }: any) {
         return;
       }
       const settlementText = transactions.map((t: any) => {
-        const from = t.from_user.substring(0, 6);
-        const to = t.to_user.substring(0, 6);
-        return `• User ${from} pays ₹${t.amount} to User ${to}`;
+        const from = t.from_name || 'Member';
+        const to = t.to_name || 'Member';
+        return `• ${from} pays ${formatINR(t.amount)} to ${to}`;
       }).join('\n\n');
       Alert.alert("Settlement Plan", settlementText);
     } catch (e) {
@@ -223,9 +223,6 @@ export function TripWalletScreen({ route, navigation }: any) {
 
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Expenses</Text>
-            <TouchableOpacity>
-              <Text style={styles.viewAll}>View All</Text>
-            </TouchableOpacity>
           </View>
 
           {(!tripData.expenses || tripData.expenses.length === 0) && (
@@ -241,7 +238,7 @@ export function TripWalletScreen({ route, navigation }: any) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.expDesc}>{exp.desc}</Text>
-                <Text style={styles.expPaidBy}>Paid by {exp.paid_by.substring(0, 8)}</Text>
+                <Text style={styles.expPaidBy}>Paid by {exp.paid_by_name || 'Member'}</Text>
               </View>
               <Text style={styles.expAmount}>{formatINR(exp.amount)}</Text>
             </View>
@@ -255,15 +252,15 @@ export function TripWalletScreen({ route, navigation }: any) {
             {tripData.members?.map((member: any) => (
               <View key={member.user_id} style={styles.memberRow}>
                 <View style={styles.memberAvatar}>
-                  <Text style={styles.avatarText}>{member.user_id.substring(0, 1).toUpperCase()}</Text>
+                  <Text style={styles.avatarText}>{(member.name || 'M').charAt(0).toUpperCase()}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.memberName}>{member.user_id.substring(0, 12)}...</Text>
+                  <Text style={styles.memberName} numberOfLines={1}>{member.name || 'Member'}{member.is_you ? ' (You)' : ''}</Text>
                   <Text style={styles.memberSub}>Paid {formatINR(member.contributed)}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                    <Text style={[styles.balanceValue, { color: member.balance >= 0 ? C.neonLime : C.red }]}>
-                    {member.balance >= 0 ? '+' : '-'}{formatINR(member.balance)}
+                    {member.balance >= 0 ? '+' : '-'}{formatINR(Math.abs(member.balance))}
                   </Text>
                   <Text style={styles.balanceLabel}>{member.balance >= 0 ? 'is owed' : 'owes'}</Text>
                 </View>

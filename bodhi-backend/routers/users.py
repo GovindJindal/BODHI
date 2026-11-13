@@ -1,14 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import base64
+import re
+from datetime import datetime
+from typing import List, Literal, Optional
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from pydantic import BaseModel, EmailStr, Field, field_validator
+from sqlalchemy import or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from pydantic import BaseModel, EmailStr
-from typing import Optional, List
-from datetime import datetime
 
 from database import get_db
 from models.core import User
 from models.manual_transaction import ManualTransaction
-from services.auth_service import get_current_user, verify_password, get_password_hash
+from services.auth_service import get_current_user, verify_password
 
 router = APIRouter()
 
@@ -26,17 +30,31 @@ def sanitize_avatar_url(avatar_url: Optional[str]) -> Optional[str]:
     cleaned = avatar_url.strip()
     if not cleaned:
         return None
-    if cleaned.startswith("http://") or cleaned.startswith("https://") or cleaned.startswith("/"):
+    if cleaned.startswith(("http://", "https://", "/", "data:image/")):
         return cleaned
     return None
 
 
 class UserUpdate(BaseModel):
-    full_name: Optional[str] = None
-    phone: Optional[str] = None
-    age: Optional[int] = None
-    gender: Optional[str] = None
+    full_name: Optional[str] = Field(default=None, max_length=255)
+    phone: Optional[str] = Field(default=None, max_length=20)
+    age: Optional[int] = Field(default=None, ge=13, le=120)
+    gender: Optional[str] = Field(default=None, max_length=20)
     current_password: str
+
+    @field_validator("full_name")
+    @classmethod
+    def _name(cls, v):
+        if v is not None and not v.strip():
+            raise ValueError("Name cannot be empty")
+        return v.strip() if v else v
+
+    @field_validator("phone")
+    @classmethod
+    def _phone(cls, v):
+        if v is not None and len(re.sub(r"\D", "", v)) < 10:
+            raise ValueError("Enter a valid 10-digit phone number")
+        return v.strip() if v else v
 
 class AccountDelete(BaseModel):
     password: str
@@ -56,26 +74,27 @@ class UserProfile(BaseModel):
     gap_id: Optional[str] = None
     balance: float = 0.0
 
-@router.get("/me", response_model=UserProfile)
-async def get_my_profile(current_user: User = Depends(get_current_user)):
+def _profile(user: User) -> UserProfile:
     # GAP ID = username.{first letter of domain}.gap
     # e.g. harshit@gmail.com → harshit.g.gap, harshit@chitkara.edu.in → harshit.c.gap
-    gap_id = build_gap_id(current_user.email)
-    display_name = (current_user.full_name or "").strip() or "User"
-
-    user_profile = UserProfile(
-        id=current_user.id,
-        email=current_user.email,
-        full_name=display_name,
-        phone=current_user.phone,
-        age=current_user.age,
-        gender=current_user.gender,
-        has_password=current_user.hashed_password is not None,
-        avatar_url=sanitize_avatar_url(current_user.avatar_url),
-        gap_id=gap_id,
-        balance=current_user.balance
+    phone = user.phone if user.phone and not user.phone.startswith("oauth-") else None
+    return UserProfile(
+        id=user.id,
+        email=user.email,
+        full_name=(user.full_name or "").strip() or "User",
+        phone=phone,
+        age=user.age,
+        gender=user.gender,
+        has_password=user.hashed_password is not None,
+        avatar_url=sanitize_avatar_url(user.avatar_url),
+        gap_id=build_gap_id(user.email),
+        balance=user.balance,
     )
-    return user_profile
+
+
+@router.get("/me", response_model=UserProfile)
+async def get_my_profile(current_user: User = Depends(get_current_user)):
+    return _profile(current_user)
 
 @router.put("/me", response_model=UserProfile)
 async def update_my_profile(
@@ -83,15 +102,11 @@ async def update_my_profile(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    print(f"DEBUG: Updating profile for user {current_user.email}")
     # Determine the target hash to verify against (M-PIN is preferred for profile edits)
     target_hash = current_user.m_pin if current_user.m_pin else current_user.hashed_password
-    print(f"DEBUG: Target hash exists: {bool(target_hash)}")
-    
     # Only verify if a target hash exists (local users)
     # OAuth users with no PIN yet are allowed to update
     if target_hash and not verify_password(user_data.current_password, target_hash):
-        print("DEBUG: Profile update verification FAILED")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect M-PIN. Update failed.",
@@ -99,7 +114,16 @@ async def update_my_profile(
     
     if user_data.full_name is not None:
         current_user.full_name = user_data.full_name
-    if user_data.phone is not None:
+    if user_data.phone is not None and user_data.phone != current_user.phone:
+        digits = re.sub(r"\D", "", user_data.phone)[-10:]
+        taken = await db.scalar(
+            select(User.id).where(
+                or_(User.phone == user_data.phone, User.phone.like(f"%{digits}")),
+                User.id != current_user.id,
+            ).limit(1)
+        )
+        if taken:
+            raise HTTPException(status_code=400, detail="That phone number is already registered.")
         current_user.phone = user_data.phone
     if user_data.age is not None:
         current_user.age = user_data.age
@@ -108,16 +132,7 @@ async def update_my_profile(
         
     await db.commit()
     await db.refresh(current_user)
-    
-    return UserProfile(
-        id=current_user.id,
-        email=current_user.email,
-        full_name=current_user.full_name,
-        phone=current_user.phone,
-        age=current_user.age,
-        gender=current_user.gender,
-        has_password=current_user.hashed_password is not None
-    )
+    return _profile(current_user)
 
 @router.delete("/me", status_code=status.HTTP_200_OK)
 async def delete_my_account(
@@ -129,8 +144,9 @@ async def delete_my_account(
     Soft-delete your own account. Irreversible.
     Requires password confirmation.
     """
-    if not current_user.hashed_password or not verify_password(data.password, current_user.hashed_password):
-        raise HTTPException(status_code=400, detail="Incorrect password.")
+    # OAuth-only accounts have no PIN; their valid session is the proof of identity.
+    if current_user.hashed_password and not verify_password(data.password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect M-PIN.")
         
     from services.user_deletion_service import anonymize_user
     await anonymize_user(current_user, db)
@@ -160,30 +176,23 @@ async def verify_mpin(
     current_user: User = Depends(get_current_user)
 ):
     """Specific endpoint to verify M-PIN."""
-    print(f"DEBUG: Verifying M-PIN for user {current_user.email}")
-    print(f"DEBUG: Received M-PIN: {data.password}")
-    
-    # Handle OAuth users who haven't set a local M-PIN/Password yet
+    # OAuth users who haven't set a local M-PIN yet
     if not current_user.m_pin and not current_user.hashed_password:
-        print("DEBUG: OAuth user with no PIN - Auto-success")
         return {"success": True, "method": "oauth"}
 
-    target_hash = current_user.m_pin if current_user.m_pin else current_user.hashed_password
-    print(f"DEBUG: Target hash exists: {bool(target_hash)}")
-
-    if not target_hash or not verify_password(data.password, target_hash):
-        print("DEBUG: Verification FAILED")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect M-PIN.",
-        )
-    
-    print("DEBUG: Verification SUCCESS")
+    target_hash = current_user.m_pin or current_user.hashed_password
+    if not verify_password(data.password, target_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect M-PIN.")
     return {"success": True}
 
-from fastapi import File, UploadFile
-import os
-import shutil
+
+MAX_AVATAR_BYTES = 1024 * 1024  # 1 MB
+_IMAGE_SIGNATURES = {
+    b"\xff\xd8\xff": "image/jpeg",
+    b"\x89PNG\r\n\x1a\n": "image/png",
+    b"RIFF": "image/webp",
+}
+
 
 @router.post("/avatar")
 async def upload_avatar(
@@ -191,19 +200,23 @@ async def upload_avatar(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # In a real app, upload to S3. For now, local storage or just a mock URL.
-    # We'll save to a 'static/avatars' folder
-    os.makedirs("static/avatars", exist_ok=True)
-    file_path = f"static/avatars/{current_user.id}_{file.filename}"
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-    
-    # Update user in DB
-    # For now, let's just use a placeholder URL or the local path if served
-    avatar_url = f"/static/avatars/{current_user.id}_{file.filename}"
+    """Store the avatar inline as a data URI.
+
+    Works on Lambda (read-only filesystem) and never touches the disk, which
+    also removes the old path-traversal risk from user-supplied filenames.
+    """
+    data = await file.read(MAX_AVATAR_BYTES + 1)
+    if not data:
+        raise HTTPException(status_code=400, detail="Empty file")
+    if len(data) > MAX_AVATAR_BYTES:
+        raise HTTPException(status_code=413, detail="Image must be smaller than 1 MB")
+    mime = next((m for sig, m in _IMAGE_SIGNATURES.items() if data.startswith(sig)), None)
+    if mime is None:
+        raise HTTPException(status_code=415, detail="Only JPEG, PNG or WebP images are supported")
+
+    avatar_url = f"data:{mime};base64,{base64.b64encode(data).decode()}"
     current_user.avatar_url = avatar_url
     await db.commit()
-    
     return {"avatar_url": avatar_url}
 
 
@@ -212,11 +225,26 @@ async def upload_avatar(
 # ─────────────────────────────────────────────────────────────
 
 class ManualTransactionCreate(BaseModel):
-    merchant: str
-    category: str
-    amount: float
-    type: str = "DEBIT"
-    note: Optional[str] = None  # original transcript
+    merchant: str = Field(..., min_length=1, max_length=100)
+    category: str = Field(..., min_length=1, max_length=50)
+    amount: float = Field(..., gt=0, le=10_000_000)
+    type: Literal["DEBIT", "CREDIT"] = "DEBIT"
+    note: Optional[str] = None  # original transcript (truncated to the 500-char column)
+
+    @field_validator("note")
+    @classmethod
+    def _truncate_note(cls, v):
+        return v[:500] if v else v
+
+    @field_validator("merchant", "category", mode="before")
+    @classmethod
+    def _clip(cls, v):
+        return str(v).strip()[:100] if v is not None else v
+
+    @field_validator("type", mode="before")
+    @classmethod
+    def _upper(cls, v):
+        return str(v).upper() if v else "DEBIT"
 
 class ManualTransactionRead(BaseModel):
     id: str
@@ -242,7 +270,7 @@ async def add_manual_transaction(
         user_id=current_user.id,
         merchant=data.merchant,
         category=data.category,
-        amount=data.amount,
+        amount=round(data.amount, 2),
         type=data.type,
         note=data.note,
     )
@@ -262,5 +290,6 @@ async def list_manual_transactions(
         select(ManualTransaction)
         .where(ManualTransaction.user_id == current_user.id)
         .order_by(ManualTransaction.created_at.desc())
+        .limit(500)
     )
     return result.scalars().all()

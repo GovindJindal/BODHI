@@ -1,17 +1,15 @@
 'use client';
 import React, { useState } from 'react';
 import { ShieldPlus, User, Mail, Lock, CheckCircle2, ShieldAlert, ArrowRight } from 'lucide-react';
-import api from '@/lib/api';
+import api, { apiErrorMessage } from '@/lib/api';
 import { cn } from '@/lib/utils';
-import { config } from '@/lib/config';
-import axios from 'axios';
 
 export default function CreateAdminPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<any>(null);
+  const [status, setStatus] = useState<{ success: boolean; message: string } | null>(null);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,21 +17,17 @@ export default function CreateAdminPage() {
     setStatus(null);
     
     try {
-      // The create-admin endpoint lives on /admin router, not /admin-v2
-      const token = localStorage.getItem(config.STORAGE_KEYS.TOKEN);
-      await axios.post(`${config.API_GATEWAY_URL}/admin/create-admin`, {
-        email,
+      await api.post('/create-admin', {
+        email: email.trim().toLowerCase(),
         password,
-        full_name: fullName
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+        full_name: fullName.trim(),
       });
       setStatus({ success: true, message: 'New administrative entity has been successfully provisioned.' });
       setEmail('');
       setPassword('');
       setFullName('');
-    } catch (err: any) {
-      setStatus({ success: false, message: err.response?.data?.detail || 'Provisioning failed.' });
+    } catch (err) {
+      setStatus({ success: false, message: apiErrorMessage(err, 'Provisioning failed.') });
     } finally {
       setLoading(false);
     }
@@ -86,7 +80,7 @@ export default function CreateAdminPage() {
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
               <input 
-                type="password" 
+                type="password" minLength={8} 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••" 

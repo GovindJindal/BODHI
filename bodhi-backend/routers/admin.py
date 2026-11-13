@@ -1,4 +1,3 @@
-import os
 import jwt
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -6,16 +5,20 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func
-from typing import List, Dict, Any
+from typing import List
 
 from database import get_db
-from models.core import User, Ledger, Payment
+from models.core import User, Ledger
 from models.notification import Notification, NotificationType
 from services.auth_service import (
-    create_access_token, oauth2_scheme, SECRET_KEY, ALGORITHM, pwd_context, get_password_hash, verify_password, send_reset_otp_email
+    create_access_token, oauth2_scheme, SECRET_KEY, ALGORITHM, get_password_hash, verify_password, send_reset_otp_email
 )
 from pydantic import BaseModel, EmailStr
-import random
+import secrets
+import uuid
+
+from fastapi import Request
+from core.rate_limit import limiter
 from datetime import datetime, timezone
 
 router = APIRouter(prefix="/admin", tags=["Admin System"])
@@ -52,9 +55,10 @@ async def get_current_admin(token: str = Depends(oauth2_scheme), db: AsyncSessio
 # 1. Authentication (/login)
 # ───────────────────────────────────────────────────────────────────────
 @router.post("/login")
-async def admin_login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def admin_login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
     """Handles administrator secure login returning JWTs with embedded roles."""
-    result = await db.execute(select(User).where(User.email == form_data.username))
+    result = await db.execute(select(User).where(func.lower(User.email) == form_data.username.strip().lower()))
     user = result.scalar_one_or_none()
     
     if not user or not user.admin_hashed_password or not verify_password(form_data.password, user.admin_hashed_password):
@@ -84,38 +88,45 @@ class AdminPasswordResetConfirm(BaseModel):
     new_password: str
 
 @router.post("/forgot-password")
-async def request_admin_password_reset(request: AdminPasswordResetRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("3/minute")
+async def request_admin_password_reset(request: Request, body: AdminPasswordResetRequest, db: AsyncSession = Depends(get_db)):
     try:
-        result = await db.execute(select(User).where(User.email == request.email))
+        result = await db.execute(select(User).where(func.lower(User.email) == body.email.lower()))
         user = result.scalar_one_or_none()
         
         # We only allow admin users to reset via this admin-specific endpoint
         if user and user.role == "admin":
-            otp = str(random.randint(100000, 999999))
+            otp = f"{secrets.randbelow(1_000_000):06d}"
             user.reset_otp = otp
+            user.reset_otp_attempts = 0
             user.reset_otp_expiry = datetime.now(timezone.utc) + timedelta(minutes=15)
             await db.commit()
             send_reset_otp_email(user.email, otp, user.full_name)
         
         return {"message": "If an admin account exists with that email, a reset code has been sent."}
-    except Exception as e:
-        import traceback
-        error_details = traceback.format_exc()
-        print(f"❌ Reset Error: {error_details}")
-        # Return the error detail to the frontend temporarily for production debugging
-        raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("Admin reset request failed")
+        raise HTTPException(status_code=500, detail="Could not process the reset request")
 
 @router.post("/reset-password")
-async def confirm_admin_password_reset(request: AdminPasswordResetConfirm, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def confirm_admin_password_reset(request: Request, body: AdminPasswordResetConfirm, db: AsyncSession = Depends(get_db)):
     try:
-        result = await db.execute(select(User).where(User.email == request.email))
+        result = await db.execute(select(User).where(func.lower(User.email) == body.email.lower()))
         user = result.scalar_one_or_none()
         
         if not user or user.role != "admin":
             raise HTTPException(status_code=404, detail="Admin account not found")
             
-        if not user.reset_otp or user.reset_otp != request.otp:
+        if not user.reset_otp or (user.reset_otp_attempts or 0) >= 5:
+            raise HTTPException(status_code=400, detail="Invalid or expired reset code. Request a new one.")
+        if not secrets.compare_digest(user.reset_otp, body.otp.strip()):
+            user.reset_otp_attempts = (user.reset_otp_attempts or 0) + 1
+            await db.commit()
             raise HTTPException(status_code=400, detail="Invalid reset code")
+        if len(body.new_password) < 8:
+            raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
             
         # Ensure reset_otp_expiry is TZ-aware before comparison
         now = datetime.now(timezone.utc)
@@ -127,18 +138,19 @@ async def confirm_admin_password_reset(request: AdminPasswordResetConfirm, db: A
             raise HTTPException(status_code=400, detail="Reset code has expired")
             
         # Update explicitly the admin_hashed_password
-        user.admin_hashed_password = get_password_hash(request.new_password)
+        user.admin_hashed_password = get_password_hash(body.new_password)
         user.reset_otp = None
         user.reset_otp_expiry = None
+        user.reset_otp_attempts = 0
         
         await db.commit()
         return {"message": "Admin password updated successfully"}
     except HTTPException:
         raise
-    except Exception as e:
-        import traceback
-        print(f"❌ Confirm Reset Error: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("Admin reset confirm failed")
+        raise HTTPException(status_code=500, detail="Could not reset the password")
 
 # ───────────────────────────────────────────────────────────────────────
 # 2. Users Management
@@ -176,7 +188,7 @@ async def delete_user(user_id: str, admin: User = Depends(get_current_admin), db
     from services.user_deletion_service import anonymize_user
     await anonymize_user(user, db)
     await db.commit()
-    return {"message": f"User successfully deleted and anonymized"}
+    return {"message": "User successfully deleted and anonymized"}
 
 @router.get("/user/{user_id}")
 async def get_specific_user(user_id: str, admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
@@ -276,8 +288,10 @@ async def create_admin(req: CreateAdminRequest, admin: User = Depends(get_curren
         raise HTTPException(status_code=400, detail="Email already registered in system. Use Promote action instead.")
         
     new_admin = User(
+        id=str(uuid.uuid4()),
         full_name=req.full_name,
-        email=req.email,
+        email=req.email.lower(),
+        phone=f"admin-{uuid.uuid4().hex[:14]}",
         admin_hashed_password=get_password_hash(req.password),
         role="admin",
         is_active=True

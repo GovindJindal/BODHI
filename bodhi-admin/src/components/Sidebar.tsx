@@ -1,4 +1,5 @@
 'use client';
+import { clearAdminSession } from '@/lib/api';
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -30,7 +31,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   const handleLogout = () => {
-    localStorage.removeItem('bodhi_admin_token');
+    clearAdminSession();
     window.location.href = '/login';
   };
 

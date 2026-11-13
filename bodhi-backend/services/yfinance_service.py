@@ -3,8 +3,15 @@ import pandas as pd
 import asyncio
 from datetime import datetime, timedelta
 import logging
+import math
+
+from cachetools import TTLCache
 
 logger = logging.getLogger(__name__)
+
+# Live quotes are cached briefly per warm container: a portfolio with 10 holdings
+# no longer makes 10 fresh Yahoo round-trips on every screen refresh.
+_PRICE_CACHE: TTLCache = TTLCache(maxsize=512, ttl=15)
 
 def _ns(symbol: str) -> str:
     symbol = symbol.upper().strip()
@@ -60,6 +67,8 @@ def _get_live_price_sync(symbol: str) -> dict:
     try:
         fi = ticker.fast_info
         price     = float(fi.last_price)
+        if not math.isfinite(price) or price <= 0:
+            raise ValueError(f"No valid price for {symbol}")
         prev      = float(fi.previous_close) if fi.previous_close else price
         change    = round(price - prev, 2)
         change_pct = round((change / prev) * 100, 2) if prev else 0.0
@@ -120,7 +129,13 @@ def _nifty50_fallback(query: str) -> list[dict]:
 # ── Async Exposed Functions for FastAPI Routers ────────────────────────────
 
 async def get_live_price(symbol: str) -> dict:
-    return await asyncio.to_thread(_get_live_price_sync, symbol)
+    key = _ns(symbol)
+    cached = _PRICE_CACHE.get(key)
+    if cached is not None:
+        return cached
+    data = await asyncio.to_thread(_get_live_price_sync, symbol)
+    _PRICE_CACHE[key] = data
+    return data
 
 async def get_historical(symbol: str, start: str, end: str, interval: str = "1d") -> pd.DataFrame:
     return await asyncio.to_thread(_get_historical_sync, symbol, start, end, interval)

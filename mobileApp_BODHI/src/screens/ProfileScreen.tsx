@@ -20,7 +20,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import { BlurView } from '@react-native-community/blur';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {Clipboard} from '@react-native-clipboard/clipboard';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { Share } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DocumentPicker from 'react-native-document-picker';
@@ -34,7 +34,8 @@ import QRCode from 'react-native-qrcode-svg';
 
 import { Colors, Fonts, Radius, Spacing, ScreenColors } from '../theme/tokens';
 import { ProfileAvatar, SectionLabel } from '../components/shared';
-import { UsersAPI, BASE_URL } from '../api/client';
+import { UsersAPI, BASE_URL, logoutSession } from '../api/client';
+import { resetToAuth } from '../navigation/navigationRef';
 
 export function ProfileScreen() {
   const navigation = useNavigation<any>();
@@ -105,9 +106,8 @@ export function ProfileScreen() {
           text: "Logout", 
           style: "destructive",
           onPress: async () => {
-            await AsyncStorage.removeItem('bodhi_access_token');
-            await AsyncStorage.removeItem('user_full_name');
-            navigation.navigate('Auth');
+            await logoutSession();
+            resetToAuth();
           }
         }
       ]
