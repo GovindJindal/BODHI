@@ -10,30 +10,122 @@ const getBaseUrl = () => {
 };
 
 export const BASE_URL = getBaseUrl();
-console.log(`🔌 API Base URL initialized: ${BASE_URL}`);
+
+// ── Session storage keys ────────────────────────────────────────────────────
+export const STORAGE_KEYS = {
+  accessToken: 'bodhi_access_token',
+  refreshToken: 'bodhi_refresh_token',
+  sessionId: 'bodhi_session_id',
+  fullName: 'user_full_name',
+  userId: 'bodhi_user_id',
+} as const;
+
+export interface SessionPayload {
+  access_token: string;
+  refresh_token?: string;
+  session_id?: string;
+  full_name?: string;
+}
+
+/** Persists everything the backend returns from /auth/token, /auth/refresh and OAuth logins. */
+export const saveSession = async (data: SessionPayload) => {
+  const pairs: [string, string][] = [[STORAGE_KEYS.accessToken, data.access_token]];
+  if (data.refresh_token) pairs.push([STORAGE_KEYS.refreshToken, data.refresh_token]);
+  if (data.session_id) pairs.push([STORAGE_KEYS.sessionId, String(data.session_id)]);
+  if (data.full_name) pairs.push([STORAGE_KEYS.fullName, data.full_name]);
+  await AsyncStorage.multiSet(pairs);
+};
+
+export const clearSession = async () => {
+  await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
+};
+
+/** Best-effort server-side revoke + local wipe. Never throws. */
+export const logoutSession = async () => {
+  try {
+    const sessionId = await AsyncStorage.getItem(STORAGE_KEYS.sessionId);
+    if (sessionId) {
+      await fetch(`${BASE_URL}/auth/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+    }
+  } catch (_) {
+    // offline logout is still a logout
+  }
+  await clearSession();
+};
+
+let refreshInFlight: Promise<string | null> | null = null;
+
+/** Rotates the refresh token. Concurrent callers share one network request. */
+export const refreshAccessToken = (): Promise<string | null> => {
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      try {
+        const [[, refresh_token], [, session_id]] = await AsyncStorage.multiGet([
+          STORAGE_KEYS.refreshToken,
+          STORAGE_KEYS.sessionId,
+        ]);
+        if (!refresh_token || !session_id) return null;
+        const res = await fetch(`${BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token, session_id }),
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        await saveSession(data);
+        return data.access_token as string;
+      } catch (_) {
+        return null;
+      } finally {
+        refreshInFlight = null;
+      }
+    })();
+  }
+  return refreshInFlight;
+};
+
+let onSessionExpired: (() => void) | null = null;
+/** Registered by the navigator so an expired session sends the user back to login. */
+export const setSessionExpiredHandler = (handler: () => void) => {
+  onSessionExpired = handler;
+};
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
   timeout: 30000, // 30s — real device over Wi-Fi can be slow on cold start
 });
 
-// Debugging: Log every request to see exactly what URL the app is hitting
-apiClient.interceptors.request.use(request => {
-  console.log(`🚀 Outgoing Request: [${request.method?.toUpperCase()}] ${request.baseURL}${request.url}`);
-  return request;
-});
-// Interceptor: Automatically attach the JWT token to every single request
-apiClient.interceptors.request.use(
-  async (config) => {
-    const token = await AsyncStorage.getItem('bodhi_access_token');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+// Attach the JWT to every request
+apiClient.interceptors.request.use(async (config) => {
+  const token = await AsyncStorage.getItem(STORAGE_KEYS.accessToken);
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
+  return config;
+});
+
+// On 401: rotate the refresh token once and replay; otherwise end the session.
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const original = error.config;
+    const url: string = original?.url || '';
+    if (error.response?.status === 401 && original && !original._retried && !url.startsWith('/auth/')) {
+      original._retried = true;
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        original.headers = { ...(original.headers || {}), Authorization: `Bearer ${newToken}` };
+        return apiClient(original);
+      }
+      await clearSession();
+      onSessionExpired?.();
+    }
+    return Promise.reject(error);
+  },
 );
 
 export const PaymentAPI = {
@@ -205,118 +297,46 @@ export const SubscriptionsAPI = {
   }
 };
 
-/**
- * Text-to-Speech via backend → Sarvam TTS.
- * Returns a data URI string (base64 audio) or null on failure.
- */
-export const fetchBodhiVoice = async (text: string): Promise<string | null> => {
-  try {
-    const response = await fetch(`${BASE_URL}/ai/speak`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ text }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Backend returned ${response.status}`);
-    }
-
-    const data = await response.json();
-    return `data:audio/mp3;base64,${data.audio_base64}`;
-
-  } catch (error) {
-    console.error("API Client Error fetching voice:", error);
-    return null;
-  }
-};
-
-/**
- * Speech-to-Text via backend → Sarvam STT.
- * Uploads a recorded audio file to the backend /ai/transcribe endpoint.
- * Returns the transcript string or null on failure.
- */
-export const transcribeAudio = async (fileUri: string): Promise<string | null> => {
-  try {
-    // Ensure the URI has the correct scheme for iOS
-    const uri = Platform.OS === 'ios' && !fileUri.startsWith('file://')
-      ? `file://${fileUri}`
-      : fileUri;
-
-    const formData = new FormData();
-    formData.append('file', {
-      uri,
-      type: 'audio/mp4',
-      name: 'audio.mp4',
-    } as any);
-
-    console.log("🚀 Sending audio to backend /ai/transcribe...");
-    const response = await fetch(`${BASE_URL}/ai/transcribe`, {
-      method: 'POST',
-      body: formData,
-      // Don't set Content-Type — fetch sets the correct multipart boundary automatically
-    });
-
-    if (!response.ok) {
-      const errBody = await response.text();
-      console.error(`Backend /ai/transcribe returned ${response.status}:`, errBody);
-      throw new Error(`Backend returned ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log("✅ Transcription received:", data.transcript);
-    return data.transcript || null;
-
-  } catch (error) {
-    console.error("API Client Error transcribing audio:", error);
-    return null;
-  }
-};
-
 export interface VoiceCommandResponse {
   transcript: string;
   intent: string;
   text_response: string;
   suggested_action: string | null;
   audio_base64: string | null;
+  transaction_data?: {
+    amount: number;
+    merchant: string;
+    category: string;
+    type: 'DEBIT' | 'CREDIT';
+  } | null;
 }
 
 /**
- * Unified Voice Command Processor.
- * Takes recorded audio -> returns full AI logic payload.
+ * GAP assistant. All AI provider keys live on the backend; the app only talks
+ * to authenticated BODHI endpoints.
  */
-export const processVoiceCommand = async (fileUri: string): Promise<VoiceCommandResponse | null> => {
-  try {
-    const uri = Platform.OS === 'ios' && !fileUri.startsWith('file://')
-      ? `file://${fileUri}`
-      : fileUri;
-
+export const AIAPI = {
+  /** Typed message → reply text (+ base64 voice when available). */
+  chat: async (message: string, speak = true): Promise<VoiceCommandResponse> => {
+    const res = await apiClient.post('/ai/chat', { message, speak }, { timeout: 60000 });
+    return res.data;
+  },
+  /** Recorded audio → transcript → reply text (+ voice). */
+  command: async (fileUri: string): Promise<VoiceCommandResponse> => {
+    const isIOS = Platform.OS === 'ios';
+    const uri = fileUri.startsWith('file://') ? fileUri : `file://${fileUri}`;
     const formData = new FormData();
     formData.append('file', {
       uri,
-      type: 'audio/mp4',
-      name: 'audio.mp4',
+      type: isIOS ? 'audio/m4a' : 'audio/mp4',
+      name: isIOS ? 'speech.m4a' : 'speech.mp4',
     } as any);
-
-    console.log("🚀 Sending audio to backend /ai/command...");
-    const response = await fetch(`${BASE_URL}/ai/command`, {
-      method: 'POST',
-      body: formData,
+    const res = await apiClient.post('/ai/command', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 90000,
     });
-
-    if (!response.ok) {
-      throw new Error(`Backend returned ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log("✅ AI Command processed:", data.intent);
-    return data;
-
-  } catch (error) {
-    console.error("API Client Error in voice command:", error);
-    return null;
-  }
+    return res.data;
+  },
 };
 
 export const TravelAPI = {

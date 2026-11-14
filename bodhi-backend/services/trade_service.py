@@ -4,10 +4,8 @@ from sqlalchemy import delete
 from models.core import User
 from models.portfolio import PortfolioItem, Transaction
 import logging
-from fastapi import HTTPException, status
-from sqlalchemy.orm import Session
-from sqlalchemy import update, delete
-import math
+from fastapi import HTTPException
+from sqlalchemy import update
 
 logger = logging.getLogger(__name__)
 
@@ -32,122 +30,106 @@ def compute_costs(trade_value: float, side: str) -> dict:
         "total": round(total_charges, 4),
     }
 
+def normalize_symbol(symbol: str) -> str:
+    """Store every NSE symbol the same way (RELIANCE → RELIANCE.NS) to avoid duplicate holdings."""
+    symbol = (symbol or "").upper().strip()
+    return symbol if "." in symbol else f"{symbol}.NS"
+
+
+async def _locked_user(db, user_id) -> User:
+    result = await db.execute(
+        select(User).where(User.id == user_id).with_for_update().execution_options(populate_existing=True)
+    )
+    return result.scalar_one()
+
+
+async def _locked_holding(db, user_id, symbol):
+    result = await db.execute(
+        select(PortfolioItem)
+        .where(PortfolioItem.user_id == user_id, PortfolioItem.symbol.in_({symbol, symbol.split(".")[0]}))
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    return result.scalars().first()
+
+
 # ── Async Trade Execution ────────────────────────────────────────────────
 async def execute_buy(db, user_id, symbol, amount_inr, current_price, is_market_open):
-    # 1. Fetch the user
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalars().first()
-    
-    # Calculate quantity
-    qty = int(amount_inr / current_price)
-    total_cost = qty * current_price
+    symbol = normalize_symbol(symbol)
+    if not current_price or current_price <= 0:
+        return {"error": "Live price unavailable. Please try again."}
 
+    qty = int(amount_inr // current_price)
     if qty <= 0:
-        return {"error": "Amount too low to buy even 1 share."}
-    # 🔥 Handle potential NoneType by defaulting to 0.0
+        return {"error": f"Amount too low to buy even 1 share (price ₹{current_price:,.2f})."}
+    total_cost = round(qty * current_price, 2)
+
+    # Lock the user row so two quick taps can't spend the same paper cash twice.
+    user = await _locked_user(db, user_id)
     current_balance = user.paper_balance if user.paper_balance is not None else 0.0
+    if current_balance + 1e-9 < total_cost:
+        raise HTTPException(status_code=400, detail=f"Insufficient paper balance (₹{current_balance:,.2f}).")
 
-    if current_balance < total_cost:
-        raise HTTPException(status_code=400, detail="Insufficient paper balance")
-
-    # 2. Block the funds (We do this immediately so they can't double-spend overnight)
-    user.paper_balance -= total_cost
+    # Block the funds immediately (also for AMOs) so they can't be double-spent overnight.
+    user.paper_balance = round(current_balance - total_cost, 2)
 
     if is_market_open:
-        # 🟢 MARKET IS OPEN: Execute Immediately
-        # Add to Portfolio logic...
-        portfolio_result = await db.execute(
-            select(PortfolioItem).where(PortfolioItem.user_id == user_id, PortfolioItem.symbol == symbol)
-        )
-        holding = portfolio_result.scalars().first()
-        
+        holding = await _locked_holding(db, user_id, symbol)
         if holding:
             old_total = holding.quantity * holding.average_buy_price
             holding.quantity += qty
             holding.average_buy_price = (old_total + total_cost) / holding.quantity
+            holding.symbol = symbol
         else:
-            new_holding = PortfolioItem(user_id=user_id, symbol=symbol, quantity=qty, average_buy_price=current_price)
-            db.add(new_holding)
-
+            db.add(PortfolioItem(user_id=user_id, symbol=symbol, quantity=qty, average_buy_price=current_price))
         txn_status = "EXECUTED"
         msg = f"Successfully bought {qty} shares of {symbol}."
-        
     else:
-        # 🌙 MARKET IS CLOSED: Send to AMO Waiting Room
-        # Note: We already blocked their cash above, but we DO NOT add the stock to their portfolio yet!
+        # Market closed: AMO. Cash is blocked, shares arrive when it executes at 9:15 AM.
         txn_status = "PENDING_AMO"
         msg = "Market is closed. Your order is placed as an AMO and will execute at 9:15 AM."
 
-    # 3. Record the Transaction
-    new_txn = Transaction(
-        user_id=user_id,
-        type="BUY",
-        symbol=symbol,
-        quantity=qty,
-        price=current_price,
-        total_value=total_cost,
-        status=txn_status  # <-- Save the status!
-    )
-    db.add(new_txn)
-    
+    db.add(Transaction(user_id=user_id, type="BUY", symbol=symbol, quantity=qty,
+                       price=current_price, total_value=total_cost, status=txn_status))
     await db.commit()
-    return {"status": "success", "message": msg, "order_status": txn_status}
+    return {"status": "success", "message": msg, "order_status": txn_status,
+            "quantity": qty, "price": current_price, "paper_balance": user.paper_balance}
+
 
 async def execute_sell(db, user_id, symbol, quantity_to_sell, current_price, is_market_open):
-    # 1. Fetch the user and their holding
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalars().first()
-    
-    portfolio_result = await db.execute(
-        select(PortfolioItem).where(PortfolioItem.user_id == user_id, PortfolioItem.symbol == symbol)
-    )
-    holding = portfolio_result.scalars().first()
+    symbol = normalize_symbol(symbol)
+    if not current_price or current_price <= 0:
+        return {"error": "Live price unavailable. Please try again."}
 
-    # 2. Validation
+    user = await _locked_user(db, user_id)
+    holding = await _locked_holding(db, user_id, symbol)
     if not holding or holding.quantity < quantity_to_sell:
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail=f"Insufficient holdings. You only have {holding.quantity if holding else 0} shares of {symbol}."
         )
 
-    total_credit = quantity_to_sell * current_price
+    total_credit = round(quantity_to_sell * current_price, 2)
+    # Shares are blocked immediately in both cases.
+    holding.quantity -= quantity_to_sell
+    if holding.quantity <= 0:
+        await db.delete(holding)
 
     if is_market_open:
-        # 🟢 MARKET IS OPEN: Execute Immediately
-        holding.quantity -= quantity_to_sell
-        
-        # If quantity becomes 0, remove the holding
-        if holding.quantity <= 0:
-            await db.delete(holding)
-            
-        # Credit the funds
-        user.paper_balance += total_credit
+        user.paper_balance = round((user.paper_balance or 0.0) + total_credit, 2)
         txn_status = "EXECUTED"
         msg = f"Successfully sold {quantity_to_sell} shares of {symbol}."
     else:
-        # 🌙 MARKET IS CLOSED: AMO
-        # We block the shares (decrement from portfolio) but don't credit cash until execution
-        holding.quantity -= quantity_to_sell
-        if holding.quantity <= 0:
-            await db.delete(holding)
-            
+        # AMO: cash is credited when the order executes.
         txn_status = "PENDING_AMO"
         msg = "Market is closed. Your sell order is placed as an AMO."
 
-    # 3. Record the Transaction
-    new_txn = Transaction(
-        user_id=user_id,
-        type="SELL",
-        symbol=symbol,
-        quantity=quantity_to_sell,
-        price=current_price,
-        total_value=total_credit,
-        status=txn_status
-    )
-    db.add(new_txn)
-    
+    db.add(Transaction(user_id=user_id, type="SELL", symbol=symbol, quantity=quantity_to_sell,
+                       price=current_price, total_value=total_credit, status=txn_status))
     await db.commit()
-    return {"status": "success", "message": msg, "order_status": txn_status}
+    return {"status": "success", "message": msg, "order_status": txn_status,
+            "quantity": quantity_to_sell, "price": current_price, "paper_balance": user.paper_balance}
+
 
 async def reset_portfolio_db(db: AsyncSession, user_id: str):
     try:
@@ -171,10 +153,9 @@ async def reset_portfolio_db(db: AsyncSession, user_id: str):
 
         # 4. Commit the changes
         await db.commit()
-        print(f"✅ Portfolio reset successful for {user_id}")
         return True
         
     except Exception as e:
         await db.rollback() # 🟢 Must await the rollback now!
-        print(f"❌ Reset Database Error: {e}")
+        logger.error(f"Reset Database Error: {e}")
         return False

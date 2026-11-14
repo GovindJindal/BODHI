@@ -34,25 +34,24 @@ cachetools>=5.3.0               # cache Apple public keys (avoid hammering Apple
 # Imports
 # ─────────────────────────────────────────────────────────────────────────────
 
-import os
 import uuid
-from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 import httpx
 import jwt as pyjwt
 from cachetools import TTLCache
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.concurrency import run_in_threadpool
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # ── YOUR ACTUAL PROJECT IMPORTS ─────────────────────────────
 from database import get_db
 from models.core import AuthProvider, User
-from services.auth_service import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from services.auth_service import issue_session_tokens
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -70,6 +69,9 @@ class OAuthTokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     is_new_user: bool
+    refresh_token: Optional[str] = None
+    session_id: Optional[str] = None
+    full_name: Optional[str] = None
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Settings expected in your config (add these to your .env / Settings class)
@@ -88,6 +90,10 @@ APPLE_APP_BUNDLE_ID       = settings.apple_app_bundle_id
 # ─────────────────────────────────────────────────────────────────────────────
 # Google token verification
 # ─────────────────────────────────────────────────────────────────────────────
+
+# Re-used transport: google-auth caches Google's signing certs per transport.
+_GOOGLE_REQUEST = google_requests.Request()
+
 
 def _get_google_audience_ids() -> list[str]:
     """
@@ -113,29 +119,32 @@ def verify_google_token(raw_id_token: str) -> dict[str, Any]:
 
     Returns the decoded token claims or raises HTTPException.
     """
-    request_adapter = google_requests.Request()
-    for client_id in _get_google_audience_ids():
-        try:
-            claims = google_id_token.verify_oauth2_token(
-                raw_id_token,
-                request_adapter,
-                audience=client_id,
-            )
-            # Extra safety: email must be marked as verified by Google
-            if not claims.get("email_verified", False):
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Google account email is not verified.",
-                )
-            return claims
-        except ValueError:
-            # Wrong audience for this client_id – try the next one
-            continue
+    audiences = _get_google_audience_ids()
+    if not audiences:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Google Sign-In is not configured on the server.",
+        )
+    try:
+        # One verification against every accepted client id (a single cert fetch).
+        claims = google_id_token.verify_oauth2_token(
+            raw_id_token,
+            _GOOGLE_REQUEST,
+            audience=audiences,
+        )
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Google id_token is invalid or expired.",
+        ) from None
 
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Google id_token is invalid or expired.",
-    )
+    # Extra safety: email must be marked as verified by Google
+    if not claims.get("email_verified", False) or not claims.get("email"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Google account email is not verified.",
+        )
+    return claims
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -192,10 +201,10 @@ async def verify_apple_token(raw_identity_token: str) -> dict[str, Any]:
     # ── Step 2: fetch & match Apple's public key ─────────────────────────────
     try:
         jwks = await _fetch_apple_jwks()
-    except httpx.HTTPError as exc:
+    except httpx.HTTPError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Could not fetch Apple public keys: {exc}",
+            detail="Could not reach Apple to verify sign-in. Please try again.",
         )
 
     matching_key = next(
@@ -219,10 +228,10 @@ async def verify_apple_token(raw_identity_token: str) -> dict[str, Any]:
     # ── Step 3: build the RSA public key object ───────────────────────────────
     try:
         public_key = pyjwt.algorithms.RSAAlgorithm.from_jwk(matching_key)
-    except Exception as exc:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to construct Apple public key: {exc}",
+            detail="Could not verify Apple sign-in.",
         )
 
     # ── Step 4: verify signature + standard claims ────────────────────────────
@@ -239,10 +248,10 @@ async def verify_apple_token(raw_identity_token: str) -> dict[str, Any]:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Apple identity_token has expired.",
         )
-    except pyjwt.InvalidTokenError as exc:
+    except pyjwt.InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Apple identity_token is invalid: {exc}",
+            detail="Apple identity_token is invalid.",
         )
 
     return claims
@@ -279,15 +288,16 @@ async def _find_or_create_oauth_user(
     )
     user = result.scalar_one_or_none()
     if user:
-        # Refresh display name / avatar in case they changed on the provider
-        user.display_name = display_name or user.display_name
-        user.avatar_url   = avatar_url   or user.avatar_url
-        await session.commit()
+        # Refresh avatar in case it changed on the provider
+        if not (user.full_name or "").strip() and display_name:
+            user.full_name = display_name
+        user.avatar_url = avatar_url or user.avatar_url
         return user, False
 
     # 2. Look up by email (account linking)
+    email = email.strip().lower()
     result = await session.execute(
-        select(User).where(User.email == email)
+        select(User).where(func.lower(User.email) == email)
     )
     user = result.scalar_one_or_none()
     if user:
@@ -295,27 +305,29 @@ async def _find_or_create_oauth_user(
         user.auth_provider  = provider
         user.provider_id    = provider_id
         user.email_verified = True
-        user.display_name   = display_name or user.display_name
-        user.avatar_url     = avatar_url   or user.avatar_url
-        await session.commit()
+        if not (user.full_name or "").strip() and display_name:
+            user.full_name = display_name
+        user.avatar_url     = avatar_url or user.avatar_url
         return user, False
 
-    # 3. Create brand-new user
+    # 3. Create brand-new user. `phone` is NOT NULL + UNIQUE, so OAuth users get
+    # a unique placeholder until they add a real number in their profile.
+    new_id = str(uuid.uuid4())
     new_user = User(
-        id              = uuid.uuid4(),
+        id              = new_id,
         email           = email,
+        phone           = f"oauth-{new_id.replace('-', '')[:14]}",
+        full_name       = (display_name or email.split("@")[0]).strip()[:255] or "BODHI User",
         hashed_password = None,           # no password for OAuth users
         auth_provider   = provider,
         provider_id     = provider_id,
-        display_name    = display_name,
         avatar_url      = avatar_url,
         email_verified  = True,
+        is_verified     = True,
         is_active       = True,
-        is_superuser    = False,
     )
     session.add(new_user)
-    await session.commit()
-    await session.refresh(new_user)
+    await session.flush()
     return new_user, True
 
 
@@ -334,11 +346,12 @@ async def _find_or_create_oauth_user(
     ),
 )
 async def google_sign_in(
+    request: Request,
     body:    GoogleSignInRequest,
     session: AsyncSession = Depends(get_db),
 ) -> OAuthTokenResponse:
-    # 1. Verify the token with Google's servers
-    claims = verify_google_token(body.id_token)
+    # 1. Verify the token with Google's servers (blocking I/O → threadpool)
+    claims = await run_in_threadpool(verify_google_token, body.id_token)
 
     # 2. Extract trusted fields from the verified payload ONLY
     provider_id  = claims["sub"]                    # stable Google user ID
@@ -349,7 +362,7 @@ async def google_sign_in(
     # 3. Find or create the user
     user, is_new = await _find_or_create_oauth_user(
         session      = session,
-        provider     = AuthProvider.GOOGLE,
+        provider     = AuthProvider.google,
         provider_id  = provider_id,
         email        = email,
         display_name = display_name,
@@ -362,12 +375,10 @@ async def google_sign_in(
             detail="This account has been deactivated.",
         )
 
-    # 4. Issue our own JWT
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    token = create_access_token(
-        data={"sub": str(user.id)}, expires_delta=access_token_expires
-    )
-    return OAuthTokenResponse(access_token=token, is_new_user=is_new)
+    # 4. Issue our own JWT + refresh session (same shape as password login)
+    tokens = await issue_session_tokens(session, user, request)
+    await session.commit()
+    return OAuthTokenResponse(is_new_user=is_new, **tokens)
 
 
 @router.post(
@@ -381,6 +392,7 @@ async def google_sign_in(
     ),
 )
 async def apple_sign_in(
+    request: Request,
     body:    AppleSignInRequest,
     session: AsyncSession = Depends(get_db),
 ) -> OAuthTokenResponse:
@@ -410,7 +422,7 @@ async def apple_sign_in(
     # 3. Find or create the user
     user, is_new = await _find_or_create_oauth_user(
         session      = session,
-        provider     = AuthProvider.APPLE,
+        provider     = AuthProvider.apple,
         provider_id  = provider_id,
         email        = email,
         display_name = display_name,
@@ -423,9 +435,7 @@ async def apple_sign_in(
             detail="This account has been deactivated.",
         )
 
-    # 4. Issue our own JWT
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    token = create_access_token(
-        data={"sub": str(user.id)}, expires_delta=access_token_expires
-    )
-    return OAuthTokenResponse(access_token=token, is_new_user=is_new)
+    # 4. Issue our own JWT + refresh session (same shape as password login)
+    tokens = await issue_session_tokens(session, user, request)
+    await session.commit()
+    return OAuthTokenResponse(is_new_user=is_new, **tokens)

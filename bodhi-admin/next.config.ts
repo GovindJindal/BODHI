@@ -1,17 +1,11 @@
 import type { NextConfig } from "next";
 
+// Static export: the dashboard calls the API Gateway directly (see src/lib/config.ts),
+// so no rewrites (they are not supported with `output: 'export'`).
 const nextConfig: NextConfig = {
   output: 'export',
   images: {
     unoptimized: true,
-  },
-  async rewrites() {
-    return [
-      {
-        source: '/api/admin/:path*',
-        destination: 'https://l6927740gk.execute-api.ap-southeast-1.amazonaws.com/admin-v2/:path*',
-      },
-    ];
   },
 };
 

@@ -1,7 +1,10 @@
 'use client';
 import React, { useState } from 'react';
-import { ShieldCheck, Lock, Mail, ArrowRight } from 'lucide-react';
-import api from '@/lib/api';
+import { LogIn } from 'lucide-react';
+import api, { apiErrorMessage } from '@/lib/api';
+import { config } from '@/lib/config';
+import { BodhiMark } from '@/components/Sidebar';
+import { Button, Field, Input, Notice } from '@/components/ui';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -13,88 +16,69 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
     try {
       const params = new URLSearchParams();
-      params.append('username', email);
+      params.append('username', email.trim().toLowerCase());
       params.append('password', password);
-
       const res = await api.post('/login', params);
-      localStorage.setItem('bodhi_admin_token', res.data.access_token);
-      localStorage.setItem('bodhi_admin_user', JSON.stringify(res.data.user));
+      localStorage.setItem(config.STORAGE_KEYS.TOKEN, res.data.access_token);
+      localStorage.setItem(config.STORAGE_KEYS.USER, JSON.stringify(res.data.user));
       window.location.href = '/';
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'System authentication failed.');
-    } finally {
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Could not reach the BODHI API. Check your connection and try again.'));
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-6 bg-radial-at-t from-violet-900/20 to-slate-950">
-      <div className="w-full max-w-md animate-in fade-in zoom-in duration-500">
-        <div className="text-center mb-10">
-            <div className="inline-flex p-4 rounded-3xl bg-violet-600/10 border border-violet-500/20 mb-6 shadow-2xl shadow-violet-500/10">
-                <ShieldCheck className="w-10 h-10 text-violet-400" />
-            </div>
-            <h1 className="text-4xl font-black text-white tracking-tighter">BODHI <span className="text-violet-500">COMMAND</span></h1>
-            <p className="text-slate-400 mt-2 font-medium">Secured Administrative Terminal</p>
+    <main className="min-h-screen grid place-items-center px-4 py-12">
+      <div className="w-full max-w-[380px]">
+        <div className="flex items-center gap-2.5 mb-10">
+          <BodhiMark className="w-9 h-9 text-leaf" />
+          <span className="text-xl font-bold tracking-[-0.01em]">BODHI</span>
+          <span className="text-muted">Admin</span>
         </div>
 
-        <div className="bg-slate-900/50 border border-slate-800 p-10 rounded-[2.5rem] backdrop-blur-xl shadow-2xl">
-          <form className="space-y-6" onSubmit={handleLogin}>
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Identity Email</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                <input 
-                  type="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@bodhi.ai" 
-                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-white focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-all placeholder:text-slate-700"
-                  required
-                />
-              </div>
-            </div>
+        <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.02em]">Sign in</h1>
+        <p className="mt-2 text-[15px] text-muted leading-relaxed">
+          Use the email and password of an admin, super admin or support account.
+        </p>
 
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Security Key</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                <input 
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••" 
-                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-white focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-all placeholder:text-slate-700"
-                  required
-                />
-              </div>
-            </div>
+        <form className="mt-8 space-y-5" onSubmit={handleLogin} noValidate={false}>
+          <Field label="Email" htmlFor="email">
+            <Input
+              id="email"
+              type="email"
+              autoComplete="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@bodhi.app"
+              required
+              autoFocus
+            />
+          </Field>
+          <Field label="Password" htmlFor="password">
+            <Input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </Field>
 
-            {error && <div className="text-rose-400 text-sm font-bold bg-rose-500/10 p-4 rounded-xl border border-rose-500/20 flex items-center gap-2">
-                <ArrowRight className="w-4 h-4 rotate-180" /> {error}
-            </div>}
+          {error && <Notice tone="madder">{error}</Notice>}
 
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-black py-4 rounded-2xl transition-all shadow-xl shadow-violet-600/20 group flex items-center justify-center gap-2"
-            >
-              {loading ? 'AUTHORIZING...' : (
-                  <>
-                    ENTER TERMINAL <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                  </>
-              )}
-            </button>
-          </form>
-        </div>
+          <Button type="submit" variant="primary" icon={LogIn} disabled={loading} className="w-full h-11">
+            {loading ? 'Signing in…' : 'Sign in'}
+          </Button>
+        </form>
 
-        <p className="text-center text-slate-600 mt-8 text-xs font-bold uppercase tracking-widest">
-            Authorized Personnel Only • IP-Logged • AES-256 Encrypted
+        <p className="mt-10 text-[13px] text-faint leading-relaxed">
+          After ten attempts in a minute, sign-in pauses briefly. Ask a super admin if you have lost access.
         </p>
       </div>
-    </div>
+    </main>
   );
 }

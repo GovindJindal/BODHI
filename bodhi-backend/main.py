@@ -37,6 +37,7 @@ import models.expenses
 import models.payments
 import models.notification
 import models.manual_transaction  # AI voice-logged cash transactions
+import models.otp  # persistent signup OTPs
 
 
 # ── Background DB init (non-blocking) ──────────────────────────────────────────
@@ -63,6 +64,9 @@ async def init_db():
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_hashed_password VARCHAR(255)"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp VARCHAR(20)"))
                 await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_expiry TIMESTAMP WITH TIME ZONE"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_otp_attempts INTEGER NOT NULL DEFAULT 0"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMP WITH TIME ZONE"))
+                await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE"))
                 
                 # Check for AuditLog table explicitly if needed, but Base.metadata.create_all does it.
             except Exception as e:

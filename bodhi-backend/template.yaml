@@ -55,7 +55,7 @@ Resources:
         ScheduledAmoTrigger:
           Type: Schedule
           Properties:
-            Schedule: cron(15 9 ? * MON-FRI *)
+            Schedule: cron(45 3 ? * MON-FRI *)  # 09:15 IST (EventBridge cron is UTC)
             Name: BodhiMorningAmoTrigger
             Description: Triggers the Morning AMO processing at 9:15 AM
             Input: !Sub

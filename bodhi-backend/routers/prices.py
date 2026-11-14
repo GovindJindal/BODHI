@@ -96,16 +96,21 @@ async def price_history(
         logger.error(f"price_history failed for {symbol}: {e}")
         raise HTTPException(status_code=502, detail="Data fetch failed.")
 
+    if df is None or getattr(df, "empty", True):
+        raise HTTPException(status_code=404, detail=f"No price history for {symbol}.")
+
     candles = []
-    # Format the dataframe exactly how your mobile app expects it
+    # Format the dataframe exactly how your mobile app expects it (skip rows with gaps/NaN)
+    df = df.dropna(subset=["Open", "High", "Low", "Close"])
     for ts, row in df.iterrows():
+        vol = row.get("Volume")
         candles.append({
             "date":   ts.strftime("%Y-%m-%d") if interval == "1d" else ts.strftime("%Y-%m-%dT%H:%M"),
             "open":   round(float(row["Open"]),   2),
             "high":   round(float(row["High"]),   2),
             "low":    round(float(row["Low"]),    2),
             "close":  round(float(row["Close"]),  2),
-            "volume": int(row["Volume"]),
+            "volume": int(vol) if vol == vol and vol is not None else 0,
         })
 
     return {

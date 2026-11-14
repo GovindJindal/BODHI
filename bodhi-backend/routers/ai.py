@@ -1,25 +1,42 @@
-from fastapi import Request
-from core.rate_limit import limiter
-from fastapi import APIRouter, HTTPException, UploadFile, File
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
 import base64
-import tempfile
+import logging
 import os
-import traceback
-from services.sarvam_service import generate_bodhi_speech, transcribe_audio
-from services.brain_service import process_user_intent
+import tempfile
 
-router = APIRouter(prefix="/ai", tags=["AI Integration"])
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from starlette.background import BackgroundTask
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
+
+from core.rate_limit import limiter
+from services.auth_service import get_current_user
+from services.brain_service import process_user_intent
+from services.sarvam_service import generate_bodhi_speech, transcribe_audio
+
+logger = logging.getLogger(__name__)
+
+# Every AI route costs money (Gemini/Sarvam), so all of them require a logged-in user.
+router = APIRouter(prefix="/ai", tags=["AI Integration"], dependencies=[Depends(get_current_user)])
+
+MAX_AUDIO_BYTES = 10 * 1024 * 1024
+
 
 class SpeechRequest(BaseModel):
-    text: str
+    text: str = Field(..., max_length=2500)
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=2000)
+    speak: bool = True
+
 
 class SpeechResponse(BaseModel):
     audio_base64: str
 
+
 class TranscribeResponse(BaseModel):
     transcript: str
+
 
 class AICommandResponse(BaseModel):
     transcript: str
@@ -29,20 +46,47 @@ class AICommandResponse(BaseModel):
     audio_base64: str | None
     transaction_data: dict | None = None  # Populated when intent == 'add_transaction'
 
+
+async def _optional_speech(text: str) -> str | None:
+    """TTS is a nice-to-have: never fail the whole request because voice failed."""
+    try:
+        return await generate_bodhi_speech(text)
+    except Exception as exc:
+        logger.warning(f"TTS skipped: {exc}")
+        return None
+
+
+async def _read_audio(file: UploadFile) -> bytes:
+    contents = await file.read()
+    if not contents:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+    if len(contents) > MAX_AUDIO_BYTES:
+        raise HTTPException(status_code=413, detail="Audio clip is too long")
+    return contents
+
+
 @router.post("/speak", response_model=SpeechResponse)
-async def get_bodhi_voice(request: SpeechRequest):
-    print(f"🎙️ AI Speak requested for text: '{request.text[:50]}...'")
-    if not request.text.strip():
+@limiter.limit("30/minute")
+async def get_bodhi_voice(request: Request, payload: SpeechRequest):
+    if not payload.text.strip():
         raise HTTPException(status_code=400, detail="Text cannot be empty")
-        
-    base64_audio = await generate_bodhi_speech(request.text)
-    print("✅ Voice generated successfully.")
-    return {"audio_base64": base64_audio}
+    return {"audio_base64": await generate_bodhi_speech(payload.text)}
+
+
+@router.post("/chat", response_model=AICommandResponse)
+@limiter.limit("30/minute")
+async def chat(request: Request, payload: ChatRequest):
+    """Typed message → GAP brain → (optional) voice reply."""
+    message = payload.message.strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+    brain = await process_user_intent(message)
+    audio = await _optional_speech(brain["text_response"]) if payload.speak else None
+    return {"transcript": message, "audio_base64": audio, **brain}
 
 @router.get("/stream_tts/{filename}")
 async def stream_tts_audio(filename: str, text: str):
     """Generates Sarvam speech and returns an audio file stream directly."""
-    print(f"🎧 Streaming TTS requested for: '{text[:50]}...'")
     if not text.strip():
         raise HTTPException(status_code=400, detail="Text cannot be empty")
         
@@ -58,75 +102,39 @@ async def stream_tts_audio(filename: str, text: str):
         # Cleanup helper to prevent disk exhaustion
         def cleanup_temp_file(path: str):
             try:
-                import os
                 if os.path.exists(path):
                     os.remove(path)
-                    print(f"🧹 Cleaned up temporary audio file: {path}")
-            except Exception as e:
-                print(f"⚠️ Failed to cleanup temporary audio file {path}: {e}")
-        
-        from fastapi.background import BackgroundTask
-        
-        print(f"✅ Voice generated and cached to temp file.")
+            except OSError as e:
+                logger.warning(f"Failed to cleanup temporary audio file {path}: {e}")
+
         return FileResponse(tf.name, media_type="audio/wav", background=BackgroundTask(cleanup_temp_file, tf.name))
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"❌ Streaming TTS Error: {e}")
-        raise HTTPException(status_code=500, detail="Failed to stream audio")
+        logger.error(f"Streaming TTS Error: {e}")
+        raise HTTPException(status_code=502, detail="Failed to stream audio") from None
 
 @router.post("/transcribe", response_model=TranscribeResponse)
 async def transcribe_speech(file: UploadFile = File(...)):
     """Accepts an audio file upload and returns the Sarvam STT transcript."""
-    print(f"📡 Incoming audio for transcription: {file.filename}")
-    contents = await file.read()
-    if not contents:
-        raise HTTPException(status_code=400, detail="Uploaded file is empty")
-    
+    contents = await _read_audio(file)
     transcript = await transcribe_audio(contents, file.filename or "audio.mp4")
-    print(f"📝 Transcription result: '{transcript}'")
     return {"transcript": transcript}
 
 @router.post("/command", response_model=AICommandResponse)
 async def process_voice_command(file: UploadFile = File(...)):
     """Unified endpoint: Audio -> Text -> Intent -> Response Text + Voice."""
-    try:
-        print(f"🚀 Processing full AI Command for {file.filename}...")
-        
-        # 1. Transcription (STT)
-        audio_bytes = await file.read()
-        transcript = await transcribe_audio(audio_bytes, file.filename or "audio.mp4")
-        print(f"  [1/3] Transcribed Text: '{transcript}'")
-        
-        if not transcript or transcript.strip() == "":
-            print("  ⚠️ Empty transcript received.")
-            return {
-                "transcript": "",
-                "intent": "general_chat",
-                "text_response": "I couldn't quite hear you. Could you repeat that?",
-                "suggested_action": None,
-                "audio_base64": None,
-                "transaction_data": None
-            }
-
-        # 2. Brain Analysis (LLM)
-        brain_result = await process_user_intent(transcript)
-        print(f"  [2/3] Brain Intent: {brain_result.get('intent')} | Action: {brain_result.get('suggested_action')}")
-        
-        # 3. Voice Generation (TTS) - Optional/Auto
-        audio_response = await generate_bodhi_speech(brain_result['text_response'])
-        print(f"  [3/3] Audio response generated successfully.")
-        
+    audio_bytes = await _read_audio(file)
+    transcript = (await transcribe_audio(audio_bytes, file.filename or "audio.mp4") or "").strip()
+    if not transcript:
         return {
-            "transcript": transcript,
-            "intent": brain_result["intent"],
-            "text_response": brain_result["text_response"],
-            "suggested_action": brain_result.get("suggested_action"),
-            "audio_base64": audio_response,
-            "transaction_data": brain_result.get("transaction_data"),
+            "transcript": "",
+            "intent": "general_chat",
+            "text_response": "I couldn't quite hear you. Could you repeat that?",
+            "suggested_action": None,
+            "audio_base64": None,
+            "transaction_data": None,
         }
-    except HTTPException:
-        # Re-raise explicit HTTP exceptions (e.g. from missing keys or specific API failures)
-        raise
-    except Exception as e:
-        print(f"❌ CRASH in process_voice_command: {str(e)}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+    brain = await process_user_intent(transcript)
+    audio = await _optional_speech(brain["text_response"])
+    return {"transcript": transcript, "audio_base64": audio, **brain}

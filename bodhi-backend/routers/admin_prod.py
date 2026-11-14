@@ -1,26 +1,49 @@
-import os
 import jwt
 import json
 from datetime import timedelta, datetime, timezone
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
-from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+from typing import List, Optional, Dict
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import func, desc, and_, or_
-from pydantic import BaseModel, EmailStr
+from sqlalchemy import func, desc, or_
+from pydantic import BaseModel, Field
+
+from core.rate_limit import limiter
 
 from database import get_db
 from models.core import User, Ledger, Payment, AuditLog
 from models.notification import Notification, NotificationType
-from models.social import InvestmentGroup, TripWallet
-from models.portfolio import PortfolioItem, Transaction as TradingTransaction
+from models.social import InvestmentGroup, InvestmentMember, TripExpense, TripMember, TripWallet
+from core.config import settings
+import os
+from models.portfolio import Transaction as TradingTransaction
+import uuid
+
+from pydantic import EmailStr
 from services.auth_service import (
-    create_access_token, oauth2_scheme, SECRET_KEY, ALGORITHM, 
-    pwd_context, get_password_hash, verify_password, send_reset_otp_email
+    create_access_token, oauth2_scheme, SECRET_KEY, ALGORITHM,
+    verify_password, get_password_hash,
 )
 
 router = APIRouter(prefix="/admin-v2", tags=["BODHI Production Admin"])
+
+ADMIN_ROLES = ("super_admin", "admin", "support")
+
+
+def _client_ip(request: Request) -> Optional[str]:
+    return request.client.host if request.client else None
+
+def _enum_value(v):
+    return getattr(v, "value", v)
+
+
+def _utc(dt):
+    """Some tables store naive UTC datetimes; tag them so clients don't read them as local time."""
+    if dt is not None and dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
 
 # ── Dependencies ──
 
@@ -35,7 +58,7 @@ async def get_current_admin(token: str = Depends(oauth2_scheme), db: AsyncSessio
         result = await db.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
         
-        if not user or user.role not in ["super_admin", "admin", "support"]:
+        if not user or user.deleted_at is not None or user.role not in ADMIN_ROLES:
             raise HTTPException(status_code=403, detail="Access denied: Administrative privileges required")
             
         if not user.is_active:
@@ -60,16 +83,24 @@ async def log_audit(db: AsyncSession, admin_id: str, action: str, target_id: Opt
 # ── Authentication ──
 
 @router.post("/login")
-async def admin_login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == form_data.username))
+@limiter.limit("10/minute")
+async def admin_login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+    email = form_data.username.strip().lower()
+    result = await db.execute(select(User).where(func.lower(User.email) == email))
     user = result.scalar_one_or_none()
-    
-    if not user or user.role not in ["super_admin", "admin", "support"]:
+
+    stored_password = (user.admin_hashed_password or user.hashed_password) if user else None
+    # Same message for unknown user / wrong role / wrong password, so emails can't be enumerated.
+    if (
+        not user
+        or user.role not in ADMIN_ROLES
+        or user.deleted_at is not None
+        or not stored_password
+        or not verify_password(form_data.password, stored_password)
+    ):
         raise HTTPException(status_code=401, detail="Invalid credentials or access level")
-        
-    stored_password = user.admin_hashed_password or user.hashed_password
-    if not stored_password or not verify_password(form_data.password, stored_password):
-        raise HTTPException(status_code=401, detail="Invalid password")
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account suspended")
         
     access_token = create_access_token(
         data={"sub": user.email, "user_id": user.id, "role": user.role},
@@ -86,6 +117,37 @@ async def admin_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Asyn
             "full_name": user.full_name
         }
     }
+
+# ── Admin provisioning ──
+
+class CreateAdminRequest(BaseModel):
+    full_name: str = Field(..., min_length=1, max_length=255)
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+
+
+@router.post("/create-admin", status_code=201)
+async def create_admin(req: CreateAdminRequest, request: Request, admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
+    """Create a dashboard-only admin account (super admins and admins only)."""
+    if admin.role not in ("super_admin", "admin"):
+        raise HTTPException(status_code=403, detail="Only admins can provision administrators")
+    email = req.email.strip().lower()
+    exists = await db.execute(select(User.id).where(func.lower(User.email) == email))
+    if exists.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Email already registered. Promote the existing user instead.")
+
+    new_admin = User(
+        id=str(uuid.uuid4()),
+        full_name=req.full_name.strip(),
+        email=email,
+        phone=f"admin-{uuid.uuid4().hex[:14]}",  # phone is required & unique; admins sign in by email
+        admin_hashed_password=get_password_hash(req.password),
+        role="admin",
+        is_active=True,
+    )
+    db.add(new_admin)
+    await log_audit(db, admin.id, "CREATE_ADMIN", target_id=new_admin.id, details={"email": email}, ip=_client_ip(request))
+    return {"message": "Administrator created.", "admin_id": new_admin.id}
 
 # ── Dashboard Statistics ──
 
@@ -123,16 +185,19 @@ async def get_system_stats(admin: User = Depends(get_current_admin), db: AsyncSe
 @router.get("/users")
 async def list_users(
     page: int = Query(1, ge=1),
-    limit: int = Query(20, le=100),
+    limit: int = Query(20, ge=1, le=100),
     search: Optional[str] = None,
     role: Optional[str] = None,
     admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    query = select(User).order_by(desc(User.created_at))
-    if search:
-        query = query.where(or_(User.email.ilike(f"%{search}%"), User.full_name.ilike(f"%{search}%")))
-    if role:
+    query = select(User).where(User.deleted_at.is_(None)).order_by(desc(User.created_at))
+    if search and search.strip():
+        term = "%" + search.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+        query = query.where(or_(User.email.ilike(term), User.full_name.ilike(term), User.phone.ilike(term)))
+    if role == "staff":
+        query = query.where(User.role.in_(ADMIN_ROLES))
+    elif role:
         query = query.where(User.role == role)
         
     count_query = select(func.count()).select_from(query.subquery())
@@ -162,11 +227,11 @@ async def get_user_activity(user_id: str, admin: User = Depends(get_current_admi
     
     return {
         "ledger": [
-            {"id": l.id, "type": l.entry_type, "amount": l.amount, "ref": l.reference_type, "time": l.created_at} 
+            {"id": l.id, "type": _enum_value(l.entry_type), "amount": l.amount, "ref": _enum_value(l.reference_type), "description": l.description, "time": l.created_at} 
             for l in ledger_items
         ],
         "trading": [
-            {"id": t.id, "type": t.type, "symbol": t.symbol, "val": t.total_value, "time": t.timestamp} 
+            {"id": t.id, "type": t.type, "symbol": t.symbol, "val": t.total_value, "time": _utc(t.timestamp)} 
             for t in trading_items
         ]
     }
@@ -178,44 +243,133 @@ async def toggle_user_status(user_id: str, request: Request, admin: User = Depen
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
+    if user.id == admin.id:
+        raise HTTPException(status_code=400, detail="You cannot change your own account status")
+    if admin.role == "support":
+        raise HTTPException(status_code=403, detail="Support staff cannot suspend accounts")
+    if user.role in ADMIN_ROLES and admin.role != "super_admin":
+        raise HTTPException(status_code=403, detail="Only a super admin can change another admin's status")
+
     user.is_active = not user.is_active
-    await db.commit()
-    
-    await log_audit(db, admin.id, "TOGGLE_USER_STATUS", target_id=user_id, details={"new_status": user.is_active}, ip=request.client.host)
+    await log_audit(db, admin.id, "TOGGLE_USER_STATUS", target_id=user_id, details={"new_status": user.is_active}, ip=_client_ip(request))
     return {"id": user_id, "is_active": user.is_active}
 
 # ── Transaction Ledger ──
 
 @router.get("/ledger")
 async def view_global_ledger(
-    page: int = Query(1),
-    limit: int = Query(50),
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=200),
     user_id: Optional[str] = None,
+    entry_type: Optional[str] = Query(None, pattern="^(CREDIT|DEBIT)$"),
     admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db)
 ):
-    query = select(Ledger).order_by(desc(Ledger.created_at))
+    """Newest-first ledger rows with the owner's name (page through with page/limit)."""
+    query = select(Ledger, User.full_name, User.email).outerjoin(User, User.id == Ledger.user_id)
     if user_id:
         query = query.where(Ledger.user_id == user_id)
-        
-    result = await db.execute(query.offset((page - 1) * limit).limit(limit))
-    items = result.scalars().all()
-    
+    if entry_type:
+        query = query.where(Ledger.entry_type == entry_type)
+
+    result = await db.execute(query.order_by(desc(Ledger.created_at)).offset((page - 1) * limit).limit(limit))
     return [
         {
-            "id": i.id, "user_id": i.user_id, "type": i.entry_type, 
-            "amount": i.amount, "ref": i.reference_type, "status": i.status, 
-            "time": i.created_at
-        } for i in items
+            "id": i.id, "user_id": i.user_id, "user_name": name or email,
+            "type": _enum_value(i.entry_type), "amount": i.amount,
+            "ref": _enum_value(i.reference_type), "reference_id": i.reference_id,
+            "status": _enum_value(i.status), "description": i.description,
+            "time": i.created_at,
+        } for i, name, email in result.all()
     ]
+
+# ── Trips & clubs ──
+
+@router.get("/trips")
+async def list_trips(
+    limit: int = Query(100, ge=1, le=500),
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    members = select(TripMember.trip_id, func.count(TripMember.id).label("n")).group_by(TripMember.trip_id).subquery()
+    expenses = select(TripExpense.trip_id, func.count(TripExpense.id).label("n")).group_by(TripExpense.trip_id).subquery()
+    rows = await db.execute(
+        select(TripWallet, func.coalesce(members.c.n, 0), func.coalesce(expenses.c.n, 0), User.full_name)
+        .outerjoin(members, members.c.trip_id == TripWallet.id)
+        .outerjoin(expenses, expenses.c.trip_id == TripWallet.id)
+        .outerjoin(User, User.id == TripWallet.created_by)
+        .order_by(desc(TripWallet.created_at))
+        .limit(limit)
+    )
+    return [
+        {
+            "id": t.id, "name": t.name, "emoji": t.emoji, "destination": t.destination or None,
+            "status": _enum_value(t.status), "members": n_members, "expenses": n_expenses,
+            "total_spent": t.total_spent or 0, "created_by": creator, "created_at": _utc(t.created_at),
+        }
+        for t, n_members, n_expenses, creator in rows.all()
+    ]
+
+
+@router.get("/clubs")
+async def list_clubs(
+    limit: int = Query(100, ge=1, le=500),
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    members = select(InvestmentMember.group_id, func.count(InvestmentMember.id).label("n")).group_by(InvestmentMember.group_id).subquery()
+    rows = await db.execute(
+        select(InvestmentGroup, func.coalesce(members.c.n, 0), User.full_name)
+        .outerjoin(members, members.c.group_id == InvestmentGroup.id)
+        .outerjoin(User, User.id == InvestmentGroup.created_by)
+        .order_by(desc(InvestmentGroup.created_at))
+        .limit(limit)
+    )
+    return [
+        {
+            "id": g.id, "name": g.name, "emoji": g.emoji, "status": _enum_value(g.status), "members": n,
+            "total_invested": g.total_invested or 0, "cash": g.total_balance or 0, "value": g.total_value or 0,
+            "created_by": creator, "created_at": _utc(g.created_at),
+        }
+        for g, n, creator in rows.all()
+    ]
+
+
+# ── System status ──
+
+@router.get("/system")
+async def system_status(admin: User = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
+    """Which integrations are configured (booleans only – never the values)."""
+    started = datetime.now(timezone.utc)
+    await db.execute(select(1))
+    db_ms = round((datetime.now(timezone.utc) - started).total_seconds() * 1000, 1)
+
+    def configured(*values):
+        return all(bool(v and str(v).strip()) for v in values)
+
+    return {
+        "database": {"ok": True, "latency_ms": db_ms},
+        "integrations": [
+            {"key": "email", "name": "Email (OTP and reset codes)", "configured": configured(settings.smtp_user or settings.sender_email, settings.smtp_password or settings.sender_password)},
+            {"key": "razorpay", "name": "Razorpay wallet top-ups", "configured": configured(settings.razorpay_key_id, settings.razorpay_key_secret) and not str(settings.razorpay_key_id).endswith("_x")},
+            {"key": "razorpay_webhook", "name": "Razorpay webhook", "configured": configured(settings.razorpay_webhook_secret)},
+            {"key": "gemini", "name": "Gemini (AI assistant)", "configured": configured(settings.gemini_api_key)},
+            {"key": "sarvam", "name": "Sarvam (voice)", "configured": configured(settings.sarvam_api_key)},
+            {"key": "google", "name": "Google sign-in", "configured": configured(settings.google_client_id or settings.google_client_id_android or settings.google_client_id_ios)},
+            {"key": "sms", "name": "SMS", "configured": configured(settings.sms_api_key)},
+            {"key": "rapidapi", "name": "Flight search (RapidAPI)", "configured": configured(os.getenv("RAPIDAPI_KEY"))},
+        ],
+        "rate_limiting": settings.rate_limit_enabled,
+        "checked_at": started,
+    }
 
 # ── Notifications ──
 
 class BulkNotificationRequest(BaseModel):
-    title: str
-    message: str
+    title: str = Field(..., min_length=1, max_length=200)
+    message: str = Field(..., min_length=1, max_length=2000)
     target_role: Optional[str] = None
-    user_ids: Optional[List[str]] = None
+    user_ids: Optional[List[str]] = Field(None, max_length=10000)
     type: NotificationType = NotificationType.INFO
 
 @router.post("/notifications/bulk")
@@ -223,25 +377,22 @@ async def send_bulk_notif(req: BulkNotificationRequest, r: Request, admin: User 
     if admin.role == "support":
         raise HTTPException(status_code=403, detail="Support staff cannot send bulk messages")
         
-    target_ids = []
+ 
+    # Only notify accounts that actually exist (unknown ids used to fail the FK and 500).
+    query = select(User.id).where(User.deleted_at.is_(None))
     if req.user_ids:
-        target_ids = req.user_ids
+        query = query.where(User.id.in_(set(req.user_ids)))
     elif req.target_role:
-        res = await db.execute(select(User.id).where(User.role == req.target_role))
-        target_ids = res.scalars().all()
-    else:
-        res = await db.execute(select(User.id))
-        target_ids = res.scalars().all()
-        
+        query = query.where(User.role == req.target_role)
+    target_ids = (await db.execute(query)).scalars().all()
+
     notifications = [
         Notification(user_id=uid, title=req.title, message=req.message, type=req.type)
         for uid in target_ids
     ]
     
     db.add_all(notifications)
-    await db.commit()
-    
-    await log_audit(db, admin.id, "SEND_BULK_NOTIF", details={"count": len(target_ids), "title": req.title}, ip=r.client.host)
+    await log_audit(db, admin.id, "SEND_BULK_NOTIF", details={"count": len(target_ids), "title": req.title}, ip=_client_ip(r))
     return {"message": "Notifications queued", "recipients": len(target_ids)}
 
 # ── Audit Logs ──
@@ -253,4 +404,29 @@ async def get_audit_logs(admin: User = Depends(get_current_admin), db: AsyncSess
         
     result = await db.execute(select(AuditLog).order_by(desc(AuditLog.created_at)).limit(100))
     logs = result.scalars().all()
-    return logs
+    actor_ids = {log.admin_id for log in logs}
+    actors = {}
+    if actor_ids:
+        rows = await db.execute(select(User.id, User.full_name, User.email).where(User.id.in_(actor_ids)))
+        actors = {uid: (name or email) for uid, name, email in rows.all()}
+
+    def _details(raw):
+        if not raw:
+            return None
+        try:
+            return json.loads(raw)
+        except (TypeError, ValueError):
+            return {"text": raw}
+
+    return [
+        {
+            "id": log.id,
+            "timestamp": log.created_at,
+            "actor": actors.get(log.admin_id, log.admin_id),
+            "action": log.action,
+            "target": log.target_id,
+            "details": _details(log.details),
+            "ip": log.ip_address,
+        }
+        for log in logs
+    ]

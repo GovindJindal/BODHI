@@ -4,8 +4,6 @@ Real flight search via RapidAPI (Sky Scrapper / Flights API) + airport autocompl
 """
 import os
 import logging
-from typing import Optional
-from datetime import date
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query

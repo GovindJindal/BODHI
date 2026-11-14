@@ -50,11 +50,11 @@ def market_status() -> dict:
     if t < MARKET_OPEN:
         return {"open": False, "status": "pre_open_session", "message": "NSE pre-open session (9:00–9:15 AM). Market opens shortly.", "next_open": today_open_str(now)}
     if t <= MARKET_CLOSE:
-        return {"open": True, "status": "open", "message": f"NSE is LIVE. Closes at 3:30 PM IST.", "closes_at": "3:30 PM IST"}
+        return {"open": True, "status": "open", "message": "NSE is LIVE. Closes at 3:30 PM IST.", "closes_at": "3:30 PM IST"}
     if t <= POST_CLOSE:
         return {"open": False, "status": "post_market", "message": "NSE closed at 3:30 PM IST. Post-market session until 4:00 PM.", "next_open": _next_open_str(now)}
     
-    return {"open": False, "status": "closed", "message": f"NSE is closed. Opens at 9:15 AM IST tomorrow.", "next_open": _next_open_str(now)}
+    return {"open": False, "status": "closed", "message": "NSE is closed. Opens at 9:15 AM IST tomorrow.", "next_open": _next_open_str(now)}
 
 def today_open_str(now: datetime) -> str:
     return now.strftime("%d %b %Y") + " at 9:15 AM IST"

@@ -7,7 +7,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator
-from models.social import ClubType, MemberRole, InviteStatus, BetStatus
+from models.social import ClubType, InviteStatus, BetStatus
 
 
 # ── Shared ────────────────────────────────────────────────────

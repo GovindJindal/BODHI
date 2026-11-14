@@ -110,7 +110,7 @@ export function ScanPayScreen() {
   });
 
   // ── Payment handler (BODHI Wallet) ───────────────────────────────────────
-  const handlePay = async () => {
+  const handlePay = async (uPin?: string) => {
     if (!amount || parseFloat(amount) <= 0) {
       setPaymentError('Please enter a valid amount.');
       return;
@@ -128,6 +128,7 @@ export function ScanPayScreen() {
         qr_data: scannedData,
         amount: parseFloat(amount),
         note: note || undefined,
+        u_pin: uPin,
       };
 
       if (isBodhiQR(scannedData)) {
@@ -142,6 +143,7 @@ export function ScanPayScreen() {
           recipient_identifier: gapId,
           amount: parseFloat(amount),
           note: note || undefined,
+          u_pin: uPin,
         };
       }
 
@@ -200,7 +202,7 @@ export function ScanPayScreen() {
       }
       
       setShowUpinModal(false);
-      await handlePay();
+      await handlePay(uPinInput);
     } catch (e: any) {
       setPaymentError(e.message || 'Verification Error');
     } finally {

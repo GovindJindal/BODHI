@@ -10,10 +10,10 @@ from typing import List, Optional
 
 from fastapi import (
     APIRouter, Depends, HTTPException, Query,
-    WebSocket, WebSocketDisconnect, status
+    WebSocket, WebSocketDisconnect
 )
 from pydantic import BaseModel
-from sqlalchemy import select, delete, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -23,7 +23,7 @@ from models.collaboration import (
     GroupMessage, GroupActivity,
     GroupType, MessageType, ActivityType
 )
-from models.social import TripWallet, TripMember, InvestmentGroup, InvestmentMember
+from models.social import TripMember, InvestmentMember
 from models.core import User
 from services.auth_service import get_current_user
 

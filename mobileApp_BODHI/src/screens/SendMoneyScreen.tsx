@@ -139,7 +139,7 @@ export function SendMoneyScreen() {
   };
 
   // ── Send money (BODHI) ───────────────────────────────────────────────────
-  const handleSend = async () => {
+  const handleSend = async (uPin?: string) => {
     if (!amount || parseFloat(amount) <= 0) {
       Alert.alert('Invalid Amount', 'Please enter a valid amount.');
       return;
@@ -159,6 +159,7 @@ export function SendMoneyScreen() {
           recipient_identifier: selectedRecipient,
           amount: parseFloat(amount),
           note: note || undefined,
+          u_pin: uPin,
         }),
       });
 
@@ -209,7 +210,7 @@ export function SendMoneyScreen() {
       }
 
       setShowUpinModal(false);
-      await handleSend();
+      await handleSend(uPinInput);
     } catch (e: any) {
       Alert.alert('Verification Error', e.message || 'Could not verify U-PIN.');
     } finally {

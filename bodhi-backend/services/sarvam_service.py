@@ -1,4 +1,3 @@
-import os
 import httpx
 from fastapi import HTTPException
 
@@ -18,7 +17,7 @@ async def generate_bodhi_speech(text: str) -> str:
     api_key = settings.sarvam_api_key
     if not api_key:
         print("CRITICAL: SARVAM_API_KEY environment variable is missing.")
-        raise HTTPException(status_code=500, detail="AI Voice is not configured on the server.")
+        raise HTTPException(status_code=503, detail="AI Voice is not configured on the server.")
 
     # SARVAM V3 SPEC: https://api.sarvam.ai/text-to-speech
     url = "https://api.sarvam.ai/text-to-speech"
@@ -72,7 +71,7 @@ async def transcribe_audio(file_bytes: bytes, filename: str) -> str:
     api_key = settings.sarvam_api_key
     if not api_key:
         print("CRITICAL: SARVAM_API_KEY environment variable is missing.")
-        raise HTTPException(status_code=500, detail="AI Voice transcription is not configured.")
+        raise HTTPException(status_code=503, detail="AI Voice transcription is not configured.")
 
     url = "https://api.sarvam.ai/speech-to-text"
     headers = {
