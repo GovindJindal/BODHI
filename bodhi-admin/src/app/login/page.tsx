@@ -34,7 +34,7 @@ export default function LoginPage() {
     <main className="min-h-screen grid place-items-center px-4 py-12">
       <div className="w-full max-w-[380px]">
         <div className="flex items-center gap-2.5 mb-10">
-          <BodhiMark className="w-9 h-9 text-leaf" />
+          <BodhiMark className="w-11 h-11" />
           <span className="text-xl font-bold tracking-[-0.01em]">BODHI</span>
           <span className="text-muted">Admin</span>
         </div>

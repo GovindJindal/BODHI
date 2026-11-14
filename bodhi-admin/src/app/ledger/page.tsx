@@ -119,7 +119,7 @@ function RefCell({ value }: { value: string }) {
           setTimeout(() => setCopied(false), 1400);
         });
       }}
-      className="group inline-flex items-center gap-1.5 text-[13px] text-muted hover:text-ink tabular-nums"
+      className="group inline-flex items-center gap-1.5 text-[13px] text-muted hover:text-ink"
       title={`Copy ${value}`}
       aria-label={copied ? 'Reference copied' : `Copy reference ${value}`}
     >

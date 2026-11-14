@@ -73,7 +73,7 @@ export function MoneyRibbon({ items }: { items: LedgerItem[] }) {
       <div className="mt-3 min-h-[44px] flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[14px]" aria-live="polite">
         {shown ? (
           <>
-            <span className={cn('tabular-nums font-semibold text-[16px]', shown.type === 'CREDIT' ? 'text-leaf' : 'text-madder')}>
+            <span className={cn('font-semibold text-[16px] whitespace-nowrap', shown.type === 'CREDIT' ? 'text-leaf' : 'text-madder')}>
               {shown.type === 'CREDIT' ? '+' : '−'}
               {formatCurrency(shown.amount, 'paise')}
             </span>

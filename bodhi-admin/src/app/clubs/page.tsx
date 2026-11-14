@@ -32,8 +32,8 @@ export default function ClubsPage() {
 
       {clubs.length > 0 && (
         <p className="mb-4 text-[15px] text-muted">
-          <span className="text-ink font-medium tabular-nums">{clubs.length}</span> clubs have pooled{' '}
-          <span className="text-ink font-medium tabular-nums">{formatCompactINR(pooled)}</span> from member wallets.
+          <span className="text-ink font-medium">{clubs.length}</span> clubs have pooled{' '}
+          <span className="text-ink font-medium">{formatCompactINR(pooled)}</span> from member wallets.
         </p>
       )}
 
@@ -80,17 +80,17 @@ export default function ClubsPage() {
                       <Td>
                         <Badge tone={c.status === 'active' ? 'leaf' : 'neutral'}>{c.status === 'active' ? 'Active' : 'Closed'}</Badge>
                       </Td>
-                      <Td align="right" className="tabular-nums">{c.members}</Td>
-                      <Td align="right" className="tabular-nums font-medium">{formatCurrency(c.total_invested)}</Td>
+                      <Td align="right" >{c.members}</Td>
+                      <Td align="right" className="font-medium">{formatCurrency(c.total_invested)}</Td>
                       <Td align="right">
-                        <span className="tabular-nums">{formatCurrency(c.cash)}</span>
+                        <span >{formatCurrency(c.cash)}</span>
                         {c.total_invested > 0 && (
                           <span className="mt-1 ml-auto block h-1 w-20 rounded-full bg-sunken overflow-hidden" title={`${cashShare.toFixed(0)}% still in cash`}>
                             <span className={cn('block h-full bg-turmeric')} style={{ width: `${cashShare}%` }} />
                           </span>
                         )}
                       </Td>
-                      <Td align="right" className="tabular-nums">{formatCurrency(c.value)}</Td>
+                      <Td align="right" >{formatCurrency(c.value)}</Td>
                     </tr>
                   );
                 })

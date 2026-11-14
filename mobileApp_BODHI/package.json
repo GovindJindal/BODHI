@@ -3,13 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "android": "node update-ip.js && react-native run-android",
-    "ios": "node update-ip.js && react-native run-ios",
-    "start": "node update-ip.js && react-native start",
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "start": "react-native start",
     "setup": "npm install --legacy-peer-deps && (cd ios && pod install || echo 'Skipping pod install (not on macOS)')",
     "clean-install": "rm -rf node_modules package-lock.json && npm install --legacy-peer-deps",
-    "update-env": "node update-ip.js",
-    "ts": "tsc --noEmit"
+    "ts": "tsc --noEmit",
+    "build:apk": "cd android && ./gradlew assembleRelease"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.21.0",
