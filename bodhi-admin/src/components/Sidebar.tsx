@@ -52,16 +52,11 @@ const groups: { label: string; items: NavItem[] }[] = [
 
 export type AdminUser = { full_name?: string; email?: string; role?: string };
 
+/** The official BODHI app icon (the tree), shown as a rounded tile like on a phone. */
 export function BodhiMark({ className }: { className?: string }) {
-  // A peepal leaf: broad heart-shaped blade with the long drip tip.
   return (
-    <svg viewBox="0 0 32 32" className={className} aria-hidden>
-      <path
-        d="M16 30c-.6-2.6-.9-4.4-.9-5.6C9 23.6 3.6 19.4 3.6 12.8 3.6 7.5 7.6 3.5 12 3.5c1.8 0 3.1.6 4 1.6.9-1 2.2-1.6 4-1.6 4.4 0 8.4 4 8.4 9.3 0 6.6-5.4 10.8-11.5 11.6 0 1.2-.3 3-.9 5.6Z"
-        fill="currentColor"
-      />
-      <path d="M16 6.5v17.4M16 12l-4.5-3M16 12l4.5-3M16 17l-6-3.6M16 17l6-3.6" stroke="var(--surface)" strokeWidth="1.3" strokeLinecap="round" fill="none" />
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element -- static export, tiny local asset
+    <img src="/bodhi-icon.png" alt="" aria-hidden className={cn('rounded-[22%] object-cover shrink-0', className)} />
   );
 }
 
@@ -115,7 +110,7 @@ export function Sidebar({ user, onNavigate }: { user: AdminUser | null; onNaviga
   return (
     <aside className="w-64 shrink-0 h-full bg-surface border-r border-line flex flex-col">
       <div className="h-16 px-5 flex items-center gap-2.5 border-b border-line">
-        <BodhiMark className="w-7 h-7 text-leaf" />
+        <BodhiMark className="w-8 h-8" />
         <span className="text-[17px] font-bold tracking-[-0.01em] text-ink">BODHI</span>
         <span className="text-[13px] text-muted">Admin</span>
       </div>

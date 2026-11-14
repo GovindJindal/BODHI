@@ -219,7 +219,7 @@ function MemberDrawer({
           <dl className="grid grid-cols-2 gap-4">
             <div>
               <dt className="text-[13px] text-muted">Wallet balance</dt>
-              <dd className="text-[22px] font-semibold tabular-nums">{formatCurrency(member.balance)}</dd>
+              <dd className="text-[22px] font-semibold">{formatCurrency(member.balance)}</dd>
             </div>
             <div>
               <dt className="text-[13px] text-muted">Joined</dt>
@@ -262,7 +262,7 @@ function MemberDrawer({
                       <Badge tone={t.type === 'BUY' ? 'sky' : 'turmeric'}>{t.type === 'BUY' ? 'Buy' : 'Sell'}</Badge>
                     </span>
                     <span className="text-right">
-                      <span className="block tabular-nums">{formatCurrency(t.val)}</span>
+                      <span className="block">{formatCurrency(t.val)}</span>
                       <span className="block text-[12px] text-faint">{formatRelative(t.time)}</span>
                     </span>
                   </li>

@@ -308,7 +308,7 @@ export function Notice({ tone, children }: { tone: 'leaf' | 'madder' | 'turmeric
 
 export function Money({ value, signed, className }: { value: string; signed?: 'credit' | 'debit'; className?: string }) {
   return (
-    <span className={cn('tabular-nums font-medium', signed === 'credit' && 'text-leaf', signed === 'debit' && 'text-madder', className)}>
+    <span className={cn('font-medium whitespace-nowrap', signed === 'credit' && 'text-leaf', signed === 'debit' && 'text-madder', className)}>
       {signed === 'credit' ? '+' : signed === 'debit' ? '−' : ''}
       {value}
     </span>

@@ -1,38 +1,46 @@
-# BODHI Admin Command Center (V2)
+# BODHI Admin
 
-Production-ready administrative interface for the BODHI Fintech Super App.
+The operations dashboard for BODHI. Staff use it to watch money moving through member wallets, look up and suspend members, review trips and investment clubs, send in-app announcements, and check that the backend and its integrations are set up.
 
-## 🚀 Features
-- **Modern UI**: Next.js 14, Tailwind CSS, and Recharts.
-- **RBAC**: Multi-role support (Super Admin, Admin, Support).
-- **Hardened Security**: JWT-based authentication with isolated admin passwords.
-- **Audit Logging**: Every administrative action is logged for compliance.
-- **Live Telemetry**: Real-time stats on volume, users, and system health.
-- **Feature Monitoring**: View Trip Wallets, Venture Clubs, and AI usage.
+![Dashboard](../docs/screenshots/admin/dashboard.png)
 
-## 🛠️ Setup Instructions
+## Pages
 
-### 1. Environment Configuration
-Create a `.env.local` file in this directory:
-```bash
-NEXT_PUBLIC_API_URL=http://localhost:8000/admin-v2
-```
+| Page | What it does |
+| :--- | :--- |
+| Dashboard | Money-movement chart of the last 120 ledger entries, key figures, recent entries and a "needs attention" list |
+| Members | Search, filter by role, page through accounts; open a member to see wallet activity and paper trades, or suspend them |
+| Ledger | Every credit and debit, filterable, with copyable references |
+| Trips / Investment clubs | All shared trip wallets and group portfolios |
+| Announcements | Send an in-app notification with a live phone preview |
+| Audit log | Who did what, grouped by day (super admins only) |
+| System status | Database latency and which integrations have keys configured |
+| Add admin | Create a dashboard-only admin account |
 
-### 2. Install Dependencies
+Light and dark themes follow the operating system, with a toggle in the sidebar.
+
+## Run it locally
+
 ```bash
 npm install
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000 npm run dev
 ```
 
-### 3. Start Development Server
+`NEXT_PUBLIC_API_URL` is the backend's base URL (without `/admin-v2`). It defaults to the deployed API Gateway. The backend must allow the dashboard's origin in `ALLOWED_ORIGINS`.
+
+Sign in with an account whose role is `super_admin`, `admin` or `support`. To make your first super admin, set `role = 'super_admin'` on a user row in the database; after that, new admins can be added from the **Add admin** page.
+
+## Build
+
 ```bash
-npm run dev
+npm run build   # static export to ./out
 ```
 
-### 4. Build for Production
+The app is a static export (`output: 'export'`), so `./out` can be hosted on S3, CloudFront, Netlify or any static host. There is no Node server to run.
+
+## Checks
+
 ```bash
-npm run build
-npm start
+npx eslint src
+npx tsc --noEmit
 ```
-
-## 🔐 Security Note
-This interface connects to the modern `/admin-v2` backend endpoints. Ensure your backend is running the latest `admin_prod.py` router.

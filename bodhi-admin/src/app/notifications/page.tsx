@@ -155,7 +155,7 @@ export default function NotificationsPage() {
           <p className="text-[13px] text-muted mb-2">Preview on a phone</p>
           <div className="mx-auto max-w-[320px] rounded-[28px] border border-line-strong bg-sunken p-3 shadow-panel">
             <div className="rounded-[20px] bg-paper px-3 pt-3 pb-6 min-h-[300px]">
-              <div className="flex justify-between text-[11px] text-muted px-1 mb-4 tabular-nums">
+              <div className="flex justify-between text-[11px] text-muted px-1 mb-4">
                 <span>9:41</span>
                 <span>Notifications</span>
               </div>
@@ -172,9 +172,7 @@ export default function NotificationsPage() {
                 </div>
               </div>
               <div className="mt-3 rounded-2xl bg-surface/60 border border-line p-3.5 flex gap-3 opacity-60" aria-hidden>
-                <span className="w-9 h-9 rounded-full bg-leaf-soft text-leaf flex items-center justify-center shrink-0">
-                  <BodhiMark className="w-[18px] h-[18px]" />
-                </span>
+                <BodhiMark className="w-9 h-9" />
                 <div className="flex-1 space-y-2 pt-1">
                   <div className="h-2.5 rounded bg-sunken w-3/4" />
                   <div className="h-2 rounded bg-sunken w-1/2" />

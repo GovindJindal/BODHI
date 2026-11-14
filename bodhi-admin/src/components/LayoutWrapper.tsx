@@ -25,7 +25,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <BodhiMark className="w-8 h-8 text-leaf opacity-60 animate-pulse" />
+        <BodhiMark className="w-10 h-10 opacity-70 animate-pulse" />
         <span className="sr-only">Checking your session</span>
       </div>
     );
@@ -66,7 +66,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <BodhiMark className="w-6 h-6 text-leaf" />
+          <BodhiMark className="w-7 h-7" />
           <span className="font-bold text-ink">BODHI</span>
           <span className="text-[13px] text-muted">Admin</span>
         </div>

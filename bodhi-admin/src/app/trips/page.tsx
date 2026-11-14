@@ -36,9 +36,9 @@ export default function TripsPage() {
 
       {trips.length > 0 && (
         <p className="mb-4 text-[15px] text-muted">
-          <span className="text-ink font-medium tabular-nums">{trips.length}</span> trips,{' '}
-          <span className="text-ink font-medium tabular-nums">{travellers}</span> travellers and{' '}
-          <span className="text-ink font-medium tabular-nums">{formatCompactINR(totalSpent)}</span> in logged expenses.
+          <span className="text-ink font-medium">{trips.length}</span> trips,{' '}
+          <span className="text-ink font-medium">{travellers}</span> travellers and{' '}
+          <span className="text-ink font-medium">{formatCompactINR(totalSpent)}</span> in logged expenses.
         </p>
       )}
 
@@ -84,9 +84,9 @@ export default function TripsPage() {
                       </Td>
                       <Td className="text-muted">{t.created_by || 'Unknown'}</Td>
                       <Td><Badge tone={st.tone}>{st.label}</Badge></Td>
-                      <Td align="right" className="tabular-nums">{t.members}</Td>
-                      <Td align="right" className="tabular-nums">{t.expenses}</Td>
-                      <Td align="right" className="tabular-nums font-medium">{formatCurrency(t.total_spent)}</Td>
+                      <Td align="right" >{t.members}</Td>
+                      <Td align="right" >{t.expenses}</Td>
+                      <Td align="right" className="font-medium">{formatCurrency(t.total_spent)}</Td>
                     </tr>
                   );
                 })
