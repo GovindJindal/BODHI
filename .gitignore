@@ -70,3 +70,7 @@ venv.bak/
 
 node_modules
 bodhi-backend/bodhi.db
+
+# Built APKs (attach them to GitHub Releases instead of committing)
+/release/
+*.apk

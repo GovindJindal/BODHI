@@ -25,7 +25,7 @@ BODHI is a fintech super app for students and young earners: a wallet with UPI-s
 
 ## 📲 Download the Android app
 
-Get the latest **`BODHI-v1.0.apk`** from the [Releases page](https://github.com/GovindJindal/BODHI/releases/latest).
+Get the latest **`BODHI-v1.1.apk`** from the [Releases page](https://github.com/GovindJindal/BODHI/releases/latest).
 
 1. Open the APK on your Android phone (Android 5.0 or newer).
 2. If asked, allow your browser or file manager to install unknown apps.
